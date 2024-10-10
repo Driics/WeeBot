@@ -1,0 +1,30 @@
+apply plugin: 'application'
+apply plugin: 'org.springframework.boot'
+
+description = 'SableBot Discord Bot Worker Application'
+
+ext {
+    moduleName = 'SableBot-Worker'
+}
+
+mainClassName = 'ru.sablebot.worker.Launcher'
+
+bootJar {
+    archiveFileName = "SableBot-Worker.jar"
+}
+
+dependencies {
+    implementation "org.springframework.boot:spring-boot-starter-web"
+
+    implementation project(':sb-common-worker')
+
+    implementation "org.codehaus.groovy:groovy:3.0.22"
+}
+
+
+test {
+    useJUnitPlatform()
+}
+kotlin {
+    jvmToolchain(21)
+}

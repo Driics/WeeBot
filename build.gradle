@@ -1,0 +1,39 @@
+buildscript {
+    repositories {
+        mavenCentral()
+        maven { url "https://plugins.gradle.org/m2/" }
+        maven { url 'https://repo.spring.io/plugins-release' }
+    }
+    dependencies {
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:3.3.2")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:2.0.10")
+        classpath("org.jetbrains.kotlin:kotlin-allopen:2.0.10")
+    }
+}
+
+group = 'ru.driics'
+version = '1.0-SNAPSHOT'
+
+allprojects {
+    repositories {
+        mavenCentral()
+    }
+}
+
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'java-library'
+    apply plugin: 'io.spring.dependency-management'
+    apply plugin: 'org.jetbrains.kotlin.jvm'
+
+    dependencies {
+        implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1"
+
+        testImplementation platform('org.junit:junit-bom:5.10.0')
+        testImplementation 'org.junit.jupiter:junit-jupiter'
+    }
+
+    test {
+        useJUnitPlatform()
+    }
+}

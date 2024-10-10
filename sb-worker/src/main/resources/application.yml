@@ -1,0 +1,30 @@
+spring:
+  cloud:
+    consul:
+      enabled: false
+      discovery:
+        healthCheckPath: /health
+        healthCheckInterval: 15s
+  application:
+    version: "@build.version@"
+    timestamp: "@build.timestamp@"
+    name: "SablebotBot-Worker"
+
+sablebot:
+  worker:
+    discord:
+      token: ""
+      playingStatus: "Suck"
+      shardsTotal: 1
+    commands:
+      invokeLogging: true
+    support:
+      guild-id: 763252709833965579
+      emergency-channel-id: 924575732989034506
+
+server:
+  servlet:
+    encoding:
+      charset: "UTF-8"
+      enabled: "true"
+      force: "true"
