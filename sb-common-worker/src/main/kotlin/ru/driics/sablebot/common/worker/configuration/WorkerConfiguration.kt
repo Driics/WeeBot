@@ -7,5 +7,5 @@ import ru.driics.sablebot.common.configuration.CommonConfiguration
 
 @Configuration
 @EnableDiscoveryClient
-@Import(CommonConfiguration::class)
+@Import(CommonConfiguration::class, QuartzConfiguration::class)
 open class WorkerConfiguration

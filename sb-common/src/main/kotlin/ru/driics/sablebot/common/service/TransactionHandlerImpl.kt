@@ -1,6 +1,10 @@
 package ru.driics.sablebot.common.service
 
-/*
+import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Propagation
+import org.springframework.transaction.annotation.Transactional
+
+
 @Service
 open class TransactionHandlerImpl : TransactionHandler {
 
@@ -24,4 +28,4 @@ open class TransactionHandlerImpl : TransactionHandler {
     override fun <T> runWithLockRetry(action: () -> T): T {
         TODO("Not yet implemented")
     }
-}*/
+}

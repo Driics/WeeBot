@@ -9,6 +9,8 @@ import org.springframework.scheduling.annotation.EnableAsync
 import org.springframework.scheduling.annotation.EnableScheduling
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler
+import ru.driics.sablebot.common.support.SbCacheManager
+import ru.driics.sablebot.common.support.SbCacheManagerImpl
 import ru.driics.sablebot.common.support.jmx.ThreadPoolTaskExecutorMBean
 
 @EnableAsync
@@ -27,7 +29,10 @@ open class CommonConfiguration @Autowired constructor(
 
     @Bean
     open fun taskExecutorMBean() =
-        ThreadPoolTaskExecutorMBean(taskExecutor() as ThreadPoolTaskExecutor, "Spring TaskExecutor")
+        ThreadPoolTaskExecutorMBean(
+            taskExecutor = taskExecutor() as ThreadPoolTaskExecutor,
+            objectName = "Spring TaskExecutor"
+        )
 
     @Bean(EXECUTOR)
     @Primary
@@ -44,4 +49,8 @@ open class CommonConfiguration @Autowired constructor(
         setAwaitTerminationSeconds(30)
         threadNamePrefix = SCHEDULER
     }
+
+    @Bean("cacheManager")
+    @Primary
+    open fun cacheManager(): SbCacheManager = SbCacheManagerImpl()
 }

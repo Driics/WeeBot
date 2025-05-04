@@ -1,0 +1,10 @@
+package ru.driics.sablebot.common.persistence.entity.base
+
+import jakarta.persistence.Column
+import jakarta.persistence.MappedSuperclass
+
+@MappedSuperclass
+abstract class MemberEntity(
+    @Column(name = "user_id")
+    protected var userId: String = "",
+): GuildEntity()
