@@ -5,8 +5,17 @@ import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.interactions.InteractionHook
 import net.dv8tion.jda.api.requests.RestAction
 import net.dv8tion.jda.api.requests.restaction.interactions.ReplyCallbackAction
+import java.util.Locale
 
 interface MessageService {
+    fun getMessage(code: String, vararg args: Any?): String?
+
+    fun getMessageByLocale(key: String?, locale: Locale?, vararg args: Any?): String?
+
+    fun getMessageByLocale(key: String, locale: String?, vararg args: Any?): String?
+
+    fun hasMessage(code: String?): Boolean
+
     fun getBaseEmbed(copyright: Boolean = false): EmbedBuilder
 
     fun <T> sendMessageSilent(action: (T) -> RestAction<Message>, embed: T)
