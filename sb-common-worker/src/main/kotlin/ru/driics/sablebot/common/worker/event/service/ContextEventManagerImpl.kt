@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.core.task.TaskRejectedException
 import org.springframework.jmx.export.MBeanExportOperations
+import org.springframework.orm.ObjectOptimisticLockingFailureException
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor
 import org.springframework.stereotype.Service
 import ru.driics.sablebot.common.support.jmx.ThreadPoolTaskExecutorMBean
@@ -21,7 +22,8 @@ import ru.driics.sablebot.common.worker.event.listeners.DiscordEventListener
 @Service
 class ContextEventManagerImpl @Autowired constructor(
     private val workerProperties: WorkerProperties,
-    private val mBeanExportOperations: MBeanExportOperations
+    private val mBeanExportOperations: MBeanExportOperations,
+    private val contextService: ContextService
 ) : SbEventManager {
     private val log = LoggerFactory.getLogger(ContextEventManagerImpl::class.java)
 
@@ -42,13 +44,12 @@ class ContextEventManagerImpl @Autowired constructor(
         }
     }
 
-    /*
-    TODO: add contextService
-     */
     private fun handleEvent(event: GenericEvent) = try {
         loopListeners(event)
     } catch (e: Exception) {
         log.error("Event manager caused an uncaught exception", e)
+    } finally {
+        contextService.resetContext()
     }
 
     private fun loopListeners(event: GenericEvent) {
@@ -59,6 +60,14 @@ class ContextEventManagerImpl @Autowired constructor(
         listeners.forEach { listener ->
             try {
                 listener.onEvent(event)
+            } catch (e: ObjectOptimisticLockingFailureException) {
+                log.warn(
+                    "[{}] optimistic lock happened for {}#{} while handling {}",
+                    listener.javaClass.simpleName,
+                    e.persistentClassName,
+                    e.identifier,
+                    event
+                )
             } catch (throwable: Throwable) {
                 log.error(
                     "[{}] had an uncaught exception for handling {}",
@@ -123,9 +132,9 @@ class ContextEventManagerImpl @Autowired constructor(
                 corePoolSize = workerProperties.events.corePoolSize
                 maxPoolSize = workerProperties.events.maxPoolSize
                 setBeanName(name)
-                threadNamePrefix = name
+                setThreadNamePrefix(name)
                 initialize()
-                /*mBeanExportOperations.registerManagedResource(ThreadPoolTaskExecutorMBean(this, name))*/
+                mBeanExportOperations.registerManagedResource(ThreadPoolTaskExecutorMBean(this, name))
             }
         }
 

@@ -1,5 +1,8 @@
 package ru.driics.sablebot.common.service
 
+import org.hibernate.StaleStateException
+import org.springframework.retry.annotation.Backoff
+import org.springframework.retry.annotation.Retryable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
@@ -21,11 +24,9 @@ open class TransactionHandlerImpl : TransactionHandler {
     override fun <T> runInNewTransaction(action: () -> T): T = action.invoke()
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    override fun runWithLockRetry(action: () -> Unit) {
-        TODO("Not yet implemented")
-    }
+    override fun runWithLockRetry(action: () -> Unit) = action.invoke()
 
-    override fun <T> runWithLockRetry(action: () -> T): T {
-        TODO("Not yet implemented")
-    }
+    @Retryable(StaleStateException::class, maxAttempts = 5, backoff = Backoff(delay = 500))
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    override fun <T> runWithLockRetry(action: () -> T): T = action.invoke()
 }

@@ -8,16 +8,16 @@ import ru.driics.sablebot.common.worker.modules.moderation.model.ModerationActio
 
 interface MuteService {
 
-    fun getMutedRole(guild: Guild): Role
+    fun getMutedRole(guild: Guild): Role?
 
     fun mute(request: ModerationActionRequest): Boolean
 
-    fun unmute(author: Member, channel: TextChannel, member: Member): Boolean
+    fun unmute(author: Member?, channel: TextChannel?, member: Member): Boolean
 
     fun refreshMute(member: Member)
 
     fun isMuted(member: Member, channel: TextChannel): Boolean
 
-    fun clearState(guildId: Long, userId: String, channelId: String)
+    fun clearState(guildId: Long, userId: String, channelId: String?)
 }
 

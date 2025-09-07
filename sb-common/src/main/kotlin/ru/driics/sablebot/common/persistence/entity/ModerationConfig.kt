@@ -11,16 +11,16 @@ import ru.driics.sablebot.common.persistence.entity.base.GuildEntity
 class ModerationConfig(
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "JSON")
-    val roles: List<Long> = emptyList(),
+    var roles: List<Long> = emptyList(),
     @Column(name = "public_colors")
-    val publicColors: Boolean = false,
+    var publicColors: Boolean = false,
     @Column(name = "muted_role_id")
-    val mutedRoleId: Long = 0,
+    var mutedRoleId: Long = 0,
     @Column(name = "cooldown_ignored")
-    val coolDownIgnored: Boolean = false,
+    var coolDownIgnored: Boolean = false,
     @OneToMany(mappedBy = "config", cascade = [CascadeType.ALL], fetch = FetchType.EAGER)
     @OrderBy("count")
-    val actions: List<ModerationAction> = emptyList()
+    var actions: List<ModerationAction> = emptyList()
 ) : GuildEntity() {
     constructor(guildId: Long) : this() {
         this.guildId = guildId

@@ -10,6 +10,7 @@ import kotlinx.coroutines.launch
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.OnlineStatus
 import net.dv8tion.jda.api.entities.Activity
+import net.dv8tion.jda.api.entities.Guild
 import net.dv8tion.jda.api.entities.User
 import net.dv8tion.jda.api.events.ExceptionEvent
 import net.dv8tion.jda.api.events.session.ReadyEvent
@@ -108,6 +109,12 @@ open class DiscordServiceImpl @Autowired constructor(
             JDA.Status.CONNECTED == it.status
         } ?: false
     }
+
+    override fun getShardById(shardId: Int): JDA? =
+        shardManager.getShardById(shardId)
+
+    override fun getGuildById(guildId: Long): Guild? =
+        shardManager.getGuildById(guildId)
 
     override fun getShard(guildId: Long): JDA? =
         shardManager.getShardById(((guildId shr 22) % workerProperties.discord.shardsTotal).toInt())

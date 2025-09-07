@@ -7,6 +7,6 @@ interface AuditForwardProvider {
     fun send(
         config: AuditConfig,
         action: AuditAction,
-        attachments: Map<String, Array<Byte>>
+        attachments: Map<String, ByteArray>
     )
 }

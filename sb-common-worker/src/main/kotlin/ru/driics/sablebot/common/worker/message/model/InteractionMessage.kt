@@ -5,7 +5,6 @@ import dev.minn.jda.ktx.messages.MessageEdit
 import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.interactions.InteractionHook
 import net.dv8tion.jda.api.utils.messages.MessageEditData
-import ru.driics.sablebot.common.utils.await
 
 /**
  * An interaction message that supports initial interaction message (which does NOT have the message data) and follow-up messages (which DO have the message data)

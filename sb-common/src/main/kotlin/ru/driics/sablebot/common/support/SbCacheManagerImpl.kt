@@ -16,8 +16,9 @@ class SbCacheManagerImpl : ConcurrentMapCacheManager(), SbCacheManager {
 
     override fun <T, K> get(cacheName: String, key: K, supplier: (K) -> T): T {
         val cache: Cache = getCache(cacheName) ?: return supplier(key)
-        val value = cache.get(key as Any)?.get() as? T
-        return value ?: supplier(key).also { cache.put(key, it) }
+        requireNotNull(key) { "Cache key must not be null" }
+        @Suppress("UNCHECKED_CAST")
+        return cache.get(key, java.util.concurrent.Callable { supplier(key) }) as T
     }
 
     override fun <K> evict(cacheName: String, key: K) {

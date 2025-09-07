@@ -48,7 +48,7 @@ class ThreadPoolTaskExecutorMBean(
 
     @ManagedAttribute(description = "Sets the queue capacity for tasks")
     fun setQueueCapacity(queueCapacity: Int) {
-        taskExecutor.setQueueCapacity(queueCapacity)
+        taskExecutor.queueCapacity = queueCapacity
     }
 
     @ManagedAttribute(description = "Allow or disallow core thread timeouts")

@@ -6,5 +6,6 @@ import kotlin.properties.Delegates
 
 @MappedSuperclass
 abstract class GuildEntity(
-    @Column(name = "guild_id") var guildId: Long = 0
+    @Column(name = "guild_id")
+    open var guildId: Long = 0
 ) : BaseEntity()

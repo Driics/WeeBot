@@ -10,10 +10,10 @@ import ru.driics.sablebot.common.persistence.entity.base.FeaturedUserEntity
 @Table(name = "user", schema = "public")
 class LocalUser: FeaturedUserEntity() {
     @Column
-    private var name: String? = null
+    var name: String? = null
 
     @Column
-    private var discriminator: String? = null
+    var discriminator: String? = null
 
     @get:Transient
     val asMention: String

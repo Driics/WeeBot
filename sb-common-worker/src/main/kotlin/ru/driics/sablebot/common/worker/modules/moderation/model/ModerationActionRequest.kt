@@ -1,6 +1,5 @@
 package ru.driics.sablebot.common.worker.modules.moderation.model
 
-import net.dv8tion.jda.api.entities.Guild
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
 import ru.driics.sablebot.common.model.ModerationActionType
@@ -25,9 +24,7 @@ data class ModerationActionRequest(
     val revokeRoles: List<Long> = emptyList()
 ) : Serializable {
 
-    fun getGuild(): Guild? {
-        return moderator?.guild ?: violator?.guild ?: channel?.guild
-    }
+    val guild = moderator?.guild ?: violator?.guild ?: channel?.guild!!
 
     fun getDurationDate(): Date? {
         return duration?.let {

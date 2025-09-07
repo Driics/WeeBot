@@ -7,7 +7,7 @@ import java.util.Date
 
 @Entity
 @Table(name = "gulag")
-data class Gulag(
+open class Gulag(
     @Column
     var snowflake: Long = 0,
     @Column(columnDefinition = "TEXT")

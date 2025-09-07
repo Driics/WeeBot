@@ -3,11 +3,13 @@ buildscript {
         mavenCentral()
         maven { url "https://plugins.gradle.org/m2/" }
         maven { url 'https://repo.spring.io/plugins-release' }
+        maven { url "https://kotlin.bintray.com/kotlinx" }
     }
     dependencies {
         classpath("org.springframework.boot:spring-boot-gradle-plugin:3.3.2")
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:2.0.10")
         classpath("org.jetbrains.kotlin:kotlin-allopen:2.1.20")
+        classpath("org.jetbrains.kotlin:kotlin-serialization:2.0.10")
     }
 }
 

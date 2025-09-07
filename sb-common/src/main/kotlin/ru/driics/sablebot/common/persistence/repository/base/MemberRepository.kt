@@ -5,6 +5,6 @@ import ru.driics.sablebot.common.persistence.entity.base.MemberEntity
 
 @NoRepositoryBean
 interface MemberRepository<T : MemberEntity> : GuildRepository<T> {
-    fun findByGuildIdAndUserId(guildId: Long, userId: String): T?
+    fun findAllByGuildIdAndUserId(guildId: Long, userId: String): List<T>
     fun deleteByGuildIdAndUserId(guildId: Long, userId: String)
 }
