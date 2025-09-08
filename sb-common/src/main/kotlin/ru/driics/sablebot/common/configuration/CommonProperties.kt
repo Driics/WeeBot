@@ -29,6 +29,7 @@ class CommonProperties {
         var corePoolSize: Int = 5
         var maxPoolSize: Int = 5
         var schedulerPoolSize: Int = 10
+        var queueCapacity: Int = 10
     }
 
     class RabbitMQ {

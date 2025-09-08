@@ -1,8 +1,8 @@
 dependencies {
     api project(":sb-common")
     api "org.springframework.boot:spring-boot-starter-quartz:3.4.5"
-    api "org.springframework.cloud:spring-cloud-starter-consul-discovery:4.1.2"
+    api "org.springframework.cloud:spring-cloud-starter-consul-discovery"
     api("com.github.ben-manes.caffeine:caffeine:3.1.8")
 
-    testImplementation "org.springframework.boot:spring-boot-starter-test:3.3.2"
+    testImplementation "org.springframework.boot:spring-boot-starter-test"
 }

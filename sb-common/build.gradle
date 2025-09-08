@@ -5,7 +5,7 @@ plugins {
 }
 
 dependencies {
-    implementation(platform("org.springframework.boot:spring-boot-dependencies:3.3.2"))
+    api(platform("org.springframework.boot:spring-boot-dependencies:3.3.2"))
     api "org.springframework.boot:spring-boot-starter"
     implementation "org.springframework.boot:spring-boot-starter-data-jpa"
     implementation "org.springframework.boot:spring-boot-starter-amqp"
