@@ -4,7 +4,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.domain.EntityScan
 import org.springframework.context.annotation.*
 import org.springframework.core.Ordered
-import org.springframework.core.task.TaskExecutor
 import org.springframework.retry.annotation.EnableRetry
 import org.springframework.scheduling.TaskScheduler
 import org.springframework.scheduling.annotation.EnableAsync
@@ -39,10 +38,12 @@ class CommonConfiguration @Autowired constructor(
 
     @Bean(EXECUTOR)
     @Primary
-    fun taskExecutor(): TaskExecutor = ThreadPoolTaskExecutor().apply {
+    fun taskExecutor(): ThreadPoolTaskExecutor = ThreadPoolTaskExecutor().apply {
         corePoolSize = commonProperties.execution.corePoolSize
         maxPoolSize = commonProperties.execution.maxPoolSize
-        setThreadNamePrefix(EXECUTOR)
+        queueCapacity = 10_000
+        threadNamePrefix = EXECUTOR
+        initialize()
     }
 
     @Bean(SCHEDULER)
@@ -50,7 +51,7 @@ class CommonConfiguration @Autowired constructor(
         poolSize = commonProperties.execution.schedulerPoolSize
         setWaitForTasksToCompleteOnShutdown(true)
         setAwaitTerminationSeconds(30)
-        setThreadNamePrefix(EXECUTOR)
+        threadNamePrefix = SCHEDULER
     }
 
     @Bean("sbCacheManager")
