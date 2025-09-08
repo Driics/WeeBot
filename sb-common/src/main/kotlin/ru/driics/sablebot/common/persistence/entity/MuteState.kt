@@ -2,13 +2,11 @@ package ru.driics.sablebot.common.persistence.entity
 
 import jakarta.persistence.*
 import ru.driics.sablebot.common.persistence.entity.base.MemberEntity
-import kotlin.time.Clock
-import kotlin.time.ExperimentalTime
-import kotlin.time.Instant
+import java.time.Instant
 
 @Entity
 @Table(name = "mute_state")
-class MuteState @OptIn(ExperimentalTime::class) constructor(
+class MuteState constructor(
     userId: String,
     guildId: Long,
     @Column
@@ -18,8 +16,7 @@ class MuteState @OptIn(ExperimentalTime::class) constructor(
     @Column
     val reason: String? = "",
     @Column
-    @Temporal(TemporalType.TIMESTAMP)
-    val expire: Instant = Clock.System.now(),
+    var expire: Instant = Instant.now(),
 ) : MemberEntity(userId) {
 
     init {

@@ -119,9 +119,9 @@ interface ContextService {
      * @param action The JDA RestAction to queue.
      * @param success Success callback executed under the same contextual guild.
      */
-    fun <T> queue(guild: Guild?, action: RestAction<T>, success: (T) -> Unit)
+    fun <T> queue(guild: Guild?, action: RestAction<T>, success: (T) -> Unit,  failure: (Throwable) -> Unit = {})
     /** Same as [queue] but uses a raw [guildId]. */
-    fun <T> queue(guildId: Long?, action: RestAction<T>, success: (T) -> Unit)
+    fun <T> queue(guildId: Long?, action: RestAction<T>, success: (T) -> Unit,  failure: (Throwable) -> Unit = {})
 
     // -------------------- Extended coroutine / Flow features -------------------
 
@@ -269,9 +269,10 @@ suspend fun <T, R> Collection<T>.mapWithContext(
     contextService: ContextService,
     getGuildId: (T) -> Long,
     transform: suspend (T) -> R
-): List<R> = contextService.withMultipleGuildContexts(
-    this.map(getGuildId)
-) { guildId ->
-    val item = this.first { getGuildId(it) == guildId }
-    transform(item)
+): List<R> {
+    val out = ArrayList<R>(this.size)
+    for (item in this) {
+        out += contextService.withGuildContext(getGuildId(item)) { transform(item) }
+    }
+    return out
 }

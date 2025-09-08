@@ -17,7 +17,7 @@ interface FeatureSetService {
     fun getAvailable(guild: Guild?): Set<FeatureSet> =
         guild?.let { getByGuild(it.idLong) } ?: emptySet()
 
-    fun getAvailableByUser(user: User?): Set<FeatureSet> =
+    fun getAvailableForUser(user: User?): Set<FeatureSet> =
         user?.let { getByUser(it.idLong) } ?: emptySet()
 
     fun isAvailable(guildId: Long): Boolean =

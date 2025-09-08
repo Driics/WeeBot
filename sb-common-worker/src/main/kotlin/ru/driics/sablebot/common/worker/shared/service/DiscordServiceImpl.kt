@@ -66,7 +66,8 @@ open class DiscordServiceImpl @Autowired constructor(
         get() = _shardManager
 
     override val jda: JDA
-        get() = _shardManager.shards.iterator().next()
+        get() = _shardManager.shards.firstOrNull()
+            ?: error("ShardManager hasn't started yet: no shards available")
 
     override val selfUser: User
         get() = jda.selfUser

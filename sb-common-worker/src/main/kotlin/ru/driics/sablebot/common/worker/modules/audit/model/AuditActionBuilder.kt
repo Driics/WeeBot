@@ -24,43 +24,44 @@ abstract class AuditActionBuilder(
     protected val attachments: MutableMap<String, ByteArray> = mutableMapOf()
 
     fun withUser(user: User?) = apply {
-        action.user = user?.let { getReference(it) }!!
+        user?.let { action.user = getReference(it) }
     }
 
     fun withUser(member: Member?) = apply {
-        action.user = member?.let { getReference(it) }!!
+        member?.let { action.user = getReference(it) }
     }
 
     fun withUser(user: LocalUser?) = apply {
-        action.user = user?.let { getReference(it) }!!
+        user?.let { action.user = getReference(it) }
     }
 
     fun withUser(member: LocalMember?) = apply {
-        action.user = member?.let { getReference(it) }!!
+        member?.let { action.user = getReference(it) }
     }
 
     fun withTargetUser(user: User?) = apply {
-        action.targetUser = user?.let { getReference(it) }!!
+        user?.let { action.targetUser = getReference(it) }
     }
 
     fun withTargetUser(member: Member?) = apply {
-        action.targetUser = member?.let { getReference(it) }!!
+        member?.let { action.targetUser = getReference(it) }
     }
 
     fun withTargetUser(user: LocalUser?) = apply {
-        action.targetUser = user?.let { getReference(it) }!!
+        user?.let { action.targetUser = getReference(it) }
     }
 
     fun withTargetUser(member: LocalMember?) = apply {
-        action.targetUser = member?.let { getReference(it) }!!
+        member?.let { action.targetUser = getReference(it) }
     }
 
     fun withChannel(channel: GuildChannel?) = apply {
-        action.channel = channel?.let { getReference(it) }!!
+        channel?.let { action.channel = getReference(it) }
     }
 
     fun withAttribute(key: String, value: Any?) = apply {
-        action.attributes[key] = getReferenceForObject(value)!!
+        val v = getReferenceForObject(value)
+        if (v != null) action.attributes[key] = v
     }
 
     fun withAttachment(key: String, data: ByteArray) = apply {
@@ -73,7 +74,8 @@ abstract class AuditActionBuilder(
         is Member -> getReference(obj)
         is LocalMember -> getReference(obj)
         is GuildChannel -> getReference(obj)
-        else -> obj
+        is String, is Number, is Boolean, null -> obj
+        else -> obj.toString()
     }
 
     private fun getReference(user: User) = NamedReference(user.id, user.name)

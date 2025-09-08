@@ -21,7 +21,7 @@ class SupportServiceImpl @Autowired constructor(
                 return null
             }
 
-            return discordService.shardManager.getGuildById(guildId)
+            return discordService.getGuildById(guildId)
         }
 
     override val donatorRole: Role?

@@ -13,14 +13,15 @@ import java.util.concurrent.ConcurrentHashMap
 class SourceResolverServiceImpl : SourceResolverService {
 
     // Thread-safe lazy initialization with concurrent maps for better performance
-    private val guildAccessors = ConcurrentHashMap<Class<out GenericEvent>, Method?>()
-    private val userAccessors = ConcurrentHashMap<Class<out GenericEvent>, Method?>()
+    private val guildAccessors = ConcurrentHashMap<Class<out GenericEvent>, Method>()
+    private val userAccessors = ConcurrentHashMap<Class<out GenericEvent>, Method>()
+    private val memberAccessors = ConcurrentHashMap<Class<out GenericEvent>, Method>()
 
     override fun getGuild(event: GenericEvent?): Guild? {
         return event?.let { safeEvent ->
-            val method = guildAccessors.computeIfAbsent(safeEvent::class.java) { clazz ->
-                clazz.findMethod("getGuild")
-            }
+            val clazz = safeEvent::class.java
+            val method = guildAccessors[clazz]
+                ?: clazz.findMethod("getGuild")?.also { guildAccessors.putIfAbsent(clazz, it) }
             method?.invokeMethodSafely<Guild>(safeEvent)
         }
     }
@@ -30,14 +31,20 @@ class SourceResolverServiceImpl : SourceResolverService {
     }
 
     override fun getMember(event: GenericEvent?): Member? {
-        return getAuthor(event) as? Member
+        return event?.let { safeEvent ->
+            val clazz = safeEvent::class.java
+            val method = memberAccessors[clazz]
+                ?: clazz.findMethod("getMember")?.also { memberAccessors.putIfAbsent(clazz, it) }
+            method?.invokeMethodSafely<Member>(safeEvent)
+        }
     }
 
     private fun getAuthor(event: GenericEvent?): Any? {
         return event?.let { safeEvent ->
-            val method = userAccessors.computeIfAbsent(safeEvent::class.java) { clazz ->
-                clazz.findMethod("getUser") ?: clazz.findMethod("getAuthor")
-            }
+            val clazz = safeEvent::class.java
+            val method = userAccessors[clazz]
+                ?: (clazz.findMethod("getUser") ?: clazz.findMethod("getAuthor"))
+                    ?.also { userAccessors.putIfAbsent(clazz, it) }
             method?.invokeMethodSafely<Any>(safeEvent)
         }
     }

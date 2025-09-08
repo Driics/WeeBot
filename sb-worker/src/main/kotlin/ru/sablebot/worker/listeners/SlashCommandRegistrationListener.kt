@@ -14,12 +14,14 @@ import ru.driics.sablebot.common.worker.command.model.Command
 import ru.driics.sablebot.common.worker.command.service.CommandsHolderService
 import ru.driics.sablebot.common.worker.event.DiscordEvent
 import ru.driics.sablebot.common.worker.event.listeners.DiscordEventListener
+import ru.driics.sablebot.common.worker.shared.service.DiscordService
 import net.dv8tion.jda.api.interactions.commands.Command as CommandJDA
 
 
 @DiscordEvent
 class SlashCommandRegistrationListener @Autowired constructor(
-    private val holderService: CommandsHolderService
+    private val holderService: CommandsHolderService,
+    private val discordService: DiscordService,
 ) : DiscordEventListener() {
     companion object {
         private val logger = KotlinLogging.logger {}
@@ -87,7 +89,7 @@ class SlashCommandRegistrationListener @Autowired constructor(
             logger.info { "Retrieving global commands..." }
             jda.retrieveCommands().complete()
         } else {
-            val guild = jda.getGuildById(guildId) ?: run {
+            val guild = discordService.getGuildById(guildId) ?: run {
                 logger.warn { "Guild with ID $guildId not found" }
                 return null
             }

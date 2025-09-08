@@ -18,9 +18,13 @@ class ModerationConfig(
     var mutedRoleId: Long = 0,
     @Column(name = "cooldown_ignored")
     var coolDownIgnored: Boolean = false,
-    @OneToMany(mappedBy = "config", cascade = [CascadeType.ALL], fetch = FetchType.EAGER)
+    @OneToMany(
+        mappedBy = "config",
+        cascade = [CascadeType.ALL],
+        fetch = FetchType.EAGER,
+        orphanRemoval = true)
     @OrderBy("count")
-    var actions: List<ModerationAction> = emptyList()
+    var actions: MutableList<ModerationAction> = mutableListOf()
 ) : GuildEntity() {
     constructor(guildId: Long) : this() {
         this.guildId = guildId

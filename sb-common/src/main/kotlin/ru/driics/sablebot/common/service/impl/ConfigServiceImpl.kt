@@ -23,7 +23,7 @@ open class ConfigServiceImpl(
 
     @Transactional(readOnly = true)
     override fun getLocale(guildId: Long): String =
-        repository.findLocaleByGuildId(guildId)
+        repository.findLocaleByGuildId(guildId) ?: LocaleUtils.DEFAULT_LOCALE
 
     @Transactional(readOnly = true)
     override fun getColor(guildId: Long): String =

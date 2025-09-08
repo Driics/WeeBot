@@ -35,6 +35,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.util.*
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.ExperimentalTime
 import kotlin.time.toJavaInstant
 
@@ -389,8 +390,8 @@ open class MuteServiceImpl @Autowired constructor(
     ): Boolean {
         val now = Clock.System.now()
         val expire = muteState.expire
-
-        if (now.toJavaInstant().isBefore(expire.toJavaInstant())) {
+        // если просрочено — сигнализируем об удалении
+        if (now.toJavaInstant().isAfter(expire)) {
             return false
         }
 
@@ -402,14 +403,15 @@ open class MuteServiceImpl @Autowired constructor(
             return false
         }
 
-        val duration = expire - now
+        val duration = expire.toEpochMilli() - now.toJavaInstant().toEpochMilli()
+        if (duration < 0) return false
 
         val request = ModerationActionRequest.Builder().apply {
             type = ModerationActionType.MUTE
             channel = textChannel
             violator = member
             global = muteState.isGlobal
-            this.duration = duration.inWholeMilliseconds
+            this.duration = duration
             reason = muteState.reason
             stateless = true
             auditLogging = false

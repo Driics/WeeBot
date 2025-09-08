@@ -43,7 +43,7 @@ class AuditAction(
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
-    var attributes: MutableMap<String, Any> = mutableMapOf()
+    var attributes: MutableMap<String, Any?> = mutableMapOf()
 
 ) : GuildEntity() {
 

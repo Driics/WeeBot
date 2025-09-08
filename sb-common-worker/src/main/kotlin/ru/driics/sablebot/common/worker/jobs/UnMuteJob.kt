@@ -38,7 +38,7 @@ class UnMuteJob : AbstractJob() {
                 .usingJobData(ATTR_GUILD_ID, member.guild.id)
                 .usingJobData(ATTR_GLOBAL_ID, global.toString())
                 .usingJobData(ATTR_USER_ID, member.user.id)
-                .usingJobData(ATTR_CHANNEL_ID, channel?.id)
+                .apply { channel?.id?.let { usingJobData(ATTR_CHANNEL_ID, it) } }
                 .build()
 
         fun getKey(member: Member): JobKey {
@@ -89,7 +89,7 @@ class UnMuteJob : AbstractJob() {
         shardManager: ShardManager,
         jobData: JobData
     ) {
-        val guild = shardManager.getGuildById(jobData.guildId.toString()) ?: return
+        val guild = discordService.getGuildById(jobData.guildId) ?: return
 
         if (!guild.isLoaded) {
             reschedule(context, 1.minutes)

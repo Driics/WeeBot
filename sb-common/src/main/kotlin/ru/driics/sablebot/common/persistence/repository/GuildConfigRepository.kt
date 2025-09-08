@@ -14,7 +14,7 @@ interface GuildConfigRepository : GuildRepository<GuildConfig> {
     fun findPrefixByGuildId(@Param("guildId") guildId: Long): String?
 
     @Query("SELECT e.locale FROM GuildConfig e WHERE e.guildId = :guildId")
-    fun findLocaleByGuildId(@Param("guildId") guildId: Long): String
+    fun findLocaleByGuildId(@Param("guildId") guildId: Long): String?
 
     @Query("SELECT e.color FROM GuildConfig e WHERE e.guildId = :guildId")
     fun findColorByGuildId(@Param("guildId") guildId: Long): String?

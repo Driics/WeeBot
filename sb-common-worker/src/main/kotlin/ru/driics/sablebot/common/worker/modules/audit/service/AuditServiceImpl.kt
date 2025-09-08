@@ -4,6 +4,8 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import org.springframework.transaction.support.TransactionSynchronization
+import org.springframework.transaction.support.TransactionSynchronizationManager
 import ru.driics.sablebot.common.model.AuditActionType
 import ru.driics.sablebot.common.persistence.entity.AuditAction
 import ru.driics.sablebot.common.persistence.repository.AuditActionRepository
@@ -44,9 +46,22 @@ open class AuditServiceImpl(
             if (featureSetService.isAvailable(action.guildId)) {
                 savedAction = actionRepository.save(savedAction)
             }
-            forwardProviders.takeIf { it.isNotEmpty() }
-                ?.get(savedAction.actionType)
-                ?.send(config, savedAction, attachments)
+            if (forwardProviders.isNotEmpty()) {
+                val provider = forwardProviders[savedAction.actionType]
+                if (provider != null) {
+                    if (TransactionSynchronizationManager.isActualTransactionActive()) {
+                        TransactionSynchronizationManager.registerSynchronization(
+                            object : TransactionSynchronization {
+                                override fun afterCommit() {
+                                    provider.send(config, savedAction, attachments)
+                                }
+                            }
+                        )
+                    } else {
+                        provider.send(config, savedAction, attachments)
+                    }
+                }
+            }
 
             return savedAction
         }

@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.domain.EntityScan
 import org.springframework.context.annotation.*
 import org.springframework.core.task.TaskExecutor
+import org.springframework.retry.annotation.EnableRetry
 import org.springframework.scheduling.TaskScheduler
 import org.springframework.scheduling.annotation.EnableAsync
 import org.springframework.scheduling.annotation.EnableScheduling
@@ -14,6 +15,7 @@ import ru.driics.sablebot.common.support.SbCacheManagerImpl
 import ru.driics.sablebot.common.support.jmx.ThreadPoolTaskExecutorMBean
 
 @EnableAsync
+@EnableRetry
 @EnableScheduling
 @EntityScan("ru.driics")
 @ComponentScan("ru.driics")

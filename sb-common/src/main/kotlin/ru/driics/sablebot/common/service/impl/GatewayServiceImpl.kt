@@ -25,7 +25,8 @@ class GatewayServiceImpl(
         template.convertSendAndReceiveAsType(
             QUEUE_STATUS_REQUEST,
             "1",
-            object : ParameterizedTypeReference<StatusDto>() {})!!
+            object : ParameterizedTypeReference<StatusDto>() {}
+        ) ?: throw IllegalStateException("No reply from $QUEUE_STATUS_REQUEST")
 
     override fun evictCache(cacheName: String, guildId: Long) =
         template.convertAndSend(QUEUE_CACHE_EVICT_REQUEST, CacheEvictRequest(cacheName, guildId))

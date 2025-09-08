@@ -44,8 +44,8 @@ open class ContextServiceImpl(
     private val guildHolder = ThreadLocal<Long?>()
 
     val accentColor: Color by lazy {
-        commonProperties.discord.defaultAccentColor
-            .run { Color.decode(this) }
+        runCatching { Color.decode(commonProperties.discord.defaultAccentColor) }
+            .getOrElse { Color.CYAN }
     }
 
     override fun getLocale(): Locale =
@@ -94,7 +94,7 @@ open class ContextServiceImpl(
         }
     }
 
-    fun setGuildId(guildId: Long?) {
+    private fun setGuildId(guildId: Long?) {
         if (guildId == null) {
             guildHolder.remove()
         } else {
@@ -171,8 +171,6 @@ open class ContextServiceImpl(
         }
     }
 
-
-    @Async
     override suspend fun withContextAsync(guild: Guild?, action: suspend () -> Unit) {
         withContext(Dispatchers.IO) {
             withContextInternalSuspend(guild, ::initContext) {
@@ -183,16 +181,28 @@ open class ContextServiceImpl(
         }
     }
 
-    override fun <T> queue(guild: Guild?, action: RestAction<T>, success: (T) -> Unit) {
-        action.queue { result ->
-            withContext(guild) { success(result) }
-        }
+    override fun <T> queue(
+        guild: Guild?,
+        action: RestAction<T>,
+        success: (T) -> Unit,
+        failure: (Throwable) -> Unit,
+    ) {
+        action.queue(
+            { result -> withContext(guild) { success(result) }},
+            { error -> withContext(guild) { failure(error) }}
+        )
     }
 
-    override fun <T> queue(guildId: Long?, action: RestAction<T>, success: (T) -> Unit) {
-        action.queue { result ->
-            withContext(guildId) { success(result) }
-        }
+    override fun <T> queue(
+        guildId: Long?,
+        action: RestAction<T>,
+        success: (T) -> Unit,
+        failure: (Throwable) -> Unit
+    ) {
+        action.queue(
+            { result -> withContext(guildId) { success(result) }},
+            { error -> withContext(guildId) { failure(error) }}
+        )
     }
 
     override fun initContext(user: User) {
@@ -259,7 +269,7 @@ open class ContextServiceImpl(
 
     override fun <T> Flow<T>.withGuildContext(guildId: Long?): Flow<T> = flow {
         // Переносим suspend-обёртку внутрь collect
-        collect { value ->
+        this@withGuildContext.collect { value ->
             withContextInternalSuspend(guildId, ::initContext) {
                 emit(value)
             }

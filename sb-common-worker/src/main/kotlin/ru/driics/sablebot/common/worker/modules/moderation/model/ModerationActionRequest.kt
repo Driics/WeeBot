@@ -3,7 +3,6 @@ package ru.driics.sablebot.common.worker.modules.moderation.model
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
 import ru.driics.sablebot.common.model.ModerationActionType
-import java.io.Serializable
 import java.time.Instant
 import java.util.*
 
@@ -22,7 +21,7 @@ data class ModerationActionRequest(
     val stateless: Boolean = false,
     val assignRoles: List<Long> = emptyList(),
     val revokeRoles: List<Long> = emptyList()
-) : Serializable {
+) {
 
     val guild = moderator?.guild ?: violator?.guild ?: channel?.guild!!
 
@@ -54,6 +53,15 @@ data class ModerationActionRequest(
 
         fun build(): ModerationActionRequest {
             val typeVal = requireNotNull(type) { "ModerationActionType is required" }
+            require(moderator != null || violator != null || channel != null) {
+                "Either moderator, violator or channel must be provided to determine guild context"
+            }
+            require(delDays == null || (delDays in 0..7)) {
+                "delDays must be within [0..7]"
+            }
+            require(duration == null || duration!! > 0) {
+                "duration must be > 0 (millis)"
+            }
             return ModerationActionRequest(
                 type = typeVal,
                 violator = violator,

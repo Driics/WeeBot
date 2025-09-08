@@ -55,7 +55,12 @@ abstract class LoggingAuditForwardProvider : AuditForwardProvider {
         val self = guild.selfMember
         val channel = guild.getTextChannelById(config.forwardChannelId) ?: return
 
-        if (!self.hasPermission(channel, Permission.MESSAGE_SEND, Permission.MESSAGE_EMBED_LINKS)) {
+        if (!self.hasPermission(
+                channel,
+                Permission.VIEW_CHANNEL,
+                Permission.MESSAGE_SEND,
+                Permission.MESSAGE_EMBED_LINKS
+        )) {
             return
         }
 
@@ -74,7 +79,7 @@ abstract class LoggingAuditForwardProvider : AuditForwardProvider {
                 messageBuilder.setEmbeds(embedBuilder.build())
             }
 
-            if (!messageBuilder.isEmpty) {
+            if (!messageBuilder.isEmpty || attachments.isNotEmpty()) {
                 sendMessage(channel, messageBuilder, attachments, self)
             }
         }
