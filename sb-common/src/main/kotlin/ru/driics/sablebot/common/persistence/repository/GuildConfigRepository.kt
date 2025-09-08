@@ -5,7 +5,6 @@ import org.springframework.data.repository.query.Param
 import org.springframework.stereotype.Repository
 import ru.driics.sablebot.common.persistence.entity.GuildConfig
 import ru.driics.sablebot.common.persistence.repository.base.GuildRepository
-import java.util.Locale
 
 @Repository
 interface GuildConfigRepository : GuildRepository<GuildConfig> {

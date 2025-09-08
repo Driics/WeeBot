@@ -104,7 +104,7 @@ class SlashCommandRegistrationListener @Autowired constructor(
                 .queue()
             logger.info { "Global commands updated successfully." }
         } else {
-            val guild = jda.getGuildById(guildId) ?: run {
+            val guild = discordService.getGuildById(guildId) ?: run {
                 logger.warn { "Guild with ID $guildId not found" }
                 return
             }

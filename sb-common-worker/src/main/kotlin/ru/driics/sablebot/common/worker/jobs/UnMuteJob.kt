@@ -2,12 +2,7 @@ package ru.driics.sablebot.common.worker.jobs
 
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
-import net.dv8tion.jda.api.sharding.ShardManager
-import org.quartz.JobBuilder
-import org.quartz.JobDataMap
-import org.quartz.JobDetail
-import org.quartz.JobExecutionContext
-import org.quartz.JobKey
+import org.quartz.*
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 import ru.driics.sablebot.common.worker.modules.moderation.service.MuteService
@@ -67,7 +62,6 @@ class UnMuteJob : AbstractJob() {
     }
 
     override fun execute(jobExecutionContext: JobExecutionContext) {
-        val shardManager = discordService.shardManager
 
         if (!discordService.isConnected()) {
             jobExecutionContext.rescheduleIn(1.minutes, this)
@@ -81,18 +75,17 @@ class UnMuteJob : AbstractJob() {
             muteService.clearState(jobData.guildId, jobData.userId, jobData.channelId)
         }
 
-        processGuildUnmute(jobExecutionContext, shardManager, jobData)
+        processGuildUnmute(jobExecutionContext, jobData)
     }
 
     private fun processGuildUnmute(
         context: JobExecutionContext,
-        shardManager: ShardManager,
         jobData: JobData
     ) {
         val guild = discordService.getGuildById(jobData.guildId) ?: return
 
         if (!guild.isLoaded) {
-            reschedule(context, 1.minutes)
+            context.rescheduleIn(1.minutes, this)
             return
         }
 
@@ -131,7 +124,6 @@ fun UnMuteJob.Companion.scheduleUnmute(
     member: Member,
     channel: TextChannel? = null,
     global: Boolean = false,
-    delay: kotlin.time.Duration
 ): JobDetail {
     return createDetails(global, channel, member)
 }

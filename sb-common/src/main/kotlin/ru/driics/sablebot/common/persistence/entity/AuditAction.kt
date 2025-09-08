@@ -9,7 +9,13 @@ import ru.driics.sablebot.common.persistence.entity.base.NamedReference
 import java.util.*
 
 @Entity
-@Table(name = "audit_action")
+@Table(
+    name = "audit_action",
+    indexes = [
+        Index(name = "idx_audit_action_guild_date", columnList = "guild_id,action_date"),
+        Index(name = "idx_audit_action_type", columnList = "action_type")
+    ]
+)
 class AuditAction(
 
     @Column(name = "action_date", nullable = false)
@@ -47,7 +53,14 @@ class AuditAction(
 
 ) : GuildEntity() {
 
-    constructor(guildId: Long) : this() {
+    constructor(guildId: Long, actionType: AuditActionType) : this(
+        actionDate = Date(),
+        actionType = actionType,
+        user = NamedReference(),
+        targetUser = NamedReference(),
+        channel = NamedReference(),
+        attributes = mutableMapOf()
+    ) {
         this.guildId = guildId
     }
 

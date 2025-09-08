@@ -113,6 +113,9 @@ open class DiscordServiceImpl @Autowired constructor(
     override fun getGuildById(guildId: Long): Guild? =
         shardManager.getGuildById(guildId)
 
+    fun getGuildById(guildId: String): Guild? =
+        guildId.toLongOrNull()?.let { shardManager.getGuildById(it) }
+
     override fun getShard(guildId: Long): JDA? =
         shardManager.getShardById(((guildId shr 22) % workerProperties.discord.shardsTotal).toInt())
 

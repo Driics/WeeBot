@@ -1,20 +1,29 @@
 package ru.driics.sablebot.common.persistence.entity
 
-import jakarta.persistence.*
+import jakarta.persistence.Column
+import jakarta.persistence.Entity
+import jakarta.persistence.Index
+import jakarta.persistence.Table
 import ru.driics.sablebot.common.persistence.entity.base.MemberEntity
 import java.time.Instant
 
 @Entity
-@Table(name = "mute_state")
+@Table(
+    name = "mute_state",
+    indexes = [
+        Index(name = "idx_mute_guild_user", columnList = "guild_id,user_id"),
+        Index(name = "idx_mute_guild_user_channel", columnList = "guild_id,user_id,channel_id")
+    ]
+)
 class MuteState constructor(
     userId: String,
     guildId: Long,
     @Column
-    val isGlobal: Boolean = false,
+    var isGlobal: Boolean = false,
     @Column(name = "channel_id")
-    val channelId: String? = null,
-    @Column
-    val reason: String? = "",
+    var channelId: String? = null,
+    @Column(nullable = false)
+    var reason: String = "",
     @Column
     var expire: Instant = Instant.now(),
 ) : MemberEntity(userId) {

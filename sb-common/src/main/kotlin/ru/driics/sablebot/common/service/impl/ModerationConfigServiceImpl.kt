@@ -14,8 +14,8 @@ class ModerationConfigServiceImpl(
     ModerationConfigService {
     override fun createNew(guildId: Long): ModerationConfig {
         val moderationConfig = ModerationConfig(guildId)
-        moderationConfig.coolDownIgnored = true
-        moderationConfig.actions = emptyList()
+        moderationConfig.cooldownIgnored = true
+        moderationConfig.actions = mutableListOf()
         return moderationConfig
     }
 

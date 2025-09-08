@@ -3,6 +3,7 @@ package ru.driics.sablebot.common.configuration
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.domain.EntityScan
 import org.springframework.context.annotation.*
+import org.springframework.core.Ordered
 import org.springframework.core.task.TaskExecutor
 import org.springframework.retry.annotation.EnableRetry
 import org.springframework.scheduling.TaskScheduler
@@ -15,7 +16,7 @@ import ru.driics.sablebot.common.support.SbCacheManagerImpl
 import ru.driics.sablebot.common.support.jmx.ThreadPoolTaskExecutorMBean
 
 @EnableAsync
-@EnableRetry
+@EnableRetry(order = Ordered.HIGHEST_PRECEDENCE)
 @EnableScheduling
 @EntityScan("ru.driics")
 @ComponentScan("ru.driics")
@@ -41,7 +42,7 @@ open class CommonConfiguration @Autowired constructor(
     open fun taskExecutor(): TaskExecutor = ThreadPoolTaskExecutor().apply {
         corePoolSize = commonProperties.execution.corePoolSize
         maxPoolSize = commonProperties.execution.maxPoolSize
-        threadNamePrefix = EXECUTOR
+        setThreadNamePrefix(EXECUTOR)
     }
 
     @Bean(SCHEDULER)
@@ -49,7 +50,7 @@ open class CommonConfiguration @Autowired constructor(
         poolSize = commonProperties.execution.schedulerPoolSize
         setWaitForTasksToCompleteOnShutdown(true)
         setAwaitTerminationSeconds(30)
-        threadNamePrefix = SCHEDULER
+        setThreadNamePrefix(EXECUTOR)
     }
 
     @Bean("cacheManager")

@@ -2,6 +2,7 @@ package ru.driics.sablebot.common.service
 
 import org.hibernate.StaleStateException
 import org.springframework.dao.CannotAcquireLockException
+import org.springframework.dao.DeadlockLoserDataAccessException
 import org.springframework.dao.OptimisticLockingFailureException
 import org.springframework.dao.PessimisticLockingFailureException
 import org.springframework.retry.annotation.Backoff
@@ -27,9 +28,16 @@ open class TransactionHandlerImpl : TransactionHandler {
     override fun <T> runInNewTransaction(action: () -> T): T = action.invoke()
 
     @Retryable(
-        include = [StaleStateException::class],
+        include = [
+            StaleStateException::class,
+            OptimisticLockingFailureException::class,
+            PessimisticLockingFailureException::class,
+            CannotAcquireLockException::class,
+            DeadlockLoserDataAccessException::class,
+        ],
         maxAttempts = 5,
-        backoff = Backoff(delay = 500))
+        backoff = Backoff(delay = 500, multiplier = 2.0, maxDelay = 5_000)
+    )
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     override fun runWithLockRetry(action: () -> Unit) = action.invoke()
 
@@ -39,6 +47,7 @@ open class TransactionHandlerImpl : TransactionHandler {
             OptimisticLockingFailureException::class,
             PessimisticLockingFailureException::class,
             CannotAcquireLockException::class,
+            DeadlockLoserDataAccessException::class,
         ],
         maxAttempts = 5,
         backoff = Backoff(delay = 500, multiplier = 2.0, maxDelay = 5_000)

@@ -9,18 +9,22 @@ import ru.driics.sablebot.common.persistence.entity.base.GuildEntity
 @Table(name = "mod_config")
 class ModerationConfig(
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "JSON")
+    @Column(name = "roles")
     var roles: List<Long> = emptyList(),
+
     @Column(name = "public_colors")
     var publicColors: Boolean = false,
+
     @Column(name = "muted_role_id")
-    var mutedRoleId: Long = 0,
+    var mutedRoleId: Long? = null,
+
     @Column(name = "cooldown_ignored")
-    var coolDownIgnored: Boolean = false,
+    var cooldownIgnored: Boolean = false,
+
     @OneToMany(
         mappedBy = "config",
         cascade = [CascadeType.ALL],
-        fetch = FetchType.EAGER,
+        fetch = FetchType.LAZY,
         orphanRemoval = true)
     @OrderBy("count")
     var actions: MutableList<ModerationAction> = mutableListOf()

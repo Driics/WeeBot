@@ -15,9 +15,8 @@ abstract class AuditActionBuilder(
     actionType: AuditActionType
 ) {
 
-    protected val action: AuditAction = AuditAction(guildId).apply {
+    protected val action: AuditAction = AuditAction(guildId, actionType).apply {
         actionDate = Date()
-        this.actionType = actionType
         attributes = mutableMapOf()
     }
 

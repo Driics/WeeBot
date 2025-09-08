@@ -34,8 +34,8 @@ import java.awt.Color
 import java.time.Instant
 import java.time.ZoneId
 import java.util.*
+import java.util.concurrent.TimeUnit
 import kotlin.time.Clock
-import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.ExperimentalTime
 import kotlin.time.toJavaInstant
 
@@ -59,8 +59,8 @@ open class MuteServiceImpl @Autowired constructor(
     @Transactional
     override fun getMutedRole(guild: Guild): Role? = getMutedRole(guild, true)
 
-    private fun getMutedRole(guild: Guild, updateable: Boolean): Role? {
-        val moderationConfig = if (updateable) {
+    private fun getMutedRole(guild: Guild, updatable: Boolean): Role? {
+        val moderationConfig = if (updatable) {
             configService.getOrCreate(guild.idLong)
         } else {
             configService.get(guild)
@@ -69,7 +69,7 @@ open class MuteServiceImpl @Autowired constructor(
         var role = moderationConfig?.mutedRoleId?.let(guild::getRoleById)
             ?: guild.getRolesByName(MUTED_ROLE_NAME, true).firstOrNull()
 
-        if (updateable) {
+        if (updatable) {
             role = ensureValidMutedRole(guild, role, moderationConfig)
             setupChannelPermissions(guild, role)
         }
@@ -140,7 +140,7 @@ open class MuteServiceImpl @Autowired constructor(
     @OptIn(ExperimentalTime::class)
     @Transactional
     override fun isMuted(member: Member, channel: TextChannel): Boolean {
-        val mutedRole = getMutedRole(member.guild, updateable = false)
+        val mutedRole = getMutedRole(member.guild, updatable = false)
         if (mutedRole != null && mutedRole in member.roles) {
             return true
         }
@@ -149,7 +149,7 @@ open class MuteServiceImpl @Autowired constructor(
         return muteStateRepository
             .findAllByGuildIdAndUserId(member.guild.idLong, member.user.id)
             .any { state ->
-                val expire = state.expire.toJavaInstant()
+                val expire = state.expire
                 val isNotExpired = now.isBefore(expire)
                 val isRelevantChannel = state.isGlobal || state.channelId == channel.id
 
@@ -190,7 +190,8 @@ open class MuteServiceImpl @Autowired constructor(
             .setColor(Color.GRAY)
             .setMentionable(false)
             .setName(MUTED_ROLE_NAME)
-            .complete()
+            .submit()
+            .get(10L, TimeUnit.SECONDS)
 
     private fun setupChannelPermissions(guild: Guild, role: Role) {
         val channelPermissions = listOf(
@@ -244,7 +245,10 @@ open class MuteServiceImpl @Autowired constructor(
 
             val trigger = TriggerBuilder.newTrigger()
                 .startAt(startTime)
-                .withSchedule(SimpleScheduleBuilder.simpleSchedule())
+                .withSchedule(
+                    SimpleScheduleBuilder.simpleSchedule()
+                        .withMisfireHandlingInstructionFireNow()
+                )
                 .build()
 
             schedulerFactoryBean.scheduler.scheduleJob(job, trigger)
@@ -271,7 +275,7 @@ open class MuteServiceImpl @Autowired constructor(
             isGlobal = request.global,
             channelId = request.channel?.id,
             reason = request.reason ?: "",
-            expire = kotlin.time.Instant.fromEpochMilliseconds(expireInstant.toEpochMilli())
+            expire = expireInstant
         )
 
         muteStateRepository.save(state)
@@ -383,15 +387,14 @@ open class MuteServiceImpl @Autowired constructor(
         }
     }
 
-    @OptIn(ExperimentalTime::class)
     private fun processState(
         member: Member,
         muteState: MuteState
     ): Boolean {
-        val now = Clock.System.now()
+        val now = Instant.now()
         val expire = muteState.expire
         // если просрочено — сигнализируем об удалении
-        if (now.toJavaInstant().isAfter(expire)) {
+        if (now.isAfter(expire)) {
             return false
         }
 
@@ -403,8 +406,8 @@ open class MuteServiceImpl @Autowired constructor(
             return false
         }
 
-        val duration = expire.toEpochMilli() - now.toJavaInstant().toEpochMilli()
-        if (duration < 0) return false
+        val duration = expire.toEpochMilli() - now.toEpochMilli()
+        if (duration <= 0) return false
 
         val request = ModerationActionRequest.Builder().apply {
             type = ModerationActionType.MUTE

@@ -1,21 +1,30 @@
 package ru.driics.sablebot.common.persistence.entity
 
 import jakarta.persistence.*
+import org.hibernate.annotations.CreationTimestamp
 import ru.driics.sablebot.common.persistence.entity.base.BaseEntity
-import java.util.*
+import java.time.Instant
 
 @Entity
-@Table(name = "gulag")
+@Table(
+    name = "gulag",
+    indexes = [
+        Index(name = "ix_gulag_snowflake", columnList = "snowflake"),
+        Index(name = "ix_gulag_moderator_id", columnList = "moderator_id")
+    ]
+)
 open class Gulag(
-    @Column
+    @Column(nullable = false)
     var snowflake: Long = 0,
-    @Column(columnDefinition = "TEXT")
+    @Lob
+    @Column(nullable = false)
     var reason: String = "",
     @ManyToOne(fetch = FetchType.LAZY, optional = false,
         cascade = [CascadeType.MERGE, CascadeType.REFRESH, CascadeType.DETACH])
     @JoinColumn(name = "moderator_id", nullable = false)
-    var moderator: LocalUser? = null,
-    @Column
-    @Temporal(TemporalType.TIMESTAMP)
-    var date: Date = Date(),
+    var moderator: LocalUser,
+
+    @Column(nullable = false)
+    @field:CreationTimestamp
+    var date: Instant = Instant.now(),
 ) : BaseEntity()
