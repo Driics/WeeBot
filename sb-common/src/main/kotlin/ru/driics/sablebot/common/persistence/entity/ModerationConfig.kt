@@ -2,7 +2,6 @@ package ru.driics.sablebot.common.persistence.entity
 
 import jakarta.persistence.*
 import org.hibernate.annotations.JdbcTypeCode
-import org.hibernate.annotations.Type
 import org.hibernate.type.SqlTypes
 import ru.driics.sablebot.common.persistence.entity.base.GuildEntity
 

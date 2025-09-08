@@ -1,9 +1,8 @@
 package ru.driics.sablebot.common.persistence.entity
 
 import jakarta.persistence.*
-import org.jetbrains.annotations.NotNull
 import ru.driics.sablebot.common.persistence.entity.base.BaseEntity
-import java.util.Date
+import java.util.*
 
 @Entity
 @Table(name = "gulag")
