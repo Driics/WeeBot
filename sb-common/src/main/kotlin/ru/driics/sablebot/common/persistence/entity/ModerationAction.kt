@@ -27,8 +27,8 @@ class ModerationAction : BaseEntity() {
     lateinit var type: ModerationActionType
 
     @field:Min(0)
-    @Column(nullable = false)
-    var count: Int = 0
+    @Column(name = "strike_count", nullable = false)
+    var strikeCount: Int = 0
 
     @field:Min(0)
     @Column(nullable = false)

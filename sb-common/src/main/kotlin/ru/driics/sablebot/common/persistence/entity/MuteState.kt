@@ -15,9 +15,9 @@ import java.time.Instant
         Index(name = "idx_mute_guild_user_channel", columnList = "guild_id,user_id,channel_id")
     ]
 )
-class MuteState constructor(
-    userId: String,
-    guildId: Long,
+class MuteState @JvmOverloads constructor(
+    userId: String = "",
+    guildId: Long = 0,
     @Column
     var isGlobal: Boolean = false,
     @Column(name = "channel_id")

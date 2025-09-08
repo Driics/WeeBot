@@ -22,7 +22,7 @@ import ru.driics.sablebot.common.support.jmx.ThreadPoolTaskExecutorMBean
 @ComponentScan("ru.driics")
 @Import(MBeanConfiguration::class)
 @Configuration
-open class CommonConfiguration @Autowired constructor(
+class CommonConfiguration @Autowired constructor(
     private val commonProperties: CommonProperties
 ) {
     companion object {
@@ -31,29 +31,29 @@ open class CommonConfiguration @Autowired constructor(
     }
 
     @Bean
-    open fun taskExecutorMBean() =
+    fun taskExecutorMBean(executor: ThreadPoolTaskExecutor) =
         ThreadPoolTaskExecutorMBean(
-            taskExecutor = taskExecutor() as ThreadPoolTaskExecutor,
+            taskExecutor = executor,
             objectName = "Spring TaskExecutor"
         )
 
     @Bean(EXECUTOR)
     @Primary
-    open fun taskExecutor(): TaskExecutor = ThreadPoolTaskExecutor().apply {
+    fun taskExecutor(): TaskExecutor = ThreadPoolTaskExecutor().apply {
         corePoolSize = commonProperties.execution.corePoolSize
         maxPoolSize = commonProperties.execution.maxPoolSize
         setThreadNamePrefix(EXECUTOR)
     }
 
     @Bean(SCHEDULER)
-    open fun taskScheduler(): TaskScheduler = ThreadPoolTaskScheduler().apply {
+    fun taskScheduler(): TaskScheduler = ThreadPoolTaskScheduler().apply {
         poolSize = commonProperties.execution.schedulerPoolSize
         setWaitForTasksToCompleteOnShutdown(true)
         setAwaitTerminationSeconds(30)
         setThreadNamePrefix(EXECUTOR)
     }
 
-    @Bean("cacheManager")
+    @Bean("sbCacheManager")
     @Primary
-    open fun cacheManager(): SbCacheManager = SbCacheManagerImpl()
+    fun sbCacheManager(): SbCacheManager = SbCacheManagerImpl()
 }
