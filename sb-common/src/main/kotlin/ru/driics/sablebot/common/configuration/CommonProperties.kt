@@ -1,8 +1,12 @@
 package ru.driics.sablebot.common.configuration
 
+import jakarta.validation.constraints.Max
+import jakarta.validation.constraints.Min
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.stereotype.Component
+import org.springframework.validation.annotation.Validated
 
+@Validated
 @Component
 @ConfigurationProperties("sablebot.common")
 class CommonProperties {
@@ -16,13 +20,16 @@ class CommonProperties {
 
     class Jmx {
         var enabled: Boolean = false
+
+        @field:Min(1)
+        @field:Max(65535)
         var port: Int = 9875
     }
 
     class Discord {
         var defaultPrefix: String = "!"
         var defaultAccentColor: String = "#FFA550"
-        var superUserId: String = ""
+        var superUserId: String? = null
     }
 
     class Execution {

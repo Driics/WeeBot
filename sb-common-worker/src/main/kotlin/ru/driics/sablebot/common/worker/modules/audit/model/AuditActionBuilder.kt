@@ -81,8 +81,12 @@ abstract class AuditActionBuilder(
     private fun getReference(user: LocalUser) = NamedReference(user.userId, user.name!!)
     private fun getReference(member: Member) =
         NamedReference(member.user.id, member.effectiveName)
-    private fun getReference(member: LocalMember) =
-        NamedReference(member.user.userId, member.effectiveName)
+    private fun getReference(member: LocalMember): NamedReference {
+        val u = member.user
+            ?: return NamedReference("unknown", member.effectiveName ?: "unknown")
+        val displayName = member.effectiveName ?: (u.name ?: u.userId)
+        return NamedReference(u.userId, displayName)
+    }
     private fun getReference(channel: GuildChannel) =
         NamedReference(channel.id, channel.name)
 

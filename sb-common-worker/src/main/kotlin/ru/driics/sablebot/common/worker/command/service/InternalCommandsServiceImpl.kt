@@ -78,10 +78,9 @@ class InternalCommandsServiceImpl @Autowired constructor(
             }
         }.also {
             if (it.inWholeMilliseconds > workerProperties.commands.executionThresholdMs) {
-                log.warn(
-                    "Command [{}] took too long ({}) to execute with args: {}",
-                    command.javaClass.simpleName, it, event.options
-                )
+                log.warn {
+                    "Command [${command.javaClass.simpleName}] took too long ($it) to execute with args: ${event.options}"
+                }
             }
         }
 

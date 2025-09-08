@@ -1,13 +1,14 @@
 package ru.driics.sablebot.common.model.discord
 
-import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerialName
 
-@Serializable
 class TextChannelDTO(
     id: String,
     name: String,
     permission: Long,
     val topic: String? = null,
+    @SerialName("isNSFW")
     val isNSFW: Boolean = false,
-    val isCanTalk: Boolean = false,
+    @SerialName("isCanTalk")
+    val canTalk: Boolean = false,
 ) : ChannelDTO(id, name, permission)

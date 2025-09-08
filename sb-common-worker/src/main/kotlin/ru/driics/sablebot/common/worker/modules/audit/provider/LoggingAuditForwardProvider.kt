@@ -115,21 +115,21 @@ abstract class LoggingAuditForwardProvider : AuditForwardProvider {
     protected fun addChannelField(action: AuditAction, embedBuilder: EmbedBuilder) {
         action.channel.let { channel ->
             embedBuilder.addField(
-                messageService.getMessage("audit.channel.title"),
-                getReferenceContent(channel, isChannel = true),
+                messageService.getMessage("audit.channel.title") ?: "",
+                getReferenceContent(channel, isChannel = true) ?: "",
                 true
             )
         }
     }
 
-    protected fun getReferenceContent(reference: NamedReference, isChannel: Boolean): String =
+    protected fun getReferenceContent(reference: NamedReference, isChannel: Boolean): String? =
         messageService.getMessage(
             "audit.reference.content",
             reference.name,
             if (isChannel) reference.asChannelMention else reference.asUserMention
         )
 
-    protected fun getReferenceShortContent(reference: NamedReference): String =
+    protected fun getReferenceShortContent(reference: NamedReference): String? =
         messageService.getMessage("audit.reference.short.content", reference.name)
 
     protected abstract fun build(
