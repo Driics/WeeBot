@@ -1,8 +1,6 @@
 package ru.sablebot.worker.listeners
 
-import dev.minn.jda.ktx.interactions.commands.updateCommands
 import io.github.oshai.kotlinlogging.KotlinLogging
-import kotlinx.coroutines.DelicateCoroutinesApi
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.events.session.ReadyEvent
 import net.dv8tion.jda.api.interactions.commands.build.CommandData
@@ -25,15 +23,21 @@ class SlashCommandRegistrationListener @Autowired constructor(
         private val logger = KotlinLogging.logger {}
     }
 
-    @OptIn(DelicateCoroutinesApi::class)
     override fun onReady(event: ReadyEvent) {
+        val globalRegistered = updateCommands(0L, event.jda) { commands ->
+            event.jda.updateCommands()
+                .addCommands(commands)
+                .complete()
+        }
+        logger.info { "${globalRegistered.size} global commands registered" }
+
         event.jda.guilds.forEach { guild ->
             val registeredCommands = updateCommands(guild.idLong, event.jda) { commands ->
-                event.jda.updateCommands {
-                    addCommands(*commands.toTypedArray())
-                }.complete()
+                guild.updateCommands()
+                    .addCommands(commands)
+                    .complete()
             }
-            logger.info { "${registeredCommands.size} commands registered" }
+            logger.info { "${registeredCommands.size} commands registered for guild ${guild.idLong}" }
         }
     }
 

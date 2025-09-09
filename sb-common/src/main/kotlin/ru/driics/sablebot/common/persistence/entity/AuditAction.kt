@@ -6,7 +6,7 @@ import org.hibernate.type.SqlTypes
 import ru.driics.sablebot.common.model.AuditActionType
 import ru.driics.sablebot.common.persistence.entity.base.GuildEntity
 import ru.driics.sablebot.common.persistence.entity.base.NamedReference
-import java.util.*
+import java.time.Instant
 
 @Entity
 @Table(
@@ -19,8 +19,7 @@ import java.util.*
 class AuditAction(
 
     @Column(name = "action_date", nullable = false)
-    @Temporal(TemporalType.TIMESTAMP)
-    var actionDate: Date = Date(),
+    var actionDate: Instant = Instant.now(),
 
     @Enumerated(EnumType.STRING)
     @Column(name = "action_type", nullable = false)
@@ -54,7 +53,7 @@ class AuditAction(
 ) : GuildEntity() {
 
     constructor(guildId: Long, actionType: AuditActionType) : this(
-        actionDate = Date(),
+        actionDate = Instant.now(),
         actionType = actionType,
         user = NamedReference(),
         targetUser = NamedReference(),

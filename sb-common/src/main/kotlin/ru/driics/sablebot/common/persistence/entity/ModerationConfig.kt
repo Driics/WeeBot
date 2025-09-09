@@ -25,7 +25,8 @@ class ModerationConfig(
         mappedBy = "config",
         cascade = [CascadeType.ALL],
         fetch = FetchType.LAZY,
-        orphanRemoval = true)
+        orphanRemoval = true
+    )
     @OrderBy("strike_count")
     var actions: MutableList<ModerationAction> = mutableListOf()
 ) : GuildEntity() {
