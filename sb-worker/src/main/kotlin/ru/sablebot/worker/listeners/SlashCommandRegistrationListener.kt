@@ -53,7 +53,6 @@ class SlashCommandRegistrationListener @Autowired constructor(
                 logger.info { "Type ${type.name}: ${publicCommands.count { it.type == type }} commands" }
             }
 
-        // Fetch commands based on the guildId (0L for global)
         val existingCommands = fetchExistingCommands(guildId, jda) ?: return emptyList()
 
         val needsUpdate = publicCommands.size != existingCommands.size ||
@@ -70,7 +69,6 @@ class SlashCommandRegistrationListener @Autowired constructor(
 
         return if (needsUpdate) {
             logger.info { "Command mismatch detected. Updating commands for ${if (guildId == 0L) "global" else "guild ID: $guildId"}" }
-            // Perform update and log the results
             performCommandUpdate(guildId, jda, publicCommands)
             val updatedCommands = action(publicCommands)
             logger.info { "Successfully updated ${updatedCommands.size} commands for ${if (guildId == 0L) "global" else "guild ID: $guildId"}" }
