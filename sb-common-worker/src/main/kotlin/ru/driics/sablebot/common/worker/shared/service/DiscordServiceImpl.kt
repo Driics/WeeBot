@@ -62,15 +62,24 @@ open class DiscordServiceImpl @Autowired constructor(
         get() = _shardManager
 
     override val jda: JDA
-        get() = _shardManager.shards.firstOrNull()
-            ?: error("ShardManager hasn't started yet: no shards available")
+        get() {
+            if (!::_shardManager.isInitialized) {
+                error("ShardManager is not initialized yet")
+            }
+
+            return _shardManager.shards.firstOrNull { it.status == JDA.Status.CONNECTED }
+                ?: _shardManager.shards.firstOrNull()
+                ?: error("ShardManager hasn't started yet: no shards available")
+        }
 
     override val selfUser: User
         get() = jda.selfUser
 
     @PreDestroy
     fun destroy() {
-        shardManager.shutdown()
+        if (::_shardManager.isInitialized) {
+            shardManager.shutdown()
+        }
     }
 
     override fun onException(event: ExceptionEvent) {

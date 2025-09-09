@@ -8,10 +8,10 @@ import ru.driics.sablebot.common.persistence.entity.base.FeaturedUserEntity
 @Entity
 @Table(name = "patreon_user", schema = "public")
 class PatreonUser(
-    @Column
-    val patreonId: String = "",
-    @Column
-    val active: Boolean = false,
-    @Column
-    val boostedGuildId: Long = 0,
+    @Column(nullable = false, unique = true, length = 32)
+    var patreonId: String = "",
+    @Column(nullable = false)
+    var active: Boolean = false,
+    @Column(nullable = false)
+    var boostedGuildId: Long = 0,
 ): FeaturedUserEntity()

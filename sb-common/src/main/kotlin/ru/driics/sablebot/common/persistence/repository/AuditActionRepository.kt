@@ -9,6 +9,6 @@ import java.util.*
 
 @Repository
 interface AuditActionRepository : GuildRepository<AuditAction>, JpaSpecificationExecutor<AuditAction> {
-    @Modifying
-    fun deleteByActionDateBefore(expiryDate: Date)
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    fun deleteByActionDateBefore(expiryDate: Date): Int
 }

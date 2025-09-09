@@ -11,7 +11,6 @@ import net.dv8tion.jda.api.events.guild.GenericGuildEvent
 import net.dv8tion.jda.api.events.guild.member.GenericGuildMemberEvent
 import net.dv8tion.jda.api.requests.RestAction
 import org.slf4j.MDC
-import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Service
 import ru.driics.sablebot.common.configuration.CommonProperties
 import ru.driics.sablebot.common.service.ConfigService
@@ -57,7 +56,7 @@ open class ContextServiceImpl(
             }
         } ?: LocaleUtils.getDefaultLocale()
 
-    override fun getColor(): Color =
+    override fun getColor(): Color? =
         colorHolder.get() ?: run {
             guildHolder.get()?.let { guildId ->
                 val colorHex = configService.getColor(guildId)
@@ -67,7 +66,7 @@ open class ContextServiceImpl(
             }
         } ?: getDefaultColor()
 
-    override fun getDefaultColor(): Color = accentColor
+    override fun getDefaultColor(): Color? = accentColor
 
     override fun getLocale(localeName: String): Locale =
         LocaleUtils.getOrDefault(localeName)
@@ -143,14 +142,20 @@ open class ContextServiceImpl(
         action: () -> R
     ): R {
         if (value == null) return action()
-
         val currentContext = getContext()
         return try {
             resetContext()
             init(value)
             action()
         } finally {
-            setContext(currentContext)
+            restoreContextSnapshot(
+                ContextSnapshot(
+                    guildId = currentContext.guildId,
+                    locale = currentContext.locale,
+                    color = currentContext.color,
+                    userId = currentContext.userId
+                )
+            )
         }
     }
 
@@ -160,14 +165,20 @@ open class ContextServiceImpl(
         crossinline action: suspend () -> R
     ): R {
         if (value == null) return action()
-
         val currentContext = getContext()
         return try {
             resetContext()
             init(value)
             action()
         } finally {
-            setContext(currentContext)
+            restoreContextSnapshot(
+                ContextSnapshot(
+                    guildId = currentContext.guildId,
+                    locale = currentContext.locale,
+                    color = currentContext.color,
+                    userId = currentContext.userId
+                )
+            )
         }
     }
 

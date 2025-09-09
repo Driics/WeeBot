@@ -6,5 +6,7 @@ import ru.driics.sablebot.common.persistence.entity.base.UserEntity
 
 @NoRepositoryBean
 interface UserRepository<T : UserEntity> : JpaRepository<T, Long> {
-    fun findByUserId(userId: String): T
+    fun findByUserId(userId: String): T?
+
+    fun existsByUserId(userId: String): Boolean
 }

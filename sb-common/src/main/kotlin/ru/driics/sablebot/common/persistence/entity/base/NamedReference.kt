@@ -11,8 +11,9 @@ data class NamedReference(
     @Column
     var name: String = "",
 ) {
-    @Transient
+    @get:Transient
     val asChannelMention = "<#$id>"
-    @Transient
+
+    @get:Transient
     val asUserMention = "<@$id>"
 }

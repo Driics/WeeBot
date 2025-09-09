@@ -5,6 +5,6 @@ import jakarta.persistence.MappedSuperclass
 
 @MappedSuperclass
 abstract class MemberEntity(
-    @Column(name = "user_id")
+    @Column(name = "user_id", nullable = false)
     protected var userId: String = "",
 ): GuildEntity()

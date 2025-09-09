@@ -6,5 +6,5 @@ import ru.driics.sablebot.common.persistence.entity.Gulag
 
 @Repository
 interface GulagRepository: JpaRepository<Gulag, Long> {
-    fun findBySnowflake(snowflake: Long): Gulag
+    fun findBySnowflake(snowflake: Long): Gulag?
 }

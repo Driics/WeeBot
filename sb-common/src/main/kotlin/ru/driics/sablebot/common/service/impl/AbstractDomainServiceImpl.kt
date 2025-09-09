@@ -1,23 +1,28 @@
 package ru.driics.sablebot.common.service.impl
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import net.dv8tion.jda.api.entities.Guild
-import okhttp3.internal.toImmutableMap
-import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.ApplicationContext
+import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.transaction.annotation.Transactional
 import ru.driics.sablebot.common.persistence.entity.base.GuildEntity
 import ru.driics.sablebot.common.persistence.repository.base.GuildRepository
 import ru.driics.sablebot.common.service.DomainService
 import ru.driics.sablebot.common.service.GatewayService
 import ru.driics.sablebot.common.support.SbCacheManager
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.locks.ReentrantLock
 
 abstract class AbstractDomainServiceImpl<T : GuildEntity, R : GuildRepository<T>>(
     protected val repository: R,
     override var cacheable: Boolean = false
 ) : DomainService<T> {
-    private val lock = Any()
-    private val log = LoggerFactory.getLogger(this::class.java)
+    private val locks = ConcurrentHashMap<Long, ReentrantLock>()
+
+    companion object {
+        val logger = KotlinLogging.logger {}
+    }
 
     @Autowired
     protected lateinit var cacheManager: SbCacheManager
@@ -55,12 +60,20 @@ abstract class AbstractDomainServiceImpl<T : GuildEntity, R : GuildRepository<T>
     override fun getOrCreate(guildId: Long): T {
         var result = repository.findByGuildId(guildId)
         if (result == null) {
-            synchronized(lock) {
+            val l = locks.computeIfAbsent(guildId) { ReentrantLock() }
+            l.lock()
+            try {
                 result = repository.findByGuildId(guildId)
                 if (result == null) {
-                    result = createNew(guildId)
-                    repository.saveAndFlush(result)
+                    result = try {
+                        repository.saveAndFlush(createNew(guildId))
+                    } catch (_: DataIntegrityViolationException) {
+                        repository.findByGuildId(guildId)
+                    }
                 }
+            } finally {
+                l.unlock()
+                locks.remove(guildId, l)
             }
         }
         return result!!

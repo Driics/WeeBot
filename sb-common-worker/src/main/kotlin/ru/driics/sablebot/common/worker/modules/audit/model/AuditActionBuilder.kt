@@ -78,7 +78,8 @@ abstract class AuditActionBuilder(
     }
 
     private fun getReference(user: User) = NamedReference(user.id, user.name)
-    private fun getReference(user: LocalUser) = NamedReference(user.userId, user.name!!)
+    private fun getReference(user: LocalUser) =
+        NamedReference(user.userId, user.name ?: user.userId)
     private fun getReference(member: Member) =
         NamedReference(member.user.id, member.effectiveName)
     private fun getReference(member: LocalMember): NamedReference {

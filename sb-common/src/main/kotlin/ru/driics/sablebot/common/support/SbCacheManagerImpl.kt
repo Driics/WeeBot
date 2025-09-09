@@ -22,6 +22,7 @@ class SbCacheManagerImpl : ConcurrentMapCacheManager(), SbCacheManager {
     }
 
     override fun <K> evict(cacheName: String, key: K) {
+        requireNotNull(key) { "Cache key must not be null" }
         getCache(cacheName)?.evict(key as Any)
     }
 

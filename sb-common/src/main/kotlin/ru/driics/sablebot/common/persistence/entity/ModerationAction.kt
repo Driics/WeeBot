@@ -12,14 +12,10 @@ import ru.driics.sablebot.common.persistence.entity.base.BaseEntity
 class ModerationAction : BaseEntity() {
 
     @ManyToOne(
-        cascade = [
-            CascadeType.REFRESH,
-            CascadeType.DETACH,
-            CascadeType.MERGE,
-            CascadeType.PERSIST
-        ],
+        fetch = FetchType.LAZY,
+        cascade = [CascadeType.REFRESH, CascadeType.DETACH, CascadeType.MERGE]
     )
-    @JoinColumn(name = "config_id")
+    @JoinColumn(name = "config_id", nullable = false)
     var config: ModerationConfig? = null
 
     @Enumerated(EnumType.STRING)

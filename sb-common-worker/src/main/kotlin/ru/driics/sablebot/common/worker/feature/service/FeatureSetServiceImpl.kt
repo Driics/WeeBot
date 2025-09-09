@@ -1,5 +1,7 @@
 package ru.driics.sablebot.common.worker.feature.service
 
+import org.springframework.aop.support.AopUtils
+import org.springframework.core.annotation.AnnotatedElementUtils
 import org.springframework.stereotype.Service
 import ru.driics.sablebot.common.model.FeatureSet
 import ru.driics.sablebot.common.worker.feature.provider.FeatureProvider
@@ -9,11 +11,12 @@ class FeatureSetServiceImpl(
     providers: List<FeatureSetProvider>?
 ) : FeatureSetService {
 
-    private val providers: List<FeatureSetProvider> = providers
-        ?.sortedBy {
-            it::class.java.getAnnotation(FeatureProvider::class.java)?.priority ?: Int.MAX_VALUE
+    private val providers: List<FeatureSetProvider> = (providers ?: emptyList())
+        .sortedBy { p ->
+            val targetClass = AopUtils.getTargetClass(p)
+            AnnotatedElementUtils.findMergedAnnotation(targetClass, FeatureProvider::class.java)?.priority
+                ?: Int.MAX_VALUE
         }
-        ?: emptyList()
 
     override fun isAvailable(guildId: Long, featureSet: FeatureSet): Boolean =
         getAnyAvailable(guildId, featureSet) { provider, id, feature ->
@@ -36,7 +39,7 @@ class FeatureSetServiceImpl(
         featureSet: FeatureSet,
         supplier: (FeatureSetProvider, Long, FeatureSet) -> Boolean
     ): Boolean {
-        if (providers.isEmpty()) return false
+        if (providers.isEmpty()) return true
         return providers.any { supplier(it, id, featureSet) }
     }
 

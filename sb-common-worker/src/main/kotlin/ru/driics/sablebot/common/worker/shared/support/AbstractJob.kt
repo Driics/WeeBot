@@ -1,10 +1,7 @@
 package ru.driics.sablebot.common.worker.shared.support
 
 import io.github.oshai.kotlinlogging.KotlinLogging
-import org.quartz.Job
-import org.quartz.JobExecutionContext
-import org.quartz.SimpleScheduleBuilder
-import org.quartz.TriggerBuilder
+import org.quartz.*
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.scheduling.quartz.SchedulerFactoryBean
 import org.springframework.stereotype.Component
@@ -25,15 +22,28 @@ abstract class AbstractJob : Job {
         context: JobExecutionContext,
         duration: Duration
     ) {
-        log.info { "Rescheduling job ${context.jobDetail}" }
+        // Ignore non-positive delays
+        if (!duration.isPositive()) {
+            log.warn { "Skip reschedule for ${context.jobDetail.key}: non-positive duration=$duration" }
+            return
+        }
 
+        log.info { "Rescheduling job ${context.jobDetail.key} in $duration" }
+
+        val original = context.trigger
         val newTrigger = TriggerBuilder.newTrigger()
+            .withIdentity(original.key)
+            .forJob(context.jobDetail)
+            .usingJobData(JobDataMap(original.jobDataMap))
             .startAt(Date.from(Instant.now().plusMillis(duration.inWholeMilliseconds)))
             .withSchedule(SimpleScheduleBuilder.simpleSchedule())
             .build()
 
         runCatching {
-            schedulerFactoryBean.scheduler.rescheduleJob(context.trigger.key, newTrigger)
+            schedulerFactoryBean.scheduler.rescheduleJob(
+                context.trigger.key,
+                newTrigger
+            )
         }.onFailure { exception ->
             log.warn { "Could not reschedule job ${context.jobDetail} $exception" }
         }

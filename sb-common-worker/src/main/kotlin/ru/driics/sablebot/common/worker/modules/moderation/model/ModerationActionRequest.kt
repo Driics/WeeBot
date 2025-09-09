@@ -1,5 +1,6 @@
 package ru.driics.sablebot.common.worker.modules.moderation.model
 
+import net.dv8tion.jda.api.entities.Guild
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
 import ru.driics.sablebot.common.model.ModerationActionType
@@ -23,7 +24,9 @@ data class ModerationActionRequest(
     val revokeRoles: List<Long> = emptyList()
 ) {
 
-    val guild = moderator?.guild ?: violator?.guild ?: channel?.guild!!
+    val guild: Guild = requireNotNull(moderator?.guild ?: violator?.guild ?: channel?.guild) {
+        "Guild cannot be resolved: provide moderator, violator or channel"
+    }
 
     fun getDurationDate(): Date? {
         return duration?.let {

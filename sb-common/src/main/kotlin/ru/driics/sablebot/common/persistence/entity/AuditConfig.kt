@@ -13,12 +13,15 @@ import ru.driics.sablebot.common.persistence.entity.base.GuildEntity
 open class AuditConfig(
     @Column
     var enabled: Boolean = false,
+
     @Column
     var forwardEnabled: Boolean = false,
+
     @Column
-    var forwardChannelId: String = "",
+    var forwardChannelId: Long? = null,
+
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "forward_actions", columnDefinition = "JSON")
+    @Column(name = "forward_actions")
     var forwardActions: List<AuditActionType> = emptyList(),
 ) : GuildEntity() {
     constructor(guildId: Long) : this() {
