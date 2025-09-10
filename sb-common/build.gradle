@@ -24,6 +24,7 @@ dependencies {
     api "io.github.oshai:kotlin-logging-jvm:5.1.4"
 
     implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1'
+    implementation "org.jetbrains.kotlin:kotlin-reflect:2.2.20"
 
     implementation "org.hibernate.validator:hibernate-validator"
     implementation "org.postgresql:postgresql:42.7.7"

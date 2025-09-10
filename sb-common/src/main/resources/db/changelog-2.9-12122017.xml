@@ -60,15 +60,12 @@
 
     <changeSet id="2.9-12122017-3" author="driics">
         <sql>
-            INSERT INTO ranking_config (id,
-                                        version)
-            SELECT id,
-                   0
+            INSERT INTO ranking_config (id, version)
+            SELECT id, 0
             FROM guild_config;
-            -- Установить на MAX(id), is_called=true => следующий nextval будет MAX+1
             SELECT setval(
                            'ranking_config_id_seq',
-                           COALESCE((SELECT MAX(id) FROM ranking_config), 0),
+                           COALESCE((SELECT MAX(id) FROM ranking_config), 1),
                            true
                    );
             UPDATE guild_config

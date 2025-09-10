@@ -27,7 +27,9 @@
                 <constraints nullable="false" primaryKey="true" primaryKeyName="pk_auto_post"/>
             </column>
             <column name="version" type="BIGINT"/>
-            <column name="guild_id" type="BIGINT"/>
+            <column name="guild_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
             <column name="channel_id" type="VARCHAR(255)"/>
             <column name="latest_id" type="VARCHAR(255)"/>
         </createTable>
@@ -35,7 +37,9 @@
 
     <changeSet id="19082017-1-2" author="driics">
         <createIndex indexName="idx_auto_post_pair" tableName="auto_post" unique="true">
-            <column name="guild_id" type="BIGINT"/>
+            <column name="guild_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
             <column name="channel_id" type="VARCHAR(255)"/>
         </createIndex>
     </changeSet>

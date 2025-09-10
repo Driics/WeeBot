@@ -53,10 +53,9 @@
     </changeSet>
 
     <changeSet id="3.4-012012018-5" author="driics">
-        <sql>INSERT INTO ranking (version, member_id, exp)
-             SELECT 0,
-                    id,
-                    COALESCE(exp, 0) WHERE r.id = g.ranking_config_id;</sql>
+        <sql>UPDATE ranking_config AS r
+             SET guild_config_id = g.id FROM guild_config AS g
+             WHERE r.id = g.ranking_config_id;</sql>
     </changeSet>
 
     <changeSet id="3.4-012012018-6" author="driics">

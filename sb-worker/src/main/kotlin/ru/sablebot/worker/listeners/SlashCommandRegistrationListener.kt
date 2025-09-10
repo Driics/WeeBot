@@ -6,30 +6,32 @@ import net.dv8tion.jda.api.events.session.ReadyEvent
 import net.dv8tion.jda.api.interactions.commands.build.CommandData
 import net.dv8tion.jda.api.interactions.commands.build.SlashCommandData
 import org.springframework.beans.factory.annotation.Autowired
-import ru.driics.sablebot.common.worker.command.model.Command
-import ru.driics.sablebot.common.worker.command.service.CommandsHolderService
-import ru.driics.sablebot.common.worker.event.DiscordEvent
-import ru.driics.sablebot.common.worker.event.listeners.DiscordEventListener
-import ru.driics.sablebot.common.worker.shared.service.DiscordService
+import ru.sablebot.common.worker.command.model.Command
+import ru.sablebot.common.worker.command.service.CommandsHolderService
+import ru.sablebot.common.worker.event.DiscordEvent
+import ru.sablebot.common.worker.event.listeners.DiscordEventListener
 import net.dv8tion.jda.api.interactions.commands.Command as CommandJDA
 
 
 @DiscordEvent
 class SlashCommandRegistrationListener @Autowired constructor(
     private val holderService: CommandsHolderService,
-    private val discordService: DiscordService,
 ) : DiscordEventListener() {
     companion object {
         private val logger = KotlinLogging.logger {}
     }
 
     override fun onReady(event: ReadyEvent) {
-        val globalRegistered = updateCommands(0L, event.jda) { commands ->
-            event.jda.updateCommands()
-                .addCommands(commands)
-                .complete()
+        try {
+            val globalRegistered = updateCommands(0L, event.jda) { commands ->
+                event.jda.updateCommands()
+                    .addCommands(commands)
+                    .complete()
+            }
+            logger.info { "${globalRegistered.size} global commands registered" }
+        } catch (e: Exception) {
+            logger.error(e) { "Failed to register global commands" }
         }
-        logger.info { "${globalRegistered.size} global commands registered" }
 
         event.jda.guilds.forEach { guild ->
             try {
@@ -92,7 +94,7 @@ class SlashCommandRegistrationListener @Autowired constructor(
             logger.info { "Retrieving global commands..." }
             jda.retrieveCommands().complete()
         } else {
-            val guild = discordService.getGuildById(guildId) ?: run {
+            val guild = jda.getGuildById(guildId) ?: run {
                 logger.warn { "Guild with ID $guildId not found" }
                 return null
             }

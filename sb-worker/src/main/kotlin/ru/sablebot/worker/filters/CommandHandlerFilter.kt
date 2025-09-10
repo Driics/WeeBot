@@ -5,11 +5,10 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.core.annotation.Order
 import org.springframework.stereotype.Component
-import ru.driics.sablebot.common.worker.command.service.CommandHandler
-import ru.driics.sablebot.common.worker.event.intercept.Filter
-import ru.driics.sablebot.common.worker.event.intercept.FilterChain
-import ru.driics.sablebot.common.worker.event.intercept.MemberMessageFilter
-import kotlin.math.log
+import ru.sablebot.common.worker.command.service.CommandHandler
+import ru.sablebot.common.worker.event.intercept.Filter
+import ru.sablebot.common.worker.event.intercept.FilterChain
+import ru.sablebot.common.worker.event.intercept.MemberMessageFilter
 
 @Component
 @Order(Filter.HANDLE_FILTER)

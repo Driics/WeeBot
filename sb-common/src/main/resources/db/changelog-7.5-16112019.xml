@@ -21,19 +21,29 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.4.xsd">
 
-    <changeSet id="7.5-16112019-1" author="driics">
+    <changeSet id="7.5-16112019-1a" author="driics" runInTransaction="true">
+        <preConditions onFail="MARK_RAN">
+            <and>
+                <tableExists tableName="sablepost"/>
+                <tableExists tableName="web_hook"/>
+            </and>
+        </preConditions>
+        <delete tableName="web_hook">
+            <where>id IN (SELECT DISTINCT web_hook_id FROM sablepost)</where>
+        </delete>
+        <rollback>
+            <!-- Данные безвозвратно удалены; при необходимости предусмотреть восстановление из бэкапа -->
+        </rollback>
+    </changeSet>
+    <!-- 1б. Сбрасываем FK и удаляем sablepost, если она есть -->
+    <changeSet id="7.5-16112019-1b" author="driics" runInTransaction="true">
         <preConditions onFail="MARK_RAN">
             <tableExists tableName="sablepost"/>
         </preConditions>
-        <sql>
-            ALTER TABLE sablepost DROP CONSTRAINT IF EXISTS fk_sablepost_web_hook;
-            DELETE
-            FROM web_hook
-            WHERE id IN (SELECT DISTINCT web_hook_id FROM sablepost);
-            DROP TABLE IF EXISTS sablepost;
-        </sql>
+        <dropForeignKeyConstraint baseTableName="sablepost" constraintName="fk_sablepost_web_hook"/>
+        <dropTable tableName="sablepost" cascadeConstraints="true"/>
         <rollback>
-            -- При необходимости добавьте createTable и восстановление данных из бэкапа
+            <!-- Добавьте createTable для sablepost, если нужен обратимый откат -->
         </rollback>
     </changeSet>
 
