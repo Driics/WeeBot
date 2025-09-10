@@ -18,7 +18,7 @@ open class AuditConfig(
     var forwardEnabled: Boolean = false,
 
     @Column
-    var forwardChannelId: Long? = null,
+    var forwardChannelId: Long = 0L,
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "forward_actions")

@@ -11,7 +11,6 @@ import java.util.*
 class BotContext(
     private val replyCallback: IReplyCallback
 ) {
-
     fun reply(
         ephemeral: Boolean,
         builder: InlineMessage<MessageCreateData>.() -> Unit

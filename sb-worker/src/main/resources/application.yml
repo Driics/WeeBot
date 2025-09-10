@@ -9,6 +9,25 @@ spring:
     version: "@build.version@"
     timestamp: "@build.timestamp@"
     name: "SablebotBot-Worker"
+  datasource:
+    url: ""
+    driver-class-name: "org.postgresql.Driver"
+    username: "postgres.pawbsjzdjxugymwadikp"
+  quartz:
+    overwriteExistingJobs: "true"
+    properties:
+      org.quartz.scheduler.instanceName: "juniperbot-spring-boot-quartz"
+      org.quartz.scheduler.instanceId: "AUTO"
+      org.quartz.threadPool.threadCount: "15"
+      org.quartz.jobStore.class: "org.quartz.impl.jdbcjobstore.JobStoreTX"
+      org.quartz.jobStore.driverDelegateClass: "org.quartz.impl.jdbcjobstore.PostgreSQLDelegate"
+      org.quartz.jobStore.useProperties: "true"
+      org.quartz.jobStore.misfireThreshold: "60000"
+      org.quartz.jobStore.tablePrefix: "qrtz_"
+      org.quartz.jobStore.isClustered: "false"
+      org.quartz.jobStore.clusterCheckinInterval: "20000"
+  liquibase:
+    change-log: "classpath:db/master.xml"
 
 sablebot:
   worker:

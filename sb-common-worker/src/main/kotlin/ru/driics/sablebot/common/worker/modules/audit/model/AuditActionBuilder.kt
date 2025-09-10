@@ -8,7 +8,7 @@ import ru.driics.sablebot.common.persistence.entity.AuditAction
 import ru.driics.sablebot.common.persistence.entity.LocalMember
 import ru.driics.sablebot.common.persistence.entity.LocalUser
 import ru.driics.sablebot.common.persistence.entity.base.NamedReference
-import java.util.*
+import java.time.Instant
 
 abstract class AuditActionBuilder(
     guildId: Long,
@@ -16,7 +16,7 @@ abstract class AuditActionBuilder(
 ) {
 
     protected val action: AuditAction = AuditAction(guildId, actionType).apply {
-        actionDate = Date()
+        actionDate = Instant.now()
         attributes = mutableMapOf()
     }
 
