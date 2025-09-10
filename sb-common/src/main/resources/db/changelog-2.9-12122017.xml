@@ -65,7 +65,12 @@
             SELECT id,
                    0
             FROM guild_config;
-            SELECT setval('ranking_config_id_seq', (SELECT MAX(id) + 1 FROM ranking_config));
+            -- Установить на MAX(id), is_called=true => следующий nextval будет MAX+1
+            SELECT setval(
+                           'ranking_config_id_seq',
+                           COALESCE((SELECT MAX(id) FROM ranking_config), 0),
+                           true
+                   );
             UPDATE guild_config
             SET ranking_config_id = id;
         </sql>

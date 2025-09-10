@@ -22,9 +22,16 @@
    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.4.xsd">
 
     <changeSet id="4.6-17032018-1" author="driics">
+        <preConditions onFail="HALT">
+            <dbms type="postgresql"/>
+            <tableExists tableName="playlist_item"/>
+        </preConditions>
         <addColumn tableName="playlist_item">
             <column name="data" type="bytea"/>
         </addColumn>
+        <rollback>
+            <dropColumn tableName="playlist_item" columnName="data"/>
+        </rollback>
     </changeSet>
 
 </databaseChangeLog>

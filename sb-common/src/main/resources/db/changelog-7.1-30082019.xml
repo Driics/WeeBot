@@ -58,7 +58,7 @@
 
     <changeSet id="7.1-30082019-3" author="driics">
         <addColumn tableName="gulag">
-            <column name="date" type="TIMESTAMP WITH TIME ZONE">
+            <column name="date" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="now()">
                 <constraints nullable="false"/>
             </column>
         </addColumn>

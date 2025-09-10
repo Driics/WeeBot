@@ -22,15 +22,25 @@
    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.4.xsd">
 
     <changeSet id="23082017-1-1" author="driics">
+        <preConditions onFail="HALT">
+            <tableExists tableName="guild_config"/>
+        </preConditions>
         <addColumn tableName="guild_config">
             <column name="music_streams_enabled" type="BOOLEAN" defaultValueBoolean="false">
                 <constraints nullable="false"/>
             </column>
         </addColumn>
+        <rollback>
+            <dropColumn tableName="guild_config" columnName="music_streams_enabled"/>
+        </rollback>
     </changeSet>
 
     <changeSet id="23082017-1-2" author="driics">
-        <dropTable tableName="auto_post"/>
+        <preConditions onFail="MARK_RAN">
+            <tableExists tableName="auto_post"/>
+        </preConditions>
+        <dropTable tableName="auto_post" cascadeConstraints="true"/>
+        <rollback></rollback>
     </changeSet>
 
 </databaseChangeLog>

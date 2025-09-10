@@ -20,6 +20,9 @@
         xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.4.xsd">
+    <preConditions onFail="HALT">
+        <dbms type="postgresql"/>
+    </preConditions>
 
     <changeSet id="6.0-22102018-1" author="driics">
         <addColumn tableName="user">

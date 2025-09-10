@@ -32,12 +32,16 @@ class SlashCommandRegistrationListener @Autowired constructor(
         logger.info { "${globalRegistered.size} global commands registered" }
 
         event.jda.guilds.forEach { guild ->
-            val registeredCommands = updateCommands(guild.idLong, event.jda) { commands ->
-                guild.updateCommands()
-                    .addCommands(commands)
-                    .complete()
+            try {
+                val registeredCommands = updateCommands(guild.idLong, event.jda) { commands ->
+                    guild.updateCommands()
+                        .addCommands(commands)
+                        .complete()
+                }
+                logger.info { "${registeredCommands.size} commands registered for guild ${guild.idLong}" }
+            } catch (e: Exception) {
+                logger.error(e) { "Failed to register commands for guild ${guild.idLong}" }
             }
-            logger.info { "${registeredCommands.size} commands registered for guild ${guild.idLong}" }
         }
     }
 
@@ -73,7 +77,6 @@ class SlashCommandRegistrationListener @Autowired constructor(
 
         return if (needsUpdate) {
             logger.info { "Command mismatch detected. Updating commands for ${if (guildId == 0L) "global" else "guild ID: $guildId"}" }
-            performCommandUpdate(guildId, jda, publicCommands)
             val updatedCommands = action(publicCommands)
             logger.info { "Successfully updated ${updatedCommands.size} commands for ${if (guildId == 0L) "global" else "guild ID: $guildId"}" }
             updatedCommands
@@ -95,25 +98,6 @@ class SlashCommandRegistrationListener @Autowired constructor(
             }
             logger.info { "Retrieving commands for guild ID: $guildId" }
             guild.retrieveCommands().complete()
-        }
-    }
-
-    // Helper function to update commands for either global or specific guild
-    private fun performCommandUpdate(guildId: Long, jda: JDA, publicCommands: List<CommandData>) {
-        if (guildId == 0L) {
-            jda.updateCommands()
-                .addCommands(publicCommands)
-                .queue()
-            logger.info { "Global commands updated successfully." }
-        } else {
-            val guild = discordService.getGuildById(guildId) ?: run {
-                logger.warn { "Guild with ID $guildId not found" }
-                return
-            }
-            guild.updateCommands()
-                .addCommands(publicCommands)
-                .queue()
-            logger.info { "Commands updated for guild ID: $guildId" }
         }
     }
 }

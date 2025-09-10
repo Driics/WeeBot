@@ -22,9 +22,22 @@
    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.4.xsd">
 
     <changeSet id="3.2-09012018-1" author="driics">
+        <preConditions onFail="HALT">
+            <tableExists tableName="member"/>
+            <sqlCheck expectedResult="0">
+                SELECT COUNT(*)
+                FROM (SELECT guild_id, user_id
+                      FROM member
+                      GROUP BY guild_id, user_id
+                      HAVING COUNT(*) > 1) t
+            </sqlCheck>
+        </preConditions>
         <addUniqueConstraint columnNames="guild_id, user_id"
                              constraintName="uq_member_constraint"
                              tableName="member"/>
+        <rollback>
+            <dropUniqueConstraint tableName="member" constraintName="uq_member_constraint"/>
+        </rollback>
     </changeSet>
 
 </databaseChangeLog>

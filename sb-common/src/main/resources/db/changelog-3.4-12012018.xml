@@ -53,9 +53,10 @@
     </changeSet>
 
     <changeSet id="3.4-012012018-5" author="driics">
-        <sql>UPDATE ranking_config AS r
-             SET guild_config_id = g.id FROM guild_config AS g
-             WHERE r.id = g.ranking_config_id;</sql>
+        <sql>INSERT INTO ranking (version, member_id, exp)
+             SELECT 0,
+                    id,
+                    COALESCE(exp, 0) WHERE r.id = g.ranking_config_id;</sql>
     </changeSet>
 
     <changeSet id="3.4-012012018-6" author="driics">
@@ -158,33 +159,33 @@
     </changeSet>
 
     <changeSet id="3.4-012012018-13" author="driics">
-        <createTable tableName="junipost">
+        <createTable tableName="sablepost">
             <column name="id" type="BIGSERIAL">
-                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_junipost"/>
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_sablepost"/>
             </column>
             <column name="version" type="BIGINT"/>
             <column name="guild_config_id" type="BIGINT">
-                <constraints nullable="false" foreignKeyName="fk_junipost_guild_config"
+                <constraints nullable="false" foreignKeyName="fk_sablepost_guild_config"
                              references="guild_config(id)"/>
             </column>
             <column name="web_hook_id" type="BIGINT">
-                <constraints nullable="false" foreignKeyName="fk_junipost_web_hook" references="web_hook(id)"/>
+                <constraints nullable="false" foreignKeyName="fk_sablepost_web_hook" references="web_hook(id)"/>
             </column>
         </createTable>
     </changeSet>
 
     <changeSet id="3.4-012012018-14" author="driics">
-        <sql>INSERT INTO junipost (version, guild_config_id, web_hook_id)
+        <sql>INSERT INTO sablepost (version, guild_config_id, web_hook_id)
              SELECT 0, id, web_hook_id
              FROM guild_config
              WHERE web_hook_id IS NOT NULL;</sql>
         <dropColumn tableName="guild_config">
             <column name="web_hook_id"/>
         </dropColumn>
-        <createIndex tableName="junipost" unique="true" indexName="idx_junipost_web_hook_id">
+        <createIndex tableName="sablepost" unique="true" indexName="idx_sablepost_web_hook_id">
             <column name="web_hook_id"/>
         </createIndex>
-        <createIndex tableName="junipost" unique="true" indexName="idx_junipost_guild_config_id">
+        <createIndex tableName="sablepost" unique="true" indexName="idx_sablepost_guild_config_id">
             <column name="guild_config_id"/>
         </createIndex>
         <createIndex tableName="ranking_config" unique="true" indexName="idx_ranking_config_guild_config_id">

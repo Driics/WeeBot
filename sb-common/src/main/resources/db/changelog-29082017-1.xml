@@ -46,8 +46,8 @@
     <changeSet id="29082017-1-2" author="driics">
         <createIndex indexName="idx_custom_command_entry"
                      tableName="custom_command" unique="true">
-            <column name="guild_config_id" type="BIGINT)"/>
-            <column name="key" type="VARCHAR(25)"/>
+            <column name="guild_config_id"/>
+            <column name="key"/>
         </createIndex>
     </changeSet>
 

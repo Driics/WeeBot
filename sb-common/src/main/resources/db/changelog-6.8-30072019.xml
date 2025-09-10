@@ -27,11 +27,15 @@
                 <constraints nullable="false"/>
             </column>
         </addColumn>
-        <createIndex tableName="member_warning" indexName="idx_member_warning_active_guild_violator">
-            <column name="active"/>
-            <column name="guild_id"/>
-            <column name="violator_id"/>
-        </createIndex>
+    </changeSet>
+
+    <changeSet id="6.8-30072019-2" author="driics" runInTransaction="false">
+        <sql>CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_member_warning_gv_active_true
+            ON member_warning (guild_id, violator_id)
+            WHERE active</sql>
+        <rollback>
+            <sql>DROP INDEX CONCURRENTLY IF EXISTS idx_member_warning_gv_active_true</sql>
+        </rollback>
     </changeSet>
 
 </databaseChangeLog>

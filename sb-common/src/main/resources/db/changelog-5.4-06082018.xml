@@ -49,7 +49,7 @@
         </createIndex>
 
         <createProcedure>
-            DROP FUNCTION recalculate_rank(p_guild_id VARCHAR (255));
+            DROP FUNCTION IF EXISTS recalculate_rank(VARCHAR (255));
             CREATE
             OR REPLACE FUNCTION recalculate_rank(p_guild_id BIGINT)
               RETURNS integer AS $$
@@ -68,22 +68,22 @@
 
     <changeSet id="5.4-06082018-2" author="driics">
 
-        <!-- Migrate junipost -->
-        <addColumn tableName="junipost">
+        <!-- Migrate sablepost -->
+        <addColumn tableName="sablepost">
             <column name="guild_id" type="BIGINT"/>
         </addColumn>
         <sql>
-            UPDATE junipost AS o
+            UPDATE sablepost AS o
             SET guild_id = c.guild_id FROM guild_config c
             WHERE o.guild_config_id = c.id;
         </sql>
-        <addNotNullConstraint tableName="junipost" columnName="guild_id"/>
-        <createIndex tableName="junipost" indexName="idx_junipost_guild_id" unique="true">
+        <addNotNullConstraint tableName="sablepost" columnName="guild_id"/>
+        <createIndex tableName="sablepost" indexName="idx_sablepost_guild_id" unique="true">
             <column name="guild_id"/>
         </createIndex>
 
-        <dropIndex tableName="junipost" indexName="idx_junipost_guild_config_id"/>
-        <dropColumn tableName="junipost">
+        <dropIndex tableName="sablepost" indexName="idx_sablepost_guild_config_id"/>
+        <dropColumn tableName="sablepost">
             <column name="guild_config_id"/>
         </dropColumn>
 

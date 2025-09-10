@@ -37,6 +37,10 @@
         <sql>UPDATE guild_config
              SET time_zone = 'Etc/Greenwich'</sql>
         <addNotNullConstraint tableName="guild_config" columnName="time_zone"/>
+        <rollback>
+            <dropNotNullConstraint tableName="guild_config" columnName="time_zone"/>
+            <dropColumn tableName="guild_config" columnName="time_zone"/>
+        </rollback>
     </changeSet>
 
     <changeSet id="5.3-04082018-3" author="driics">

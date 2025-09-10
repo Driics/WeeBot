@@ -48,7 +48,7 @@
     </changeSet>
 
     <changeSet id="20082017-1-4" author="driics">
-        <delete tableName="auto_post"/>
+        <dropTable tableName="auto_post"/>
     </changeSet>
 
 </databaseChangeLog>
