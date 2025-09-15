@@ -60,9 +60,7 @@ open class ContextServiceImpl(
         colorHolder.get() ?: run {
             guildHolder.get()?.let { guildId ->
                 val colorHex = configService.getColor(guildId)
-                val color = runCatching { Color.decode(colorHex) }.getOrNull()
-                setColor(color)
-                color
+                runCatching { Color.decode(colorHex) }.getOrNull()
             }
         } ?: getDefaultColor()
 

@@ -1,10 +1,12 @@
 package ru.sablebot.common.worker.command.service
 
+import com.github.benmanes.caffeine.cache.Caffeine
 import io.github.oshai.kotlinlogging.KotlinLogging
 import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.User
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
+import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.annotation.Lazy
@@ -15,6 +17,8 @@ import ru.sablebot.common.worker.command.model.BotContext
 import ru.sablebot.common.worker.command.model.Command
 import ru.sablebot.common.worker.configuration.WorkerProperties
 import ru.sablebot.common.worker.message.service.MessageService
+import java.util.concurrent.ExecutionException
+import java.util.concurrent.TimeUnit
 import kotlin.time.measureTime
 
 @Order(0)
@@ -28,6 +32,11 @@ class InternalCommandsServiceImpl @Autowired constructor(
     companion object {
         private val log = KotlinLogging.logger { }
     }
+
+    val contexts = Caffeine
+        .newBuilder()
+        .expireAfterAccess(1, TimeUnit.DAYS)
+        .build<Long, BotContext>()
 
     override fun isApplicable(command: Command, user: User, member: Member, channel: TextChannel): Boolean =
         command.isAvailable(user, member, channel.guild)
@@ -87,5 +96,9 @@ class InternalCommandsServiceImpl @Autowired constructor(
         return true
     }
 
-
+    private fun getContext(channel: MessageChannel): BotContext = try {
+        contexts.get(channel.idLong) { BotContext() }
+    } catch (e: ExecutionException) {
+        BotContext()
+    }
 }
