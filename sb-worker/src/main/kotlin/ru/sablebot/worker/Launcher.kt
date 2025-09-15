@@ -3,7 +3,7 @@ package ru.sablebot.worker
 import org.springframework.boot.SpringApplication
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.context.annotation.Import
-import ru.driics.sablebot.common.worker.configuration.WorkerConfiguration
+import ru.sablebot.common.worker.configuration.WorkerConfiguration
 
 @SpringBootApplication
 @Import(WorkerConfiguration::class)

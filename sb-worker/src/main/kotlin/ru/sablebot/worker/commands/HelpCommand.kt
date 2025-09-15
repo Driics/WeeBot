@@ -1,10 +1,9 @@
 package ru.sablebot.worker.commands
 
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
-import org.bouncycastle.asn1.x500.style.RFC4519Style.title
-import ru.driics.sablebot.common.worker.command.model.AbstractCommand
-import ru.driics.sablebot.common.worker.command.model.BotContext
-import ru.driics.sablebot.common.worker.command.model.DiscordCommand
+import ru.sablebot.common.worker.command.model.AbstractCommand
+import ru.sablebot.common.worker.command.model.BotContext
+import ru.sablebot.common.worker.command.model.DiscordCommand
 
 @DiscordCommand(
     key = "help",

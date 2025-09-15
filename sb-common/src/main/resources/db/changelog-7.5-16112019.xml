@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ This file is part of JuniperBot.
+
+ JuniperBot is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+
+ JuniperBot is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+
+ You should have received a copy of the GNU General Public License
+ along with JuniperBot. If not, see <http://www.gnu.org/licenses/>.
+-->
+<databaseChangeLog
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+   http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.4.xsd">
+
+    <changeSet id="7.5-16112019-1a" author="driics" runInTransaction="true">
+        <preConditions onFail="MARK_RAN">
+            <and>
+                <tableExists tableName="sablepost"/>
+                <tableExists tableName="web_hook"/>
+            </and>
+        </preConditions>
+        <delete tableName="web_hook">
+            <where>id IN (SELECT DISTINCT web_hook_id FROM sablepost)</where>
+        </delete>
+        <rollback>
+            <!-- Данные безвозвратно удалены; при необходимости предусмотреть восстановление из бэкапа -->
+        </rollback>
+    </changeSet>
+    <!-- 1б. Сбрасываем FK и удаляем sablepost, если она есть -->
+    <changeSet id="7.5-16112019-1b" author="driics" runInTransaction="true">
+        <preConditions onFail="MARK_RAN">
+            <tableExists tableName="sablepost"/>
+        </preConditions>
+        <dropForeignKeyConstraint baseTableName="sablepost" constraintName="fk_sablepost_web_hook"/>
+        <dropTable tableName="sablepost" cascadeConstraints="true"/>
+        <rollback>
+            <!-- Добавьте createTable для sablepost, если нужен обратимый откат -->
+        </rollback>
+    </changeSet>
+
+    <changeSet id="7.5-16112019-2" author="driics">
+        <addColumn tableName="ranking_config">
+            <column name="max_voice_members" type="INTEGER"/>
+        </addColumn>
+    </changeSet>
+
+</databaseChangeLog>

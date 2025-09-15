@@ -9,6 +9,20 @@ spring:
     version: "@build.version@"
     timestamp: "@build.timestamp@"
     name: "SablebotBot-Worker"
+  datasource:
+
+  quartz:
+    job-store-type: jdbc
+    jdbc:
+      initialize-schema: never
+    overwriteExistingJobs: true
+    properties:
+      org.quartz.scheduler.instanceName: "sablebot-spring-boot-quartz"
+      org.quartz.scheduler.instanceId: "AUTO"
+      org.quartz.threadPool.threadCount: "15"
+      org.quartz.jobStore.tablePrefix: "qrtz_"
+  liquibase:
+    change-log: "classpath:db/master.xml"
 
 sablebot:
   worker:
@@ -26,5 +40,5 @@ server:
   servlet:
     encoding:
       charset: "UTF-8"
-      enabled: "true"
-      force: "true"
+      enabled: true
+      force: true

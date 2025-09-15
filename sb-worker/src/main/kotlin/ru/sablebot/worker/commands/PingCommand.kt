@@ -2,11 +2,11 @@ package ru.sablebot.worker.commands
 
 import dev.minn.jda.ktx.messages.InlineMessage
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
-import ru.driics.sablebot.common.worker.command.model.AbstractCommand
-import ru.driics.sablebot.common.worker.command.model.BotContext
-import ru.driics.sablebot.common.worker.command.model.DiscordCommand
-import ru.driics.sablebot.common.worker.message.model.InteractionMessage
-import ru.driics.sablebot.common.worker.message.model.styled
+import ru.sablebot.common.worker.command.model.AbstractCommand
+import ru.sablebot.common.worker.command.model.BotContext
+import ru.sablebot.common.worker.command.model.DiscordCommand
+import ru.sablebot.common.worker.message.model.InteractionMessage
+import ru.sablebot.common.worker.message.model.styled
 import kotlin.time.measureTime
 
 @DiscordCommand(
