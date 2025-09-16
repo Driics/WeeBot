@@ -18,7 +18,8 @@ interface Command {
 
     fun execute(
         event: SlashCommandInteractionEvent,
-        context: BotContext
+        context: BotContext,
+        args: SlashCommandArguments
     )
 
     val annotation: DiscordCommand

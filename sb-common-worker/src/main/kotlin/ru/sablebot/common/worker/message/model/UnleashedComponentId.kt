@@ -2,13 +2,17 @@ package ru.sablebot.common.worker.message.model
 
 import java.util.*
 
-class UnleashedComponentId(val uniqueId: UUID) {
+@JvmInline
+value class UnleashedComponentId(val uniqueId: UUID) {
     companion object {
         const val UNLEASHED_COMPONENT_PREFIX = "unleashed"
 
         operator fun invoke(componentIdWithPrefix: String): UnleashedComponentId {
             require(componentIdWithPrefix.startsWith("$UNLEASHED_COMPONENT_PREFIX:")) { "Not a Unleashed Component ID!" }
-            return UnleashedComponentId(UUID.fromString(componentIdWithPrefix.substringAfterLast(":")))
+
+            val payload = componentIdWithPrefix.substringAfter("$UNLEASHED_COMPONENT_PREFIX:")
+            require(':' !in payload) { "Not a Unleashed Component ID!" }
+            return UnleashedComponentId(UUID.fromString(payload))
         }
     }
 
