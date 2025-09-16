@@ -31,7 +31,7 @@ class ComponentContext(
     /**
      * Edits the message that invoked the action
      */
-    suspend inline fun editMessage(isReplace: Boolean = false, messageEditData: MessageEditData): UnleashedHook {
+    suspend fun editMessage(isReplace: Boolean = false, messageEditData: MessageEditData): UnleashedHook {
         return UnleashedHook.InteractionHook(event.editMessage(messageEditData).apply { this.isReplace = isReplace }
             .await())
     }

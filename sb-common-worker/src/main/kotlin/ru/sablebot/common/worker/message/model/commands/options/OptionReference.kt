@@ -34,14 +34,14 @@ class StringDiscordOptionReference<T>(
             val value: String
         ) : Choice()
     }
+}
 
-    class BooleanDiscordOptionReference<T>(
-        name: String,
-        description: String,
-        required: Boolean
-    ) : DiscordOptionReference<T>(name, description, required) {
-        override fun get(option: OptionMapping): T {
-            return option.asBoolean as T
-        }
+class BooleanDiscordOptionReference<T>(
+    name: String,
+    description: String,
+    required: Boolean
+) : DiscordOptionReference<T>(name, description, required) {
+    override fun get(option: OptionMapping): T {
+        return option.asBoolean as T
     }
 }
