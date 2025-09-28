@@ -5,8 +5,6 @@ import net.dv8tion.jda.api.entities.Guild
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.User
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
-import net.dv8tion.jda.api.interactions.commands.build.CommandData
-import net.dv8tion.jda.internal.interactions.CommandDataImpl
 import ru.sablebot.common.worker.message.model.commands.options.ApplicationCommandOptions
 
 interface Command {
@@ -30,10 +28,9 @@ interface Command {
     val permissions: Array<Permission>
         get() = annotation.permissions
 
+    val subcommands: List<Command>
+        get() = emptyList()
+
     val commandOptions: ApplicationCommandOptions
         get() = ApplicationCommandOptions.noOptions()
-
-    val commandData: CommandData
-        get() = CommandDataImpl(key, annotation.description)
-            .setNSFW(annotation.nsfw)
 }

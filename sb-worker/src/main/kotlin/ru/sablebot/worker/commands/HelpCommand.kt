@@ -12,17 +12,14 @@ import ru.sablebot.common.worker.command.model.SlashCommandArguments
     priority = 1
 )
 class HelpCommand: AbstractCommand() {
-
     override fun execute(event: SlashCommandInteractionEvent, context: BotContext, args: SlashCommandArguments) {
-        val embedBuilder = messageService.getBaseEmbed(true).apply {
-            setTitle("Available Commands:")
-            setThumbnail(event.jda.selfUser.avatarUrl)
-        }
 
         val desc = "You can get detailed help information for every command\n\n"
         val commandsList = event.guild!!.retrieveCommands().complete()
 
-        val commandsAsMention = commandsList.joinToString("\t") { it.asMention }
+        val commandsAsMention = commandsList.joinToString("\n") {
+            "${it.asMention} -- ${it.description}"
+        }
 
         context.reply(false) {
             embed {

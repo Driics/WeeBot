@@ -1,15 +1,22 @@
 package ru.sablebot.worker.listeners
 
+import dev.minn.jda.ktx.interactions.commands.Option
 import io.github.oshai.kotlinlogging.KotlinLogging
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.events.session.ReadyEvent
 import net.dv8tion.jda.api.interactions.commands.build.CommandData
+import net.dv8tion.jda.api.interactions.commands.build.Commands
+import net.dv8tion.jda.api.interactions.commands.build.OptionData
 import net.dv8tion.jda.api.interactions.commands.build.SlashCommandData
 import org.springframework.beans.factory.annotation.Autowired
 import ru.sablebot.common.worker.command.model.Command
 import ru.sablebot.common.worker.command.service.CommandsHolderService
 import ru.sablebot.common.worker.event.DiscordEvent
 import ru.sablebot.common.worker.event.listeners.DiscordEventListener
+import ru.sablebot.common.worker.message.model.commands.options.BooleanDiscordOptionReference
+import ru.sablebot.common.worker.message.model.commands.options.DiscordOptionReference
+import ru.sablebot.common.worker.message.model.commands.options.OptionReference
+import ru.sablebot.common.worker.message.model.commands.options.StringDiscordOptionReference
 import net.dv8tion.jda.api.interactions.commands.Command as CommandJDA
 
 
@@ -54,7 +61,7 @@ class SlashCommandRegistrationListener @Autowired constructor(
     ): List<CommandJDA> {
         logger.info { "Starting command update for ${if (guildId == 0L) "global scope" else "guild ID: $guildId"}" }
 
-        val publicCommands = holderService.publicCommands.values.map(Command::commandData)
+        val publicCommands = holderService.publicCommands.values.map { toJdaDeclaration(it) }
 
         // Log command type breakdown once instead of per command
         CommandJDA.Type.entries
@@ -88,6 +95,27 @@ class SlashCommandRegistrationListener @Autowired constructor(
         }
     }
 
+    private fun toJdaDeclaration(command: Command): SlashCommandData =
+        Commands.slash(command.annotation.key, command.annotation.description).apply {
+            isNSFW = command.annotation.nsfw
+
+            /*
+            TODO
+            if(command.subcommands.isNotEmpty()) {
+                command.subcommands.forEach { subcommand ->
+                    slashcomand()
+                }
+            }*/
+
+            for (reference in command.commandOptions.registeredOptions) {
+                try {
+                    addOptions(*createOption(reference).toTypedArray())
+                } catch (e: Exception) {
+                    logger.error(e) { "Failed to register command: ${reference.name}" }
+                }
+            }
+        }
+
     // Helper function to retrieve commands for either global or specific guild
     private fun fetchExistingCommands(guildId: Long, jda: JDA): List<CommandJDA>? {
         return if (guildId == 0L) {
@@ -100,6 +128,34 @@ class SlashCommandRegistrationListener @Autowired constructor(
             }
             logger.info { "Retrieving commands for guild ID: $guildId" }
             guild.retrieveCommands().complete()
+        }
+    }
+
+    private fun createOption(interactionOption: OptionReference<*>): List<OptionData> {
+        when (interactionOption) {
+            is DiscordOptionReference -> {
+                when (interactionOption) {
+                    is StringDiscordOptionReference -> return listOf(
+                        Option<String>(
+                            interactionOption.name,
+                            interactionOption.description,
+                            interactionOption.required
+                        ).apply {
+                            if (interactionOption.autocompleteExecutor != null) {
+                                isAutoComplete = true
+                            }
+                        }
+                    )
+
+                    is BooleanDiscordOptionReference<*> -> return listOf(
+                        Option<Boolean>(
+                            interactionOption.name,
+                            interactionOption.description,
+                            interactionOption.required
+                        )
+                    )
+                }
+            }
         }
     }
 }
