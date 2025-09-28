@@ -134,7 +134,7 @@ class ContextEventManagerImpl @Autowired constructor(
                 setBeanName(name)
                 setThreadNamePrefix(name)
                 initialize()
-                mBeanExportOperations.registerManagedResource(ThreadPoolTaskExecutorMBean(this, name))
+                mBeanExportOperations.registerManagedResource(ThreadPoolTaskExecutorMBean(name, this))
             }
         }
 

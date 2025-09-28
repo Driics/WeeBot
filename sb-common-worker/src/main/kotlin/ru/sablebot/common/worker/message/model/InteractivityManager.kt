@@ -44,12 +44,12 @@ class InteractivityManager {
         .expireAfterWrite(DELAY.toJavaDuration())
         .build<UUID, SelectMenuEntityInteractionCallback>()
         .asMap()
-    val modalCallbacks = Caffeine
+    /*val modalCallbacks = Caffeine
         .newBuilder()
         .maximumSize(MAX_SIZE)
         .expireAfterWrite(DELAY.toJavaDuration())
         .build<UUID, ModalInteractionCallback>()
-        .asMap()
+        .asMap()*/
 
 
     data class ButtonInteractionCallback(
@@ -74,13 +74,14 @@ class InteractivityManager {
          */
         val alwaysEphemeral: Boolean,
         val callback: suspend (ComponentContext, List<IMentionable>) -> (Unit)
-    )
+    )/*
 
     data class ModalInteractionCallback(
-        /**
+        */
+    /**
          * If true, the created context will always be ephemeral
-         */
+     *//*
         val alwaysEphemeral: Boolean,
         val callback: suspend (ModalContext, ModalArguments) -> (Unit)
-    )
+    )*/
 }

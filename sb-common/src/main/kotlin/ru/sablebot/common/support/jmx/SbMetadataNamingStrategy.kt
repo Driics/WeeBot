@@ -1,6 +1,7 @@
 package ru.sablebot.common.support.jmx
 
 import org.springframework.jmx.export.naming.MetadataNamingStrategy
+import javax.management.MalformedObjectNameException
 import javax.management.ObjectName
 
 class SbMetadataNamingStrategy : MetadataNamingStrategy() {
@@ -8,9 +9,10 @@ class SbMetadataNamingStrategy : MetadataNamingStrategy() {
     /**
      * Overrides Spring's naming method and replaces it with a custom naming strategy.
      */
+
     override fun getObjectName(managedBean: Any, beanKey: String?): ObjectName {
-        val finalBeanKey = beanKey ?: managedBean::class.java.name
-        var objectName = super.getObjectName(managedBean, finalBeanKey)
+        val actualKey = beanKey ?: managedBean.javaClass.name
+        var objectName = super.getObjectName(managedBean, actualKey)
 
         if (managedBean is JmxNamedResource) {
             objectName = buildObjectName(managedBean, objectName.domain)
@@ -21,15 +23,26 @@ class SbMetadataNamingStrategy : MetadataNamingStrategy() {
     /**
      * Constructs the custom object name using the information from [JmxNamedResource].
      */
-    private fun buildObjectName(namedResource: JmxNamedResource, domainName: String): ObjectName {
-        val jmxPath = namedResource.jmxPath
+    @Throws(MalformedObjectNameException::class)
+    private fun buildObjectName(namedObject: JmxNamedResource, domainName: String): ObjectName {
+        val typeNames = namedObject.jmxPath
 
-        val nameString = jmxPath
-            .mapIndexed { index, path -> "%02d_$path".format(index) }
-            .joinToString(separator = "::")
+        val nameBuilder = buildString {
+            append(domainName)
+            append(':')
 
-        val objectNameString = "$domainName:$nameString[name_${namedResource.jmxName}]"
+            typeNames.forEachIndexed { index, typeName ->
+                if (index > 0) append(',')
+                append("type$index")
+                append('=')
+                append(ObjectName.quote(typeName))
+            }
 
-        return ObjectName.getInstance(objectNameString)
+            if (typeNames.isNotEmpty()) append(',')
+            append("name=")
+            append(ObjectName.quote(namedObject.jmxName))
+        }
+
+        return ObjectName.getInstance(nameBuilder)
     }
 }

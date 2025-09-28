@@ -4,6 +4,7 @@ import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEve
 import ru.sablebot.common.worker.command.model.AbstractCommand
 import ru.sablebot.common.worker.command.model.BotContext
 import ru.sablebot.common.worker.command.model.DiscordCommand
+import ru.sablebot.common.worker.command.model.SlashCommandArguments
 
 @DiscordCommand(
     key = "help",
@@ -12,7 +13,7 @@ import ru.sablebot.common.worker.command.model.DiscordCommand
 )
 class HelpCommand: AbstractCommand() {
 
-    override fun execute(event: SlashCommandInteractionEvent, context: BotContext) {
+    override fun execute(event: SlashCommandInteractionEvent, context: BotContext, args: SlashCommandArguments) {
         val embedBuilder = messageService.getBaseEmbed(true).apply {
             setTitle("Available Commands:")
             setThumbnail(event.jda.selfUser.avatarUrl)

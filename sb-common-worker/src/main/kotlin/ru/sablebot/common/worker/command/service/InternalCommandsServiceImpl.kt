@@ -6,7 +6,6 @@ import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.User
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
-import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.annotation.Lazy
@@ -15,9 +14,10 @@ import org.springframework.stereotype.Service
 import ru.sablebot.common.model.exception.DiscordException
 import ru.sablebot.common.worker.command.model.BotContext
 import ru.sablebot.common.worker.command.model.Command
+import ru.sablebot.common.worker.command.model.SlashCommandArguments
+import ru.sablebot.common.worker.command.model.SlashCommandArgumentsSource
 import ru.sablebot.common.worker.configuration.WorkerProperties
 import ru.sablebot.common.worker.message.service.MessageService
-import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
 import kotlin.time.measureTime
 
@@ -81,7 +81,11 @@ class InternalCommandsServiceImpl @Autowired constructor(
                 if (workerProperties.commands.invokeLogging) {
                     log.info { "Invoke command [${command::class.simpleName}]: ${event.options}" }
                 }
-                command.execute(event, BotContext(event))
+                command.execute(
+                    event,
+                    BotContext(event),
+                    SlashCommandArguments(SlashCommandArgumentsSource.SlashCommandArgumentsEventSource(event))
+                )
             } catch (e: DiscordException) {
                 log.error(e) { "Command [${command.key}] execution error" }
             }
@@ -94,11 +98,5 @@ class InternalCommandsServiceImpl @Autowired constructor(
         }
 
         return true
-    }
-
-    private fun getContext(channel: MessageChannel): BotContext = try {
-        contexts.get(channel.idLong) { BotContext() }
-    } catch (e: ExecutionException) {
-        BotContext()
     }
 }

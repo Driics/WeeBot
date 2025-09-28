@@ -8,7 +8,6 @@ import org.springframework.context.annotation.Lazy
 import ru.sablebot.common.configuration.CommonProperties
 import ru.sablebot.common.worker.command.service.CommandsService
 import ru.sablebot.common.worker.configuration.WorkerProperties
-import ru.sablebot.common.worker.message.model.commands.options.ApplicationCommandOptions
 import ru.sablebot.common.worker.message.service.MessageService
 import ru.sablebot.common.worker.shared.service.DiscordService
 
@@ -32,8 +31,6 @@ abstract class AbstractCommand : Command {
     @Autowired
     @Lazy
     protected lateinit var messageService: MessageService
-
-    open val options: ApplicationCommandOptions = ApplicationCommandOptions.noOptions()
 
     override fun isAvailable(user: User, membere: Member, guild: Guild) = true
 

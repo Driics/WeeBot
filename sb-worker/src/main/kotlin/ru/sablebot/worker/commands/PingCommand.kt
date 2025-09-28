@@ -5,6 +5,7 @@ import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEve
 import ru.sablebot.common.worker.command.model.AbstractCommand
 import ru.sablebot.common.worker.command.model.BotContext
 import ru.sablebot.common.worker.command.model.DiscordCommand
+import ru.sablebot.common.worker.command.model.SlashCommandArguments
 import ru.sablebot.common.worker.message.model.InteractionMessage
 import ru.sablebot.common.worker.message.model.styled
 import kotlin.time.measureTime
@@ -14,7 +15,7 @@ import kotlin.time.measureTime
     description = "Display ping",
 )
 class PingCommand : AbstractCommand() {
-    override fun execute(event: SlashCommandInteractionEvent, context: BotContext) {
+    override fun execute(event: SlashCommandInteractionEvent, context: BotContext, args: SlashCommandArguments) {
         var message: InteractionMessage
 
         fun buildPingMessage(apiLatency: Long?): InlineMessage<*>.() -> (Unit) = {
@@ -35,7 +36,7 @@ class PingCommand : AbstractCommand() {
 
 
         val apiPing = measureTime {
-            message = context.reply(false) {
+            message = context.reply(true) {
                 apply(buildPingMessage(null))
             }
         }
