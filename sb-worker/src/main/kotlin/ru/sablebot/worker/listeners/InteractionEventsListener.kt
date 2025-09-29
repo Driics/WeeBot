@@ -2,6 +2,9 @@ package ru.sablebot.worker.listeners
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.EntitySelectInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent
@@ -11,6 +14,8 @@ import ru.sablebot.common.worker.event.listeners.DiscordEventListener
 import ru.sablebot.common.worker.message.model.ComponentContext
 import ru.sablebot.common.worker.message.model.InteractivityManager
 import ru.sablebot.common.worker.message.model.UnleashedComponentId
+import ru.sablebot.common.worker.message.model.modals.ModalArguments
+import ru.sablebot.common.worker.message.model.modals.ModalContext
 import ru.sablebot.common.worker.message.model.styled
 
 @DiscordEvent
@@ -47,7 +52,7 @@ class InteractionEventsListener(
             try {
                 callbackData.callback.invoke(context)
             } catch (e: Exception) {
-                logger.warn(e) { "Button callback failed for ${componentId.uniqueId}" }
+                logger.error(e) { "Button callback failed for ${componentId.uniqueId}" }
             }
         }
     }
@@ -77,7 +82,7 @@ class InteractionEventsListener(
             try {
                 callbackData.callback.invoke(context, event.interaction.values)
             } catch (e: Exception) {
-                logger.warn(e) { "Entity select callback failed for ${componentId.uniqueId}" }
+                logger.error(e) { "Entity select callback failed for ${componentId.uniqueId}" }
             }
         }
     }
@@ -106,7 +111,36 @@ class InteractionEventsListener(
             try {
                 callbackData.callback.invoke(context, event.interaction.values)
             } catch (e: Exception) {
-                logger.warn(e) { "String select callback failed for ${componentId.uniqueId}" }
+                logger.error(e) { "String select callback failed for ${componentId.uniqueId}" }
+            }
+        }
+    }
+
+    override fun onModalInteraction(event: ModalInteractionEvent) {
+        GlobalScope.launch {
+            val modalId = try {
+                UnleashedComponentId(event.modalId)
+            } catch (e: IllegalArgumentException) {
+                logger.debug(e) { "Invalid modalId: ${event.modalId}" }
+                return@launch
+            }
+
+            val callbackData = interactivityManager.modalCallbacks[modalId.uniqueId]
+            val context = ModalContext(event)
+
+            if (callbackData == null) {
+                context.reply(true) {
+                    styled("I don't know what to handle interaction event: $event", ":face_with_monocle:")
+                }
+                return@launch
+            }
+
+            context.alwaysEphemeral = callbackData.alwaysEphemeral // Inherit alwaysEphemeral from the callback data
+
+            try {
+                callbackData.callback.invoke(context, ModalArguments(event))
+            } catch (e: Exception) {
+                logger.error(e) { "Modal callback error for ${modalId.uniqueId}" }
             }
         }
     }

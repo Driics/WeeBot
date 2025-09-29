@@ -2,12 +2,15 @@ package ru.sablebot.worker.commands
 
 import dev.minn.jda.ktx.interactions.components.SelectOption
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
+import net.dv8tion.jda.api.interactions.components.ActionRow
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 import net.dv8tion.jda.api.interactions.components.selections.EntitySelectMenu
+import net.dv8tion.jda.api.interactions.components.text.TextInputStyle
 import ru.sablebot.common.worker.command.model.AbstractCommand
 import ru.sablebot.common.worker.command.model.DiscordCommand
 import ru.sablebot.common.worker.command.model.SlashCommandArguments
 import ru.sablebot.common.worker.message.model.InteractionContext
+import ru.sablebot.common.worker.message.model.modals.options.modalString
 import ru.sablebot.common.worker.message.model.styled
 
 @DiscordCommand(
@@ -55,15 +58,36 @@ class TestCommand : AbstractCommand() {
             )
             actionRow(
                 interactivityManager.button(
-                    true,
+                    context.alwaysEphemeral,
                     ButtonStyle.PRIMARY,
                     "Test"
                 ) { callbackCtx ->
                     callbackCtx.reply(true) {
                         styled(callbackCtx.event.componentId, ":smile:")
                     }
+                },
+
+                interactivityManager.button(
+                    context.alwaysEphemeral,
+                    ButtonStyle.SECONDARY,
+                    "Modal Test"
+                ) { callbackCtx ->
+                    val testModalString = modalString(
+                        "Test text",
+                        TextInputStyle.SHORT,
+                        value = "Test text",
+                    )
+
+                    callbackCtx.sendModal(
+                        "Modal Test",
+                        listOf(ActionRow.of(testModalString.toJDA()))
+                    ) { it, args ->
+                        it.reply(it.alwaysEphemeral) {
+                            styled(args[testModalString], "Args")
+                        }
+                    }
                 }
             )
-        }.retrieveOriginal()
+        }
     }
 }

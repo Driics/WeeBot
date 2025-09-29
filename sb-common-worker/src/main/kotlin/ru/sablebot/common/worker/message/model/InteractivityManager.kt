@@ -13,6 +13,7 @@ import net.dv8tion.jda.api.interactions.components.selections.EntitySelectMenu
 import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu
 import org.springframework.stereotype.Component
 import ru.sablebot.common.worker.message.model.modals.ModalArguments
+import ru.sablebot.common.worker.message.model.modals.ModalContext
 import java.util.*
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.toJavaDuration
@@ -257,6 +258,6 @@ class InteractivityManager {
          * If true, the created context will always be ephemeral
          */
         val alwaysEphemeral: Boolean,
-        val callback: suspend (ComponentContext, ModalArguments) -> (Unit)
+        val callback: suspend (ModalContext, ModalArguments) -> (Unit)
     )
 }

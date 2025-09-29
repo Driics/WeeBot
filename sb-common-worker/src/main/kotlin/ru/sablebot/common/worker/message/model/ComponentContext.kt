@@ -9,6 +9,7 @@ import net.dv8tion.jda.api.interactions.components.ComponentInteraction
 import net.dv8tion.jda.api.utils.messages.MessageEditData
 import ru.sablebot.common.utils.await
 import ru.sablebot.common.worker.message.model.modals.ModalArguments
+import ru.sablebot.common.worker.message.model.modals.ModalContext
 import java.util.*
 import java.util.concurrent.CompletableFuture
 
@@ -42,7 +43,7 @@ class ComponentContext(
     suspend fun sendModal(
         title: String,
         components: List<ActionRow>,
-        callback: suspend (ComponentContext, ModalArguments) -> (Unit)
+        callback: suspend (ModalContext, ModalArguments) -> (Unit)
     ) {
         val unleashedComponentId = UnleashedComponentId(UUID.randomUUID())
         interactivityManager.modalCallbacks[unleashedComponentId.uniqueId] =
