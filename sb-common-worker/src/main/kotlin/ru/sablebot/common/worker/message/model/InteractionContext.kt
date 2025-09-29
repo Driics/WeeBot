@@ -5,6 +5,7 @@ import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.interactions.callbacks.IReplyCallback
 import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder
 import net.dv8tion.jda.api.utils.messages.MessageCreateData
+import ru.sablebot.common.utils.await
 import ru.sablebot.common.worker.command.model.context.UnleashedContext
 import java.util.*
 
@@ -20,19 +21,24 @@ abstract class InteractionContext(
     channelOrNull = replyCallback.messageChannel,
     discordInteractionOrNull = replyCallback.hook.interaction
 ) {
-    override fun deferChannelMessage(ephemeral: Boolean): InteractionHook {
+    override suspend fun deferChannelMessage(ephemeral: Boolean): InteractionHook {
         val realEphemeralState = if (alwaysEphemeral) true else ephemeral
 
-        // TODO: maybe use await instead complete?
-        val hook = replyCallback.deferReply().setEphemeral(realEphemeralState).complete()
+        if (replyCallback.isAcknowledged) {
+            return InteractionHook(replyCallback.hook)
+        }
 
-        return InteractionHook(hook)
+        return InteractionHook(
+            replyCallback.deferReply().setEphemeral(realEphemeralState).await()
+        )
     }
 
     override fun reply(
         ephemeral: Boolean,
         builder: InlineMessage<MessageCreateData>.() -> Unit
     ): InteractionMessage {
+        val realEphemeralState = if (alwaysEphemeral) true else ephemeral
+
         val createdMessage = InlineMessage(MessageCreateBuilder()).apply {
             allowedMentionTypes = EnumSet.of(
                 Message.MentionType.CHANNEL,
@@ -44,10 +50,10 @@ abstract class InteractionContext(
         }.build()
 
         return if (replyCallback.isAcknowledged) {
-            val message = replyCallback.hook.sendMessage(createdMessage).setEphemeral(ephemeral).complete()
+            val message = replyCallback.hook.sendMessage(createdMessage).setEphemeral(realEphemeralState).complete()
             InteractionMessage.FollowUpInteractionMessage(message)
         } else {
-            val hook = replyCallback.reply(createdMessage).setEphemeral(ephemeral).complete()
+            val hook = replyCallback.reply(createdMessage).setEphemeral(realEphemeralState).complete()
             InteractionMessage.InitialInteractionMessage(hook)
         }
     }

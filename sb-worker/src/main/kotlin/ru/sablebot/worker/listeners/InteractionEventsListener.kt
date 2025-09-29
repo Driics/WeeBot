@@ -2,7 +2,6 @@ package ru.sablebot.worker.listeners
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.EntitySelectInteractionEvent
@@ -27,10 +26,11 @@ class InteractionEventsListener(
     }
 
     override fun onButtonInteraction(event: ButtonInteractionEvent) {
-        GlobalScope.launch {
+        coroutineLauncher.messageScope.launch {
             val componentId = try {
                 UnleashedComponentId(event.componentId)
             } catch (e: IllegalArgumentException) {
+                logger.debug(e) { "Invalid componentId: ${event.componentId}" }
                 return@launch
             }
 
@@ -44,15 +44,20 @@ class InteractionEventsListener(
                 return@launch
             }
 
-            callbackData.callback.invoke(context)
+            try {
+                callbackData.callback.invoke(context)
+            } catch (e: Exception) {
+                logger.warn(e) { "Button callback failed for ${componentId.uniqueId}" }
+            }
         }
     }
 
     override fun onEntitySelectInteraction(event: EntitySelectInteractionEvent) {
-        GlobalScope.launch {
+        coroutineLauncher.messageScope.launch {
             val componentId = try {
                 UnleashedComponentId(event.componentId)
             } catch (e: IllegalArgumentException) {
+                logger.debug(e) { "Invalid componentId: ${event.componentId}" }
                 return@launch
             }
 
@@ -74,7 +79,11 @@ class InteractionEventsListener(
 
                 context.alwaysEphemeral = callbackData.alwaysEphemeral
 
-                callbackData.callback.invoke(context, event.interaction.values)
+                try {
+                    callbackData.callback.invoke(context, event.interaction.values)
+                } catch (e: Exception) {
+                    logger.warn(e) { "Button callback failed for ${componentId.uniqueId}" }
+                }
             } catch (e: Exception) {
                 logger.warn(e) { "Something went wrong while executing select menu interaction!" }
             }

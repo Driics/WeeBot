@@ -39,7 +39,7 @@ abstract class UnleashedContext(
     val discordInteraction: Interaction
         get() = discordInteractionOrNull ?: error("This is not executed by an interaction!")
 
-    abstract fun deferChannelMessage(ephemeral: Boolean): InteractionHook
+    abstract suspend fun deferChannelMessage(ephemeral: Boolean): InteractionHook
 
     fun reply(ephemeral: Boolean, content: String) = reply(ephemeral) {
         this.content = content

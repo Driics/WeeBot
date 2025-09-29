@@ -2,6 +2,7 @@ package ru.sablebot.common.support
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder
 import io.github.oshai.kotlinlogging.KotlinLogging
+import jakarta.annotation.PreDestroy
 import kotlinx.coroutines.*
 import net.dv8tion.jda.api.events.Event
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent
@@ -19,11 +20,22 @@ class CoroutineLauncher {
 
         private val coroutineMessageExecutor = createThreadPool("Message Executor Thread %d")
         private val coroutineMessageDispatcher = coroutineMessageExecutor.asCoroutineDispatcher()
-
         private fun createThreadPool(name: String) =
-            Executors.newCachedThreadPool(ThreadFactoryBuilder().setNameFormat(name).build())
+            Executors.newCachedThreadPool(
+                ThreadFactoryBuilder()
+                    .setNameFormat(name)
+                    .setDaemon(true)
+                    .build()
+            )
     }
 
+    @PreDestroy
+    fun shutdown() {
+        messageScope.cancel("Spring context shutting down")
+        coroutineMessageDispatcher.close()
+    }
+
+    val messageScope = CoroutineScope(SupervisorJob() + coroutineMessageDispatcher)
 
     @OptIn(DelicateCoroutinesApi::class)
     fun launchMessageJob(event: Event, block: suspend CoroutineScope.() -> Unit) {
@@ -37,13 +49,9 @@ class CoroutineLauncher {
         }
 
         val start = System.currentTimeMillis()
-        val job = GlobalScope.launch(
-            coroutineMessageDispatcher + CoroutineName(coroutineName),
-            block = block
-        )
+        val job = messageScope.launch(CoroutineName(coroutineName), block = block)
 
         job.invokeOnCompletion {
-
             val diff = System.currentTimeMillis() - start
             if (diff >= 60_000) {
                 logger.warn { "Message Coroutine $job took too long to process! ${diff}ms" }

@@ -2,6 +2,7 @@ package ru.sablebot.worker.commands
 
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
+import net.dv8tion.jda.api.interactions.components.selections.EntitySelectMenu
 import ru.sablebot.common.worker.command.model.AbstractCommand
 import ru.sablebot.common.worker.command.model.DiscordCommand
 import ru.sablebot.common.worker.command.model.SlashCommandArguments
@@ -22,6 +23,7 @@ class TestCommand : AbstractCommand() {
         context.reply(true) {
             actionRow(
                 interactivityManager.entitySelectMenu(true, {
+                    setEntityTypes(EntitySelectMenu.SelectTarget.USER)
                 }, { context, mentionables ->
                     context.reply(true) {
                         val sb = StringBuilder()
@@ -37,9 +39,9 @@ class TestCommand : AbstractCommand() {
                     true,
                     ButtonStyle.PRIMARY,
                     "Test"
-                ) {
-                    context.reply(true) {
-                        styled(it.event.componentId, ":smile:")
+                ) { callbackCtx ->
+                    callbackCtx.reply(true) {
+                        styled(callbackCtx.event.componentId, ":smile:")
                     }
                 }
             )
