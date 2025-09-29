@@ -5,6 +5,7 @@ import net.dv8tion.jda.api.entities.Guild
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.User
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
+import ru.sablebot.common.worker.message.model.InteractionContext
 import ru.sablebot.common.worker.message.model.commands.options.ApplicationCommandOptions
 
 interface Command {
@@ -16,7 +17,7 @@ interface Command {
 
     fun execute(
         event: SlashCommandInteractionEvent,
-        context: BotContext,
+        context: InteractionContext,
         args: SlashCommandArguments
     )
 

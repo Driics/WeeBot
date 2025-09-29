@@ -28,6 +28,8 @@ dependencies {
 
     api "com.github.ben-manes.caffeine:caffeine:3.2.2"
 
+    implementation 'com.google.guava:guava:33.5.0-jre'
+
     implementation "org.hibernate.validator:hibernate-validator"
     implementation "org.postgresql:postgresql:42.7.7"
     implementation "org.liquibase:liquibase-core"

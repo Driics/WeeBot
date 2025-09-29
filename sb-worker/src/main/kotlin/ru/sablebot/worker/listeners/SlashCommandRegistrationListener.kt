@@ -4,6 +4,7 @@ import dev.minn.jda.ktx.interactions.commands.Option
 import io.github.oshai.kotlinlogging.KotlinLogging
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.events.session.ReadyEvent
+import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions
 import net.dv8tion.jda.api.interactions.commands.build.CommandData
 import net.dv8tion.jda.api.interactions.commands.build.Commands
 import net.dv8tion.jda.api.interactions.commands.build.OptionData
@@ -114,6 +115,8 @@ class SlashCommandRegistrationListener @Autowired constructor(
                     logger.error(e) { "Failed to register command: ${reference.name}" }
                 }
             }
+
+            defaultPermissions = DefaultMemberPermissions.enabledFor(*command.annotation.memberRequiredPermissions)
         }
 
     // Helper function to retrieve commands for either global or specific guild

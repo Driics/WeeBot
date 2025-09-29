@@ -1,0 +1,48 @@
+package ru.sablebot.worker.commands
+
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
+import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
+import ru.sablebot.common.worker.command.model.AbstractCommand
+import ru.sablebot.common.worker.command.model.DiscordCommand
+import ru.sablebot.common.worker.command.model.SlashCommandArguments
+import ru.sablebot.common.worker.message.model.InteractionContext
+import ru.sablebot.common.worker.message.model.styled
+
+@DiscordCommand(
+    key = "test",
+    description = "Command for testing something.",
+    priority = 0
+)
+class TestCommand : AbstractCommand() {
+    override fun execute(
+        event: SlashCommandInteractionEvent,
+        context: InteractionContext,
+        args: SlashCommandArguments
+    ) {
+        context.reply(true) {
+            actionRow(
+                interactivityManager.entitySelectMenu(true, {
+                }, { context, mentionables ->
+                    context.reply(true) {
+                        val sb = StringBuilder()
+                        mentionables.forEach {
+                            sb.append(it.asMention).append("\n")
+                        }
+                        styled(sb.toString(), "")
+                    }
+                }),
+            )
+            actionRow(
+                interactivityManager.button(
+                    true,
+                    ButtonStyle.PRIMARY,
+                    "Test"
+                ) {
+                    context.reply(true) {
+                        styled(it.event.componentId, ":smile:")
+                    }
+                }
+            )
+        }.retrieveOriginal()
+    }
+}

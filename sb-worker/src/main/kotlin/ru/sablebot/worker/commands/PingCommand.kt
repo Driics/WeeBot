@@ -3,9 +3,9 @@ package ru.sablebot.worker.commands
 import dev.minn.jda.ktx.messages.InlineMessage
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import ru.sablebot.common.worker.command.model.AbstractCommand
-import ru.sablebot.common.worker.command.model.BotContext
 import ru.sablebot.common.worker.command.model.DiscordCommand
 import ru.sablebot.common.worker.command.model.SlashCommandArguments
+import ru.sablebot.common.worker.message.model.InteractionContext
 import ru.sablebot.common.worker.message.model.InteractionMessage
 import ru.sablebot.common.worker.message.model.styled
 import kotlin.time.measureTime
@@ -15,7 +15,11 @@ import kotlin.time.measureTime
     description = "Display ping",
 )
 class PingCommand : AbstractCommand() {
-    override fun execute(event: SlashCommandInteractionEvent, context: BotContext, args: SlashCommandArguments) {
+    override fun execute(
+        event: SlashCommandInteractionEvent,
+        context: InteractionContext,
+        args: SlashCommandArguments
+    ) {
         var message: InteractionMessage
 
         fun buildPingMessage(apiLatency: Long?): InlineMessage<*>.() -> (Unit) = {

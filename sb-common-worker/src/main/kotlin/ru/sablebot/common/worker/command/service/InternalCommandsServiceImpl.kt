@@ -12,12 +12,14 @@ import org.springframework.context.annotation.Lazy
 import org.springframework.core.annotation.Order
 import org.springframework.stereotype.Service
 import ru.sablebot.common.model.exception.DiscordException
-import ru.sablebot.common.worker.command.model.BotContext
 import ru.sablebot.common.worker.command.model.Command
 import ru.sablebot.common.worker.command.model.SlashCommandArguments
 import ru.sablebot.common.worker.command.model.SlashCommandArgumentsSource
+import ru.sablebot.common.worker.command.model.context.ApplicationCommandContext
+import ru.sablebot.common.worker.command.model.context.BotContext
 import ru.sablebot.common.worker.configuration.WorkerProperties
 import ru.sablebot.common.worker.message.service.MessageService
+import ru.sablebot.common.worker.shared.service.DiscordEntityAccessor
 import java.util.concurrent.TimeUnit
 import kotlin.time.measureTime
 
@@ -26,8 +28,10 @@ import kotlin.time.measureTime
 class InternalCommandsServiceImpl @Autowired constructor(
     workerProperties: WorkerProperties,
     @Lazy holderService: CommandsHolderService,
-    messageService: MessageService
-) : BaseCommandService(workerProperties, holderService, messageService), InternalCommandsService {
+    messageService: MessageService,
+    discordEntityAccessor: DiscordEntityAccessor
+) : BaseCommandService(workerProperties, holderService, messageService, discordEntityAccessor),
+    InternalCommandsService {
 
     companion object {
         private val log = KotlinLogging.logger { }
@@ -83,7 +87,7 @@ class InternalCommandsServiceImpl @Autowired constructor(
                 }
                 command.execute(
                     event,
-                    BotContext(event),
+                    ApplicationCommandContext(event),
                     SlashCommandArguments(SlashCommandArgumentsSource.SlashCommandArgumentsEventSource(event))
                 )
             } catch (e: DiscordException) {
