@@ -42,6 +42,8 @@ class InteractionEventsListener(
                 return@launchMessageJob
             }
 
+            context.alwaysEphemeral = callbackData.alwaysEphemeral
+
             try {
                 callbackData.callback.invoke(context)
             } catch (e: Exception) {
@@ -59,29 +61,23 @@ class InteractionEventsListener(
                 return@launchMessageJob
             }
 
-            var context: ComponentContext?
+
+            val callbackData = interactivityManager.selectMenuEntityInteractionCallbacks[componentId.uniqueId]
+            val context = ComponentContext(event, interactivityManager)
+
+            if (callbackData == null) {
+                context.reply(true) {
+                    styled("I don't know what to handle interaction event: $event", ":face_with_monocle:")
+                }
+                return@launchMessageJob
+            }
+
+            context.alwaysEphemeral = callbackData.alwaysEphemeral
 
             try {
-
-                val callbackData = interactivityManager.selectMenuEntityInteractionCallbacks[componentId.uniqueId]
-                context = ComponentContext(event, interactivityManager)
-
-                if (callbackData == null) {
-                    context.reply(true) {
-                        styled("I don't know what to handle interaction event: $event", ":face_with_monocle:")
-                    }
-                    return@launchMessageJob
-                }
-
-                context.alwaysEphemeral = callbackData.alwaysEphemeral
-
-                try {
-                    callbackData.callback.invoke(context, event.interaction.values)
-                } catch (e: Exception) {
-                    logger.warn(e) { "Button callback failed for ${componentId.uniqueId}" }
-                }
+                callbackData.callback.invoke(context, event.interaction.values)
             } catch (e: Exception) {
-                logger.warn(e) { "Something went wrong while executing select entity menu interaction!" }
+                logger.warn(e) { "Entity select callback failed for ${componentId.uniqueId}" }
             }
         }
     }
@@ -95,26 +91,22 @@ class InteractionEventsListener(
                 return@launchMessageJob
             }
 
+            val callbackData = interactivityManager.selectMenuInteractionCallbacks[componentId.uniqueId]
+            val context = ComponentContext(event, interactivityManager)
+
+            if (callbackData == null) {
+                context.reply(true) {
+                    styled("I don't know what to handle interaction event: $event", ":face_with_monocle:")
+                }
+                return@launchMessageJob
+            }
+
+            context.alwaysEphemeral = callbackData.alwaysEphemeral
+
             try {
-                val callbackData = interactivityManager.selectMenuInteractionCallbacks[componentId.uniqueId]
-                val context = ComponentContext(event, interactivityManager)
-
-                if (callbackData == null) {
-                    context.reply(true) {
-                        styled("I don't know what to handle interaction event: $event", ":face_with_monocle:")
-                    }
-                    return@launchMessageJob
-                }
-
-                context.alwaysEphemeral = callbackData.alwaysEphemeral
-
-                try {
-                    callbackData.callback.invoke(context, event.interaction.values)
-                } catch (e: Exception) {
-                    logger.warn(e) { "Button callback failed for ${componentId.uniqueId}" }
-                }
+                callbackData.callback.invoke(context, event.interaction.values)
             } catch (e: Exception) {
-                logger.warn(e) { "Something went wrong while executing select menu interaction!" }
+                logger.warn(e) { "String select callback failed for ${componentId.uniqueId}" }
             }
         }
     }

@@ -1,11 +1,9 @@
 package ru.sablebot.common.worker.message.model
 
 import com.github.benmanes.caffeine.cache.Caffeine
+import com.github.benmanes.caffeine.cache.Scheduler
 import jakarta.annotation.PreDestroy
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.*
 import net.dv8tion.jda.api.entities.IMentionable
 import net.dv8tion.jda.api.entities.User
 import net.dv8tion.jda.api.entities.emoji.Emoji
@@ -26,7 +24,7 @@ class InteractivityManager {
         private const val MAX_SIZE = 100L
     }
 
-    val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default + CoroutineName("InteractivityManager"))
 
     @PreDestroy
     fun shutdown() {
@@ -37,24 +35,40 @@ class InteractivityManager {
         .newBuilder()
         .maximumSize(MAX_SIZE)
         .expireAfterWrite(DELAY.toJavaDuration())
+        .scheduler(Scheduler.systemScheduler())
+        .removalListener<UUID, ButtonInteractionCallback> { key, _, cause ->
+            // TODO: meter removal events (key, cause)
+        }
         .build<UUID, ButtonInteractionCallback>()
         .asMap()
     val selectMenuInteractionCallbacks = Caffeine
         .newBuilder()
         .maximumSize(MAX_SIZE)
         .expireAfterWrite(DELAY.toJavaDuration())
+        .scheduler(Scheduler.systemScheduler())
+        .removalListener<UUID, SelectMenuInteractionCallback> { key, _, cause ->
+            // TODO: meter removal events (key, cause)
+        }
         .build<UUID, SelectMenuInteractionCallback>()
         .asMap()
     val selectMenuEntityInteractionCallbacks = Caffeine
         .newBuilder()
         .maximumSize(MAX_SIZE)
         .expireAfterWrite(DELAY.toJavaDuration())
+        .scheduler(Scheduler.systemScheduler())
+        .removalListener<UUID, SelectMenuEntityInteractionCallback> { key, _, cause ->
+            // TODO: meter removal events (key, cause)
+        }
         .build<UUID, SelectMenuEntityInteractionCallback>()
         .asMap()
     val modalCallbacks = Caffeine
         .newBuilder()
         .maximumSize(MAX_SIZE)
         .expireAfterWrite(DELAY.toJavaDuration())
+        .scheduler(Scheduler.systemScheduler())
+        .removalListener<UUID, ModalInteractionCallback> { key, _, cause ->
+            // TODO: meter removal events (key, cause)
+        }
         .build<UUID, ModalInteractionCallback>()
         .asMap()
 
@@ -174,9 +188,9 @@ class InteractivityManager {
         builder: (StringSelectMenu.Builder).() -> (Unit) = {},
         callback: suspend (ComponentContext, List<String>) -> (Unit)
     ): StringSelectMenu {
-        val buttonId = UUID.randomUUID()
-        selectMenuInteractionCallbacks[buttonId] = SelectMenuInteractionCallback(callbackAlwaysEphemeral, callback)
-        return StringSelectMenu.create(UnleashedComponentId(buttonId).toString())
+        val menuId = UUID.randomUUID()
+        selectMenuInteractionCallbacks[menuId] = SelectMenuInteractionCallback(callbackAlwaysEphemeral, callback)
+        return StringSelectMenu.create(UnleashedComponentId(menuId).toString())
             .apply(builder)
             .build()
     }
@@ -189,11 +203,11 @@ class InteractivityManager {
         builder: (EntitySelectMenu.Builder).() -> (Unit) = {},
         callback: suspend (ComponentContext, List<IMentionable>) -> (Unit)
     ): EntitySelectMenu {
-        val buttonId = UUID.randomUUID()
-        selectMenuEntityInteractionCallbacks[buttonId] =
+        val menuId = UUID.randomUUID()
+        selectMenuEntityInteractionCallbacks[menuId] =
             SelectMenuEntityInteractionCallback(callbackAlwaysEphemeral, callback)
         return EntitySelectMenu.create(
-            UnleashedComponentId(buttonId).toString(),
+            UnleashedComponentId(menuId).toString(),
             listOf(EntitySelectMenu.SelectTarget.CHANNEL)
         )
             .apply(builder)
@@ -201,19 +215,14 @@ class InteractivityManager {
     }
 
     class JDAButtonBuilder(internal var button: Button) {
-        // https://youtrack.jetbrains.com/issue/KT-6519
-        @get:JvmSynthetic // Hide from Java callers
-        var emoji: Emoji
-            @Deprecated("", level = DeprecationLevel.ERROR) // Prevent Kotlin callers
-            get() = throw UnsupportedOperationException()
-            set(value) {
-                button = button.withEmoji(value)
-            }
+        fun emoji(value: Emoji) {
+            button = button.withEmoji(value)
+        }
 
-        var disabled
+        var disabled: Boolean
             get() = button.isDisabled
             set(value) {
-                this.button = button.withDisabled(value)
+                button = button.withDisabled(value)
             }
     }
 
