@@ -1,5 +1,6 @@
 package ru.sablebot.worker.commands
 
+import dev.minn.jda.ktx.interactions.components.SelectOption
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 import net.dv8tion.jda.api.interactions.components.selections.EntitySelectMenu
@@ -29,6 +30,24 @@ class TestCommand : AbstractCommand() {
                         val sb = StringBuilder()
                         mentionables.forEach {
                             sb.append(it.asMention).append("\n")
+                        }
+                        styled(sb.toString(), "")
+                    }
+                }),
+            )
+            actionRow(
+                interactivityManager.stringSelectMenu(true, {
+                    addOptions(
+                        SelectOption("Arcane Mage", "mage-arcane"),
+                        SelectOption("Fire Mage", "mage-fire"),
+                        SelectOption("Frost Mage", "mage-frost"),
+                    )
+                    setDefaultValues("mage-arcane")
+                }, { context, mentionables ->
+                    context.reply(true) {
+                        val sb = StringBuilder()
+                        mentionables.forEach {
+                            sb.append(it).append("\n")
                         }
                         styled(sb.toString(), "")
                     }

@@ -23,7 +23,10 @@ class PingCommand : AbstractCommand() {
         var message: InteractionMessage
 
         fun buildPingMessage(apiLatency: Long?): InlineMessage<*>.() -> (Unit) = {
-            styled(contentText = "**Pong!** (Shard ${discordService.jda.shardInfo.shardId} / ${workerProperties.discord.shardsTotal - 1}", prefix = ":ping_pong:")
+            styled(
+                contentText = "**Pong!** (Shard ${discordService.jda.shardInfo.shardId + 1} / ${workerProperties.discord.shardsTotal}",
+                prefix = ":ping_pong:"
+            )
             styled(contentText = "JDA Ping: `${discordService.jda.gatewayPing}ms`", prefix = ":zap:")
 
             if (apiLatency != null)

@@ -7,10 +7,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import net.dv8tion.jda.api.entities.IMentionable
+import net.dv8tion.jda.api.entities.User
 import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.interactions.components.buttons.Button
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 import net.dv8tion.jda.api.interactions.components.selections.EntitySelectMenu
+import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu
 import org.springframework.stereotype.Component
 import ru.sablebot.common.worker.message.model.modals.ModalArguments
 import java.util.*
@@ -59,6 +61,82 @@ class InteractivityManager {
     /**
      * Creates an interactive button
      */
+    fun buttonForUser(
+        targetUser: User,
+        callbackAlwaysEphemeral: Boolean,
+        style: ButtonStyle,
+        label: String = "",
+        builder: (JDAButtonBuilder).() -> (Unit) = {},
+        callback: suspend (ComponentContext) -> (Unit)
+    ) = buttonForUser(targetUser.idLong, callbackAlwaysEphemeral, style, label, builder, callback)
+
+    /**
+     * Creates an interactive button, the ID in the [button] will be replaced with a [UnleashedComponentId]
+     */
+    fun buttonForUser(
+        targetUser: User,
+        callbackAlwaysEphemeral: Boolean,
+        button: Button,
+        callback: suspend (ComponentContext) -> (Unit)
+    ) = buttonForUser(targetUser.idLong, callbackAlwaysEphemeral, button, callback)
+
+    /**
+     * Creates an interactive button
+     */
+    fun buttonForUser(
+        targetUserId: Long,
+        callbackAlwaysEphemeral: Boolean,
+        style: ButtonStyle,
+        label: String = "",
+        builder: (JDAButtonBuilder).() -> (Unit) = {},
+        callback: suspend (ComponentContext) -> (Unit)
+    ) = button(
+        callbackAlwaysEphemeral,
+        style,
+        label,
+        builder
+    ) {
+        if (targetUserId != it.user.idLong) {
+            it.reply(true) {
+                styled(
+                    "Wo are you?",
+                    "??"
+                )
+            }
+            return@button
+        }
+
+        callback.invoke(it)
+    }
+
+    /**
+     * Creates an interactive button, the ID in the [button] will be replaced with a [UnleashedComponentId]
+     */
+    fun buttonForUser(
+        targetUserId: Long,
+        callbackAlwaysEphemeral: Boolean,
+        button: Button,
+        callback: suspend (ComponentContext) -> (Unit)
+    ) = button(
+        callbackAlwaysEphemeral,
+        button
+    ) {
+        if (targetUserId != it.user.idLong) {
+            it.reply(true) {
+                styled(
+                    "Wo are you?",
+                    "??"
+                )
+            }
+            return@button
+        }
+
+        callback.invoke(it)
+    }
+
+    /**
+     * Creates an interactive button
+     */
     fun button(
         callbackAlwaysEphemeral: Boolean,
         style: ButtonStyle,
@@ -86,6 +164,21 @@ class InteractivityManager {
         buttonInteractionCallbacks[buttonId] = ButtonInteractionCallback(callbackAlwaysEphemeral, callback)
         return button
             .withId(UnleashedComponentId(buttonId).toString())
+    }
+
+    /**
+     * Creates an interactive select menu
+     */
+    fun stringSelectMenu(
+        callbackAlwaysEphemeral: Boolean,
+        builder: (StringSelectMenu.Builder).() -> (Unit) = {},
+        callback: suspend (ComponentContext, List<String>) -> (Unit)
+    ): StringSelectMenu {
+        val buttonId = UUID.randomUUID()
+        selectMenuInteractionCallbacks[buttonId] = SelectMenuInteractionCallback(callbackAlwaysEphemeral, callback)
+        return StringSelectMenu.create(UnleashedComponentId(buttonId).toString())
+            .apply(builder)
+            .build()
     }
 
     /**

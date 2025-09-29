@@ -9,6 +9,9 @@ import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInterac
 import net.dv8tion.jda.api.events.interaction.command.MessageContextInteractionEvent
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.events.interaction.command.UserContextInteractionEvent
+import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
+import net.dv8tion.jda.api.events.interaction.component.EntitySelectInteractionEvent
+import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
 import org.springframework.stereotype.Component
 import java.util.concurrent.Executors
@@ -40,11 +43,14 @@ class CoroutineLauncher {
     @OptIn(DelicateCoroutinesApi::class)
     fun launchMessageJob(event: Event, block: suspend CoroutineScope.() -> Unit) {
         val coroutineName = when (event) {
-            is MessageReceivedEvent -> "Message ${event.message} by user ${event.author} in ${event.channel} on ${if (event.isFromGuild) event.guild else null}"
-            is SlashCommandInteractionEvent -> "Slash Command ${event.fullCommandName} by user ${event.user} in ${event.channel} on ${if (event.isFromGuild) event.guild else null}"
-            is UserContextInteractionEvent -> "User Command ${event.fullCommandName} by user ${event.user} in ${event.channel} on ${if (event.isFromGuild) event.guild else null}"
-            is MessageContextInteractionEvent -> "User Command ${event.fullCommandName} by user ${event.user} in ${event.channel} on ${if (event.isFromGuild) event.guild else null}"
-            is CommandAutoCompleteInteractionEvent -> "Autocomplete for Command ${event.fullCommandName} by user ${event.user} in ${event.channel} on ${if (event.isFromGuild) event.guild else null}"
+            is StringSelectInteractionEvent -> "StringSelect id=${event.componentId} userId=${event.user.id} channelId=${event.channel.id} guildId=${event.guild?.id}"
+            is EntitySelectInteractionEvent -> "EntitySelect id=${event.componentId} userId=${event.user.id} channelId=${event.channel.id} guildId=${event.guild?.id}"
+            is ButtonInteractionEvent -> "Button id=${event.componentId} userId=${event.user.id} channelId=${event.channel.id} guildId=${event.guild?.id}"
+            is MessageReceivedEvent -> "Message id=${event.messageId} userId=${event.author.id} channelId=${event.channel.id} guildId=${event.guild.id}"
+            is SlashCommandInteractionEvent -> "Slash ${event.fullCommandName} userId=${event.user.id} channelId=${event.channel.id} guildId=${event.guild?.id}"
+            is UserContextInteractionEvent -> "UserCmd ${event.fullCommandName} userId=${event.user.id} channelId=${event.channel?.id} guildId=${event.guild?.id}"
+            is MessageContextInteractionEvent -> "MsgCmd ${event.fullCommandName} userId=${event.user.id} channelId=${event.channel?.id} guildId=${event.guild?.id}"
+            is CommandAutoCompleteInteractionEvent -> "Autocomplete ${event.fullCommandName} userId=${event.user.id} channelId=${event.channel.id} guildId=${event.guild?.id}"
             else -> throw IllegalArgumentException("You can't dispatch a $event in a launchMessageJob!")
         }
 

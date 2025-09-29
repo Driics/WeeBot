@@ -2,11 +2,10 @@ package ru.sablebot.worker.listeners
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.launch
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.EntitySelectInteractionEvent
+import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent
 import ru.sablebot.common.support.CoroutineLauncher
-import ru.sablebot.common.worker.command.service.CommandsHolderService
 import ru.sablebot.common.worker.event.DiscordEvent
 import ru.sablebot.common.worker.event.listeners.DiscordEventListener
 import ru.sablebot.common.worker.message.model.ComponentContext
@@ -19,19 +18,18 @@ import ru.sablebot.common.worker.message.model.styled
 class InteractionEventsListener(
     val interactivityManager: InteractivityManager,
     val coroutineLauncher: CoroutineLauncher,
-    val commandsHolderService: CommandsHolderService
 ) : DiscordEventListener() {
     companion object {
         private val logger = KotlinLogging.logger { }
     }
 
     override fun onButtonInteraction(event: ButtonInteractionEvent) {
-        coroutineLauncher.messageScope.launch {
+        coroutineLauncher.launchMessageJob(event) {
             val componentId = try {
                 UnleashedComponentId(event.componentId)
             } catch (e: IllegalArgumentException) {
                 logger.debug(e) { "Invalid componentId: ${event.componentId}" }
-                return@launch
+                return@launchMessageJob
             }
 
             val callbackData = interactivityManager.buttonInteractionCallbacks[componentId.uniqueId]
@@ -41,7 +39,7 @@ class InteractionEventsListener(
                 context.reply(true) {
                     styled("I don't know what to handle interaction event: $event", ":face_with_monocle:")
                 }
-                return@launch
+                return@launchMessageJob
             }
 
             try {
@@ -53,19 +51,17 @@ class InteractionEventsListener(
     }
 
     override fun onEntitySelectInteraction(event: EntitySelectInteractionEvent) {
-        coroutineLauncher.messageScope.launch {
+        coroutineLauncher.launchMessageJob(event) {
             val componentId = try {
                 UnleashedComponentId(event.componentId)
             } catch (e: IllegalArgumentException) {
                 logger.debug(e) { "Invalid componentId: ${event.componentId}" }
-                return@launch
+                return@launchMessageJob
             }
 
             var context: ComponentContext?
 
             try {
-                val guild = event.guild
-                val member = event.member
 
                 val callbackData = interactivityManager.selectMenuEntityInteractionCallbacks[componentId.uniqueId]
                 context = ComponentContext(event, interactivityManager)
@@ -74,7 +70,40 @@ class InteractionEventsListener(
                     context.reply(true) {
                         styled("I don't know what to handle interaction event: $event", ":face_with_monocle:")
                     }
-                    return@launch
+                    return@launchMessageJob
+                }
+
+                context.alwaysEphemeral = callbackData.alwaysEphemeral
+
+                try {
+                    callbackData.callback.invoke(context, event.interaction.values)
+                } catch (e: Exception) {
+                    logger.warn(e) { "Button callback failed for ${componentId.uniqueId}" }
+                }
+            } catch (e: Exception) {
+                logger.warn(e) { "Something went wrong while executing select entity menu interaction!" }
+            }
+        }
+    }
+
+    override fun onStringSelectInteraction(event: StringSelectInteractionEvent) {
+        coroutineLauncher.launchMessageJob(event) {
+            val componentId = try {
+                UnleashedComponentId(event.componentId)
+            } catch (e: IllegalArgumentException) {
+                logger.debug(e) { "Invalid componentId: ${event.componentId}" }
+                return@launchMessageJob
+            }
+
+            try {
+                val callbackData = interactivityManager.selectMenuInteractionCallbacks[componentId.uniqueId]
+                val context = ComponentContext(event, interactivityManager)
+
+                if (callbackData == null) {
+                    context.reply(true) {
+                        styled("I don't know what to handle interaction event: $event", ":face_with_monocle:")
+                    }
+                    return@launchMessageJob
                 }
 
                 context.alwaysEphemeral = callbackData.alwaysEphemeral
