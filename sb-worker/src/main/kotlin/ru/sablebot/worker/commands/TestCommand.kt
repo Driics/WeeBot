@@ -9,7 +9,7 @@ import net.dv8tion.jda.api.interactions.components.text.TextInputStyle
 import ru.sablebot.common.worker.command.model.AbstractCommand
 import ru.sablebot.common.worker.command.model.DiscordCommand
 import ru.sablebot.common.worker.command.model.SlashCommandArguments
-import ru.sablebot.common.worker.message.model.InteractionContext
+import ru.sablebot.common.worker.command.model.context.ApplicationCommandContext
 import ru.sablebot.common.worker.message.model.modals.options.modalString
 import ru.sablebot.common.worker.message.model.styled
 
@@ -21,7 +21,7 @@ import ru.sablebot.common.worker.message.model.styled
 class TestCommand : AbstractCommand() {
     override fun execute(
         event: SlashCommandInteractionEvent,
-        context: InteractionContext,
+        context: ApplicationCommandContext,
         args: SlashCommandArguments
     ) {
         context.reply(true) {

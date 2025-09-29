@@ -4,7 +4,7 @@ import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEve
 import ru.sablebot.common.worker.command.model.AbstractCommand
 import ru.sablebot.common.worker.command.model.DiscordCommand
 import ru.sablebot.common.worker.command.model.SlashCommandArguments
-import ru.sablebot.common.worker.message.model.InteractionContext
+import ru.sablebot.common.worker.command.model.context.ApplicationCommandContext
 
 @DiscordCommand(
     key = "help",
@@ -15,7 +15,7 @@ class HelpCommand : AbstractCommand() {
 
     override fun execute(
         event: SlashCommandInteractionEvent,
-        context: InteractionContext,
+        context: ApplicationCommandContext,
         args: SlashCommandArguments
     ) {
 
