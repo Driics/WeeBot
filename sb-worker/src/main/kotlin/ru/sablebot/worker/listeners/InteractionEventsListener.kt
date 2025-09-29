@@ -61,7 +61,7 @@ class InteractionEventsListener(
                 return@launch
             }
 
-            var context: ComponentContext? = null
+            var context: ComponentContext?
 
             try {
                 val guild = event.guild
