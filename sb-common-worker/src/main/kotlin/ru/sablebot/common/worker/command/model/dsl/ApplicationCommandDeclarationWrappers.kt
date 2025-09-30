@@ -2,7 +2,7 @@ package ru.sablebot.common.worker.command.model.dsl
 
 interface ApplicationCommandDeclarationWrapper
 
-interface SlashCommandDeclarationWrapper {
+interface SlashCommandDeclarationWrapper : ApplicationCommandDeclarationWrapper {
     fun command(): SlashCommandDeclarationBuilder
 }
 
