@@ -45,7 +45,8 @@ class InternalCommandsServiceImpl @Autowired constructor(
     override fun isApplicable(command: Command, user: User, member: Member, channel: TextChannel): Boolean =
         command.isAvailable(user, member, channel.guild)
 
-    override fun isValidKey(event: SlashCommandInteractionEvent, key: String): Boolean = holderService.isAnyCommand(key)
+    override fun isValidKey(event: SlashCommandInteractionEvent, key: String): Boolean = 
+        holderService.isAnyCommand(key) || holderService.getDslCommandByName(key) != null
 
     override fun sendCommand(event: SlashCommandInteractionEvent): Boolean {
         val guild = event.guild ?: return false
@@ -53,6 +54,13 @@ class InternalCommandsServiceImpl @Autowired constructor(
 
         log.info { "Received event: $event" }
 
+        // Try to find DSL command first
+        val dslCommand = findDslCommand(event)
+        if (dslCommand != null) {
+            return executeDslCommand(event, dslCommand)
+        }
+
+        // Fallback to legacy command
         val command = holderService.getByLocale(localizedKey = event.name, anyLocale = true)
             ?: return false
 
@@ -101,6 +109,82 @@ class InternalCommandsServiceImpl @Autowired constructor(
             }
         }
 
+        return true
+    }
+    
+    private fun findDslCommand(event: SlashCommandInteractionEvent): Pair<ru.sablebot.common.worker.command.model.dsl.SlashCommandDeclaration, String>? {
+        val commandName = event.name
+        val subcommandGroupName = event.subcommandGroup
+        val subcommandName = event.subcommandName
+        
+        return when {
+            // Command with subcommand group
+            subcommandGroupName != null && subcommandName != null -> {
+                val fullName = "$commandName.$subcommandGroupName.$subcommandName"
+                holderService.getDslCommandByName(fullName)?.let { it to fullName }
+            }
+            // Command with subcommand
+            subcommandName != null -> {
+                val fullName = "$commandName.$subcommandName"
+                holderService.getDslCommandByName(fullName)?.let { it to fullName }
+            }
+            // Top-level command
+            else -> {
+                holderService.getDslCommandByName(commandName)?.let { it to commandName }
+            }
+        }
+    }
+    
+    private fun executeDslCommand(
+        event: SlashCommandInteractionEvent,
+        commandPair: Pair<ru.sablebot.common.worker.command.model.dsl.SlashCommandDeclaration, String>
+    ): Boolean {
+        val (declaration, fullName) = commandPair
+        val executor = declaration.executor ?: run {
+            log.warn { "DSL command $fullName has no executor" }
+            return false
+        }
+        
+        val guild = event.guild ?: return false
+        val channel = event.channel.asTextChannel()
+        
+        // Check bot permissions
+        if (declaration.botPermissions.isNotEmpty()) {
+            val self = guild.selfMember
+            if (!self.hasPermission(channel, *declaration.botPermissions.toTypedArray())) {
+                val missingPermissions = declaration.botPermissions.filterNot { self.hasPermission(channel, it) }
+                    .joinToString("\\n") { it.name }
+                
+                if (self.hasPermission(channel, Permission.MESSAGE_SEND)) {
+                    messageService.sendMessageSilent(channel::sendMessage, "Missing permissions: $missingPermissions")
+                }
+                return true
+            }
+        }
+        
+        measureTime {
+            try {
+                if (workerProperties.commands.invokeLogging) {
+                    log.info { "Invoke DSL command [$fullName]: ${event.options}" }
+                }
+                
+                kotlinx.coroutines.runBlocking {
+                    executor.execute(
+                        ApplicationCommandContext(event),
+                        SlashCommandArguments(SlashCommandArgumentsSource.SlashCommandArgumentsEventSource(event))
+                    )
+                }
+            } catch (e: Exception) {
+                log.error(e) { "DSL command [$fullName] execution error" }
+            }
+        }.also {
+            if (it.inWholeMilliseconds > workerProperties.commands.executionThresholdMs) {
+                log.warn {
+                    "DSL command [$fullName] took too long ($it) to execute with args: ${event.options}"
+                }
+            }
+        }
+        
         return true
     }
 }

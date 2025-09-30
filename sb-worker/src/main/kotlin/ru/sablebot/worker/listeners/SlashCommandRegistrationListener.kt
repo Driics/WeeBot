@@ -11,6 +11,8 @@ import net.dv8tion.jda.api.interactions.commands.build.OptionData
 import net.dv8tion.jda.api.interactions.commands.build.SlashCommandData
 import org.springframework.beans.factory.annotation.Autowired
 import ru.sablebot.common.worker.command.model.Command
+import ru.sablebot.common.worker.command.model.dsl.SlashCommandDeclaration
+import ru.sablebot.common.worker.command.model.dsl.SlashCommandGroupDeclaration
 import ru.sablebot.common.worker.command.service.CommandsHolderService
 import ru.sablebot.common.worker.event.DiscordEvent
 import ru.sablebot.common.worker.event.listeners.DiscordEventListener
@@ -62,7 +64,15 @@ class SlashCommandRegistrationListener @Autowired constructor(
     ): List<CommandJDA> {
         logger.info { "Starting command update for ${if (guildId == 0L) "global scope" else "guild ID: $guildId"}" }
 
-        val publicCommands = holderService.publicCommands.values.map { toJdaDeclaration(it) }
+        // Register legacy commands
+        val legacyCommands = holderService.publicCommands.values.map { toJdaDeclaration(it) }
+        
+        // Register DSL commands
+        val dslCommands = holderService.dslCommands.values
+            .filter { it.subcommands.isEmpty() && it.subcommandGroups.isEmpty() } // Only root-level commands
+            .map { toDslJdaDeclaration(it) }
+        
+        val publicCommands = legacyCommands + dslCommands
 
         // Log command type breakdown once instead of per command
         CommandJDA.Type.entries
@@ -117,6 +127,79 @@ class SlashCommandRegistrationListener @Autowired constructor(
             }
 
             defaultPermissions = DefaultMemberPermissions.enabledFor(*command.annotation.memberRequiredPermissions)
+        }
+    
+    private fun toDslJdaDeclaration(declaration: SlashCommandDeclaration): SlashCommandData =
+        Commands.slash(declaration.name, declaration.description).apply {
+            // Add options from executor if it exists
+            declaration.executor?.let { executor ->
+                for (reference in executor.options.registeredOptions) {
+                    try {
+                        addOptions(*createOption(reference).toTypedArray())
+                    } catch (e: Exception) {
+                        logger.error(e) { "Failed to register DSL command option: ${reference.name}" }
+                    }
+                }
+            }
+            
+            // Add subcommands
+            declaration.subcommands.forEach { subcommand ->
+                addSubcommands(
+                    net.dv8tion.jda.api.interactions.commands.build.SubcommandData(
+                        subcommand.name,
+                        subcommand.description
+                    ).apply {
+                        subcommand.executor?.let { executor ->
+                            for (reference in executor.options.registeredOptions) {
+                                try {
+                                    addOptions(*createOption(reference).toTypedArray())
+                                } catch (e: Exception) {
+                                    logger.error(e) { "Failed to register DSL subcommand option: ${reference.name}" }
+                                }
+                            }
+                        }
+                    }
+                )
+            }
+            
+            // Add subcommand groups
+            declaration.subcommandGroups.forEach { group ->
+                addSubcommandGroups(
+                    toDslSubcommandGroupDeclaration(group)
+                )
+            }
+            
+            // Set permissions
+            declaration.defaultMemberPermissions?.let {
+                defaultPermissions = it
+            }
+        }
+    
+    private fun toDslSubcommandGroupDeclaration(
+        group: SlashCommandGroupDeclaration
+    ): net.dv8tion.jda.api.interactions.commands.build.SubcommandGroupData =
+        net.dv8tion.jda.api.interactions.commands.build.SubcommandGroupData(
+            group.name,
+            group.description
+        ).apply {
+            group.subcommands.forEach { subcommand ->
+                addSubcommands(
+                    net.dv8tion.jda.api.interactions.commands.build.SubcommandData(
+                        subcommand.name,
+                        subcommand.description
+                    ).apply {
+                        subcommand.executor?.let { executor ->
+                            for (reference in executor.options.registeredOptions) {
+                                try {
+                                    addOptions(*createOption(reference).toTypedArray())
+                                } catch (e: Exception) {
+                                    logger.error(e) { "Failed to register DSL subcommand option: ${reference.name}" }
+                                }
+                            }
+                        }
+                    }
+                )
+            }
         }
 
     // Helper function to retrieve commands for either global or specific guild
