@@ -40,8 +40,17 @@ class CommandsHolderServiceImpl : CommandsHolderService {
         }
     }
 
-    override fun isAnyCommand(key: String): Boolean =
-        reverseCommandKeys.any { key.reversed().lowercase().startsWith(it) }
+    override fun isAnyCommand(key: String): Boolean {
+        // Check legacy commands
+        val isLegacyCommand = reverseCommandKeys.any { key.reversed().lowercase().startsWith(it) }
+        
+        // Check DSL commands (by full path)
+        val isDslCommand = dslCommandsByFullPath.containsKey(key)
+        
+        logger.debug { "isAnyCommand($key): legacy=$isLegacyCommand, dsl=$isDslCommand" }
+        
+        return isLegacyCommand || isDslCommand
+    }
 
     private fun getLocalizedMap(locale: Locale? = /*contextService.locale*/ Locale.ENGLISH): Map<String, Command> =
         localizedCommands[locale] ?: emptyMap()

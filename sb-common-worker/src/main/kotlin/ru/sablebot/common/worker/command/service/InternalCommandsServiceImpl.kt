@@ -52,20 +52,27 @@ class InternalCommandsServiceImpl @Autowired constructor(
         val guild = event.guild ?: return false
         val channel = event.channel.asTextChannel()
 
-        log.info { "Received event: $event" }
+        log.info { "Received slash command event: ${event.name}, fullCommandName: ${event.fullCommandName}" }
 
         // Try to find DSL command first by full command name (supports subcommands)
         val fullCommandName = event.fullCommandName
         val dslCommand = holderService.getDslCommandByFullPath(fullCommandName)
 
         if (dslCommand != null) {
+            log.info { "Found DSL command: ${dslCommand.name}" }
             return executeDslCommand(event, dslCommand, guild, channel)
         }
 
+        log.debug { "No DSL command found for '$fullCommandName', trying legacy command with key '${event.name}'" }
+
         // Fall back to legacy command handling
         val command = holderService.getByLocale(localizedKey = event.name, anyLocale = true)
-            ?: return false
+        if (command == null) {
+            log.warn { "No command found (neither DSL nor legacy) for: ${event.fullCommandName}" }
+            return false
+        }
 
+        log.info { "Found legacy command: ${command.key}" }
         return executeLegacyCommand(event, command, guild, channel)
     }
 
