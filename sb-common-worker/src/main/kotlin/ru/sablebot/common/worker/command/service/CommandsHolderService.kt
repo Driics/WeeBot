@@ -16,14 +16,34 @@ interface CommandsHolderService {
     // DSL commands
     val dslCommands: Map<String, SlashCommandDeclaration>
 
+    /**
+     * Получает команду по локализованному ключу с учётом указанной локали.
+     *
+     * @param localizedKey Локализованный ключ команды (идентификатор команды, возможно содержащий информацию о локали).
+     * @param locale Опциональная локаль для уточнения поиска; если `null`, используется поведение без уточнения по локали.
+     * @param anyLocale Если `true`, поиск будет возвращать команду независимо от локали соответствия.
+     * @return `Command`, соответствующая ключу, или `null`, если соответствующая команда не найдена.
+     */
     fun getByLocale(
         localizedKey: String,
         locale: Locale? = null,
         anyLocale: Boolean = false
     ): Command?
 
-    fun getDslCommandByFullPath(fullPath: String): SlashCommandDeclaration?
+    /**
+ * Находит DSL-описание slash-команды по её полному пути.
+ *
+ * @param fullPath Полный путь команды в DSL (например "group/subcommand").
+ * @return Соответствующий `SlashCommandDeclaration`, или `null`, если команда не найдена.
+ */
+fun getDslCommandByFullPath(fullPath: String): SlashCommandDeclaration?
 
-    fun isAnyCommand(key: String): Boolean
+    /**
+ * Проверяет, соответствует ли заданный ключ любой зарегистрированной команде.
+ *
+ * @param key Ключ команды — может быть локализованным или общим идентификатором команды.
+ * @return `true` если ключ соответствует любой зарегистрированной команде, `false` в противном случае.
+ */
+fun isAnyCommand(key: String): Boolean
 
 }

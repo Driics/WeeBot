@@ -29,6 +29,14 @@ class CommandsHolderServiceImpl : CommandsHolderService {
     private lateinit var reverseCommandKeys: Set<String>
     private lateinit var localizedCommands: Map<Locale, Map<String, Command>>
 
+    /**
+     * Находит команду по локализованному ключу в указанных локалях.
+     *
+     * @param localizedKey Локализованный ключ команды (поиск нечувствителен к регистру).
+     * @param locale Предпочитаемая локаль для поиска; если `null`, используется английская карта по умолчанию.
+     * @param anyLocale Если `true`, сначала ищет во всех доступных локалях и при отсутствии результата пытается в `locale`; если `false`, ищет только в `locale`.
+     * @return Соответствующий объект `Command`, либо `null`, если команда не найдена.
+     */
     override fun getByLocale(localizedKey: String, locale: Locale?, anyLocale: Boolean): Command? {
         val lowerCaseKey = localizedKey.lowercase()
 
@@ -40,6 +48,12 @@ class CommandsHolderServiceImpl : CommandsHolderService {
         }
     }
 
+    /**
+     * Определяет, соответствует ли переданный ключ какой-либо зарегистрированной команде — либо устаревшей (legacy), либо DSL-команде.
+     *
+     * @param key Ключ команды или полный путь для DSL-команды (например "cmd subcmd" или "cmd group subcmd").
+     * @return `true` если ключ соответствует legacy-команде или DSL-команде, `false` в противном случае.
+     */
     override fun isAnyCommand(key: String): Boolean {
         // Check legacy commands
         val isLegacyCommand = reverseCommandKeys.any { key.reversed().lowercase().startsWith(it) }
@@ -52,9 +66,26 @@ class CommandsHolderServiceImpl : CommandsHolderService {
         return isLegacyCommand || isDslCommand
     }
 
-    private fun getLocalizedMap(locale: Locale? = /*contextService.locale*/ Locale.ENGLISH): Map<String, Command> =
+    /**
+         * Получает карту команд, соответствующих заданной локали.
+         *
+         * @param locale Локаль для поиска карты команд; если аргумент опущен, используется Locale.ENGLISH.
+         * @return Карту команд (ключ → Command) для указанной локали, либо пустую карту если для локали нет записей.
+         */
+        private fun getLocalizedMap(locale: Locale? = /*contextService.locale*/ Locale.ENGLISH): Map<String, Command> =
         localizedCommands[locale] ?: emptyMap()
 
+    /**
+     * Регистрирует набор команд и готовит внутренние индексы для быстрого поиска по ключам и локалям.
+     *
+     * Заполняет поля сервиса:
+     * - `commands` — все команды по исходному ключу;
+     * - `publicCommands` — команды, помеченные как публичные (не скрытые);
+     * - `reverseCommandKeys` — множество перевёрнутых локализованных ключей в нижнем регистре;
+     * - `localizedCommands` — карта локалей к отображению локализованного (нижнего регистра) ключа -> команда.
+     *
+     * @param commands Список команд для регистрации (аннотированных `@DiscordCommand`).
+     */
     @Autowired
     private fun registerCommands(commands: List<Command>) {
         val commandMap = mutableMapOf<String, Command>()
@@ -93,6 +124,15 @@ class CommandsHolderServiceImpl : CommandsHolderService {
         this.localizedCommands = mutableLocalizedCommands.toMap()
     }
 
+    /**
+     * Регистрирует DSL-команды и формирует два словаря: по имени команды и по её полному пути.
+     *
+     * Для каждой обёртки извлекается декларация команды; основная команда регистрируется по имени,
+     * субкоманды — по пути "command subcommand", а субкоманды внутри групп — по пути "command group subcommand".
+     * Результаты сохраняются в полях сервиса `dslCommands` и `dslCommandsByFullPath`.
+     *
+     * @param dslWrappers список обёрток деклараций slash-команд
+     */
     @Autowired
     private fun registerDslCommands(dslWrappers: List<SlashCommandDeclarationWrapper>) {
         val dslCommandMap = mutableMapOf<String, SlashCommandDeclaration>()
@@ -132,6 +172,12 @@ class CommandsHolderServiceImpl : CommandsHolderService {
         logger.info { "Total DSL command paths registered: ${dslCommandsByPathMap.size}" }
     }
 
+    /**
+     * Возвращает дескриптор DSL-команды по её полному пути (например: "cmd subcmd" или "cmd group subcmd").
+     *
+     * @param fullPath Полный путь команды — имя команды и при необходимости имена подкоманды/группы, разделённые пробелом.
+     * @return `SlashCommandDeclaration` если команда с таким путём зарегистрирована, `null` в противном случае.
+     */
     override fun getDslCommandByFullPath(fullPath: String): SlashCommandDeclaration? {
         return dslCommandsByFullPath[fullPath]
     }
