@@ -1,16 +1,13 @@
 package ru.sablebot.worker.listeners
 
 import dev.minn.jda.ktx.interactions.commands.Option
+import dev.minn.jda.ktx.interactions.commands.group
+import dev.minn.jda.ktx.interactions.commands.subcommand
 import io.github.oshai.kotlinlogging.KotlinLogging
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.events.session.ReadyEvent
 import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions
-import net.dv8tion.jda.api.interactions.commands.build.CommandData
-import net.dv8tion.jda.api.interactions.commands.build.Commands
-import net.dv8tion.jda.api.interactions.commands.build.OptionData
-import net.dv8tion.jda.api.interactions.commands.build.SlashCommandData
-import net.dv8tion.jda.api.interactions.commands.build.SubcommandData
-import net.dv8tion.jda.api.interactions.commands.build.SubcommandGroupData
+import net.dv8tion.jda.api.interactions.commands.build.*
 import org.springframework.beans.factory.annotation.Autowired
 import ru.sablebot.common.worker.command.model.Command
 import ru.sablebot.common.worker.command.model.dsl.SlashCommandDeclaration
@@ -50,11 +47,6 @@ class SlashCommandRegistrationListener @Autowired constructor(
         logger.info { "=== Slash command registration complete ===" }
     }
 
-        
-        }
-        
-    }
-
     /**
      * Формирует полный набор команд (наследуемых и DSL), сравнивает его с текущими командами и при необходимости выполняет обновление.
      *
@@ -90,9 +82,6 @@ class SlashCommandRegistrationListener @Autowired constructor(
             "${uniqueLegacyCommands.size} legacy, ${dslCommands.size} DSL" +
             (if (duplicatesRemoved > 0) " ($duplicatesRemoved дубликат(ов) удалено, приоритет DSL)" else "")
         }
-        
-
-
 
         val existingCommands = fetchExistingCommands(guildId, jda) ?: return emptyList()
 
@@ -132,14 +121,6 @@ class SlashCommandRegistrationListener @Autowired constructor(
         Commands.slash(command.annotation.key, command.annotation.description).apply {
             isNSFW = command.annotation.nsfw
 
-            /*
-            TODO
-            if(command.subcommands.isNotEmpty()) {
-                command.subcommands.forEach { subcommand ->
-                    slashcomand()
-                }
-            }*/
-
             for (reference in command.commandOptions.registeredOptions) {
                 try {
                     addOptions(*createOption(reference).toTypedArray())
@@ -164,26 +145,53 @@ class SlashCommandRegistrationListener @Autowired constructor(
                 defaultPermissions = it
             }
 
-            // If the command has an executor and no subcommands/groups, add options from the executor
-            val executor = declaration.executor
-            if (executor != null && declaration.subcommands.isEmpty() && declaration.subcommandGroups.isEmpty()) {
-                for (reference in executor.options.registeredOptions) {
-                    try {
-                        addOptions(*createOption(reference).toTypedArray())
-                    } catch (e: Exception) {
-                        logger.error(e) { "Failed to register DSL command option: ${reference.name}" }
+            if (declaration.subcommands.isNotEmpty() || declaration.subcommandGroups.isNotEmpty()) {
+                if (declaration.executor != null)
+                    error("Command ${declaration::class.simpleName} has a root executor, but it also has subcommand/subcommand groups!")
+
+                declaration.subcommands.forEach { subcommand ->
+                    subcommand(subcommand.name, subcommand.description) {
+                        val executor = subcommand.executor ?: error("Subcommand does not have a executor!")
+
+                        for (ref in executor.options.registeredOptions) {
+                            try {
+                                addOptions(*createOption(ref).toTypedArray())
+                            } catch (e: Exception) {
+                                logger.error(e) { "Something went wrong while trying to add options of $executor" }
+                            }
+                        }
                     }
                 }
-            }
 
-            // Add subcommands (direct subcommands without groups)
-            declaration.subcommands.forEach { subcommand ->
-                addSubcommands(toSubcommandData(subcommand))
-            }
+                declaration.subcommandGroups.forEach { group ->
+                    group(group.name, group.description) {
+                        group.subcommands.forEach { subcommand ->
+                            subcommand(subcommand.name, subcommand.description) {
+                                val executor = subcommand.executor ?: error("Subcommand does not have a executor!")
 
-            // Add subcommand groups
-            declaration.subcommandGroups.forEach { group ->
-                addSubcommandGroups(toSubcommandGroupData(group))
+                                for (ref in executor.options.registeredOptions) {
+                                    try {
+                                        addOptions(*createOption(ref).toTypedArray())
+                                    } catch (e: Exception) {
+                                        logger.error(e) { "Something went wrong while trying to add options of $executor" }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } else {
+                val executor = declaration.executor
+
+                if (executor != null) {
+                    for (ref in executor.options.registeredOptions) {
+                        try {
+                            addOptions(*createOption(ref).toTypedArray())
+                        } catch (e: Exception) {
+                            logger.error(e) { "Something went wrong while trying to add options of $executor" }
+                        }
+                    }
+                }
             }
 
             logger.debug { 
