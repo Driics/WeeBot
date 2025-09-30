@@ -29,7 +29,8 @@ class InternalCommandsServiceImpl @Autowired constructor(
     workerProperties: WorkerProperties,
     @Lazy holderService: CommandsHolderService,
     messageService: MessageService,
-    discordEntityAccessor: DiscordEntityAccessor
+    discordEntityAccessor: DiscordEntityAccessor,
+    private val coroutineLauncher: ru.sablebot.common.support.CoroutineLauncher
 ) : BaseCommandService(workerProperties, holderService, messageService, discordEntityAccessor),
     InternalCommandsService {
 
@@ -51,12 +52,97 @@ class InternalCommandsServiceImpl @Autowired constructor(
         val guild = event.guild ?: return false
         val channel = event.channel.asTextChannel()
 
-        log.info { "Received event: $event" }
+        log.info { "Received slash command event: ${event.name}, fullCommandName: ${event.fullCommandName}" }
 
+        // Try to find DSL command first by full command name (supports subcommands)
+        val fullCommandName = event.fullCommandName
+        val dslCommand = holderService.getDslCommandByFullPath(fullCommandName)
+
+        if (dslCommand != null) {
+            log.info { "Found DSL command: ${dslCommand.name}" }
+            return executeDslCommand(event, dslCommand, guild, channel)
+        }
+
+        log.debug { "No DSL command found for '$fullCommandName', trying legacy command with key '${event.name}'" }
+
+        // Fall back to legacy command handling
         val command = holderService.getByLocale(localizedKey = event.name, anyLocale = true)
-            ?: return false
+        if (command == null) {
+            log.warn { "No command found (neither DSL nor legacy) for: ${event.fullCommandName}" }
+            return false
+        }
 
+        log.info { "Found legacy command: ${command.key}" }
+        return executeLegacyCommand(event, command, guild, channel)
+    }
 
+    private fun executeDslCommand(
+        event: SlashCommandInteractionEvent,
+        dslCommand: ru.sablebot.common.worker.command.model.dsl.SlashCommandDeclaration,
+        guild: net.dv8tion.jda.api.entities.Guild,
+        channel: TextChannel
+    ): Boolean {
+        val executor = dslCommand.executor ?: run {
+            log.warn { "DSL command ${dslCommand.name} has no executor" }
+            return false
+        }
+
+        // Check bot permissions
+        val requiredPermissions = dslCommand.botPermissions
+        if (requiredPermissions.isNotEmpty()) {
+            val self = guild.selfMember
+            if (!self.hasPermission(channel, *requiredPermissions.toTypedArray())) {
+                val missingPermissions = requiredPermissions.filterNot { self.hasPermission(channel, it) }
+                    .joinToString("\n") { it.name }
+
+                if (self.hasPermission(channel, Permission.MESSAGE_SEND)) {
+                    if (self.hasPermission(channel, Permission.MESSAGE_EMBED_LINKS)) {
+                        messageService.sendMessageSilent(channel::sendMessage, "Bot is missing required permissions")
+                    } else {
+                        val title = "Error permissions"
+                        messageService.sendMessageSilent(channel::sendMessage, "$title\n\n$missingPermissions")
+                    }
+                }
+
+                return true
+            }
+        }
+
+        measureTime {
+            try {
+                if (workerProperties.commands.invokeLogging) {
+                    log.info { "Invoke DSL command [${dslCommand.name}]: ${event.options}" }
+                }
+                
+                // Launch executor in coroutine scope since execute is a suspend function
+                coroutineLauncher.launchMessageJob(event) {
+                    executor.execute(
+                        ApplicationCommandContext(event),
+                        SlashCommandArguments(SlashCommandArgumentsSource.SlashCommandArgumentsEventSource(event))
+                    )
+                }
+            } catch (e: DiscordException) {
+                log.error(e) { "DSL Command [${dslCommand.name}] execution error" }
+            } catch (e: Exception) {
+                log.error(e) { "Unexpected error executing DSL command [${dslCommand.name}]" }
+            }
+        }.also {
+            if (it.inWholeMilliseconds > workerProperties.commands.executionThresholdMs) {
+                log.warn {
+                    "DSL Command [${dslCommand.name}] took too long ($it) to execute with args: ${event.options}"
+                }
+            }
+        }
+
+        return true
+    }
+
+    private fun executeLegacyCommand(
+        event: SlashCommandInteractionEvent,
+        command: Command,
+        guild: net.dv8tion.jda.api.entities.Guild,
+        channel: TextChannel
+    ): Boolean {
         if (workerProperties.commands.disabled.contains(command.key))
             return true
 
