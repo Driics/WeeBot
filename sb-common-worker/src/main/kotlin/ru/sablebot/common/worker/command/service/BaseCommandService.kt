@@ -17,11 +17,14 @@ abstract class BaseCommandService @Autowired constructor(
     private val logger: Logger = LoggerFactory.getLogger(BaseCommandService::class.java)
 
     override fun handleSlashCommand(event: SlashCommandInteractionEvent): Boolean {
-        if (!isValidKey(event, event.name)) {
+        // Use fullCommandName to support subcommands (e.g., "command subcommand" or "command group subcommand")
+        val commandKey = event.fullCommandName
+        
+        if (!isValidKey(event, commandKey)) {
             return false
         }
 
-        logger.info("Received command: {}", event.name)
+        logger.info("Received command: {}", commandKey)
 
         return sendCommand(event)
     }

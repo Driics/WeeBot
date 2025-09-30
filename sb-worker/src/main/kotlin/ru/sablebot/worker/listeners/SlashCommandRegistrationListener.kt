@@ -9,8 +9,12 @@ import net.dv8tion.jda.api.interactions.commands.build.CommandData
 import net.dv8tion.jda.api.interactions.commands.build.Commands
 import net.dv8tion.jda.api.interactions.commands.build.OptionData
 import net.dv8tion.jda.api.interactions.commands.build.SlashCommandData
+import net.dv8tion.jda.api.interactions.commands.build.SubcommandData
+import net.dv8tion.jda.api.interactions.commands.build.SubcommandGroupData
 import org.springframework.beans.factory.annotation.Autowired
 import ru.sablebot.common.worker.command.model.Command
+import ru.sablebot.common.worker.command.model.dsl.SlashCommandDeclaration
+import ru.sablebot.common.worker.command.model.dsl.SlashCommandGroupDeclaration
 import ru.sablebot.common.worker.command.service.CommandsHolderService
 import ru.sablebot.common.worker.event.DiscordEvent
 import ru.sablebot.common.worker.event.listeners.DiscordEventListener
@@ -62,19 +66,25 @@ class SlashCommandRegistrationListener @Autowired constructor(
     ): List<CommandJDA> {
         logger.info { "Starting command update for ${if (guildId == 0L) "global scope" else "guild ID: $guildId"}" }
 
-        val publicCommands = holderService.publicCommands.values.map { toJdaDeclaration(it) }
+        // Combine legacy commands and DSL commands
+        val legacyCommands = holderService.publicCommands.values.map { toJdaDeclaration(it) }
+        val dslCommands = holderService.dslCommands.values.map { toDslJdaDeclaration(it) }
+        
+        val allCommands = legacyCommands + dslCommands
+
+        logger.info { "Registering ${legacyCommands.size} legacy commands and ${dslCommands.size} DSL commands" }
 
         // Log command type breakdown once instead of per command
         CommandJDA.Type.entries
             .filter { it != CommandJDA.Type.UNKNOWN }
             .forEach { type ->
-                logger.info { "Type ${type.name}: ${publicCommands.count { it.type == type }} commands" }
+                logger.info { "Type ${type.name}: ${allCommands.count { it.type == type }} commands" }
             }
 
         val existingCommands = fetchExistingCommands(guildId, jda) ?: return emptyList()
 
-        val needsUpdate = publicCommands.size != existingCommands.size ||
-                publicCommands.any { appCommand ->
+        val needsUpdate = allCommands.size != existingCommands.size ||
+                allCommands.any { appCommand ->
                     existingCommands.none {
                         val appCommandData = SlashCommandData.fromData(appCommand.toData())
 
@@ -87,7 +97,7 @@ class SlashCommandRegistrationListener @Autowired constructor(
 
         return if (needsUpdate) {
             logger.info { "Command mismatch detected. Updating commands for ${if (guildId == 0L) "global" else "guild ID: $guildId"}" }
-            val updatedCommands = action(publicCommands)
+            val updatedCommands = action(allCommands)
             logger.info { "Successfully updated ${updatedCommands.size} commands for ${if (guildId == 0L) "global" else "guild ID: $guildId"}" }
             updatedCommands
         } else {
@@ -117,6 +127,71 @@ class SlashCommandRegistrationListener @Autowired constructor(
             }
 
             defaultPermissions = DefaultMemberPermissions.enabledFor(*command.annotation.memberRequiredPermissions)
+        }
+
+    /**
+     * Converts DSL SlashCommandDeclaration to JDA SlashCommandData with full subcommand support
+     */
+    private fun toDslJdaDeclaration(declaration: SlashCommandDeclaration): SlashCommandData =
+        Commands.slash(declaration.name, declaration.description).apply {
+            // Apply default member permissions if set
+            declaration.defaultMemberPermissions?.let {
+                defaultPermissions = it
+            }
+
+            // If the command has an executor and no subcommands/groups, add options from the executor
+            val executor = declaration.executor
+            if (executor != null && declaration.subcommands.isEmpty() && declaration.subcommandGroups.isEmpty()) {
+                for (reference in executor.options.registeredOptions) {
+                    try {
+                        addOptions(*createOption(reference).toTypedArray())
+                    } catch (e: Exception) {
+                        logger.error(e) { "Failed to register DSL command option: ${reference.name}" }
+                    }
+                }
+            }
+
+            // Add subcommands (direct subcommands without groups)
+            declaration.subcommands.forEach { subcommand ->
+                addSubcommands(toSubcommandData(subcommand))
+            }
+
+            // Add subcommand groups
+            declaration.subcommandGroups.forEach { group ->
+                addSubcommandGroups(toSubcommandGroupData(group))
+            }
+
+            logger.debug { 
+                "Registered DSL command: ${declaration.name} with ${declaration.subcommands.size} subcommands and ${declaration.subcommandGroups.size} groups" 
+            }
+        }
+
+    /**
+     * Converts a subcommand declaration to JDA SubcommandData
+     */
+    private fun toSubcommandData(subcommand: SlashCommandDeclaration): SubcommandData =
+        SubcommandData(subcommand.name, subcommand.description).apply {
+            // Add options from the subcommand's executor
+            subcommand.executor?.let { executor ->
+                for (reference in executor.options.registeredOptions) {
+                    try {
+                        addOptions(*createOption(reference).toTypedArray())
+                    } catch (e: Exception) {
+                        logger.error(e) { "Failed to register subcommand option: ${reference.name}" }
+                    }
+                }
+            }
+        }
+
+    /**
+     * Converts a subcommand group declaration to JDA SubcommandGroupData
+     */
+    private fun toSubcommandGroupData(group: SlashCommandGroupDeclaration): SubcommandGroupData =
+        SubcommandGroupData(group.name, group.description).apply {
+            // Add all subcommands in this group
+            group.subcommands.forEach { subcommand ->
+                addSubcommands(toSubcommandData(subcommand))
+            }
         }
 
     // Helper function to retrieve commands for either global or specific guild
