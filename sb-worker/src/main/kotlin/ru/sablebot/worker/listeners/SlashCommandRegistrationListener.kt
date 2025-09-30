@@ -34,17 +34,21 @@ class SlashCommandRegistrationListener @Autowired constructor(
     }
 
     override fun onReady(event: ReadyEvent) {
+        logger.info { "=== Starting slash command registration ===" }
+        
         try {
             val globalRegistered = updateCommands(0L, event.jda) { commands ->
                 event.jda.updateCommands()
                     .addCommands(commands)
                     .complete()
             }
-            logger.info { "${globalRegistered.size} global commands registered" }
         } catch (e: Exception) {
             logger.error(e) { "Failed to register global commands" }
         }
 
+        val guildCount = event.jda.guilds.size
+        logger.info { "Registering commands for $guildCount guild(s)..." }
+        
         event.jda.guilds.forEach { guild ->
             try {
                 val registeredCommands = updateCommands(guild.idLong, event.jda) { commands ->
@@ -52,11 +56,12 @@ class SlashCommandRegistrationListener @Autowired constructor(
                         .addCommands(commands)
                         .complete()
                 }
-                logger.info { "${registeredCommands.size} commands registered for guild ${guild.idLong}" }
             } catch (e: Exception) {
                 logger.error(e) { "Failed to register commands for guild ${guild.idLong}" }
             }
         }
+        
+        logger.info { "=== Slash command registration complete ===" }
     }
 
     private fun updateCommands(
@@ -162,7 +167,8 @@ class SlashCommandRegistrationListener @Autowired constructor(
             }
 
             logger.debug { 
-                "Registered DSL command: ${declaration.name} with ${declaration.subcommands.size} subcommands and ${declaration.subcommandGroups.size} groups" 
+                "Converted DSL command '${declaration.name}': " +
+                "${declaration.subcommands.size} subcommand(s), ${declaration.subcommandGroups.size} group(s)" 
             }
         }
 
@@ -197,14 +203,14 @@ class SlashCommandRegistrationListener @Autowired constructor(
     // Helper function to retrieve commands for either global or specific guild
     private fun fetchExistingCommands(guildId: Long, jda: JDA): List<CommandJDA>? {
         return if (guildId == 0L) {
-            logger.info { "Retrieving global commands..." }
+            logger.debug { "Fetching existing global commands..." }
             jda.retrieveCommands().complete()
         } else {
             val guild = jda.getGuildById(guildId) ?: run {
                 logger.warn { "Guild with ID $guildId not found" }
                 return null
             }
-            logger.info { "Retrieving commands for guild ID: $guildId" }
+            logger.debug { "Fetching existing commands for guild $guildId..." }
             guild.retrieveCommands().complete()
         }
     }
