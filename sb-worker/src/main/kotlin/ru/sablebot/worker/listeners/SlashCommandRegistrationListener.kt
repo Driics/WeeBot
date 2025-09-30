@@ -37,31 +37,22 @@ class SlashCommandRegistrationListener @Autowired constructor(
         logger.info { "=== Starting slash command registration ===" }
         
         try {
-            val globalRegistered = updateCommands(0L, event.jda) { commands ->
+            updateCommands(0L, event.jda) { commands ->
                 event.jda.updateCommands()
                     .addCommands(commands)
                     .complete()
             }
+            logger.info { "✓ Global command registration complete" }
         } catch (e: Exception) {
             logger.error(e) { "Failed to register global commands" }
         }
 
-        val guildCount = event.jda.guilds.size
-        logger.info { "Registering commands for $guildCount guild(s)..." }
+        logger.info { "=== Slash command registration complete ===" }
+    }
+
         
-        event.jda.guilds.forEach { guild ->
-            try {
-                val registeredCommands = updateCommands(guild.idLong, event.jda) { commands ->
-                    guild.updateCommands()
-                        .addCommands(commands)
-                        .complete()
-                }
-            } catch (e: Exception) {
-                logger.error(e) { "Failed to register commands for guild ${guild.idLong}" }
-            }
         }
         
-        logger.info { "=== Slash command registration complete ===" }
     }
 
     private fun updateCommands(
