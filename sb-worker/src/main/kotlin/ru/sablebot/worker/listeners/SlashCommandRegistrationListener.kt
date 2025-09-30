@@ -55,6 +55,17 @@ class SlashCommandRegistrationListener @Autowired constructor(
         
     }
 
+    /**
+     * Формирует полный набор команд (наследуемых и DSL), сравнивает его с текущими командами и при необходимости выполняет обновление.
+     *
+     * Собирает декларации команд из holderService, сравнивает их с командами, уже зарегистрированными в JDA для указанного контекста,
+     * и при обнаружении расхождений вызывает переданное действие для применения обновления.
+     *
+     * @param guildId Идентификатор гильдии; значение 0 означает глобальную область (global commands).
+     * @param jda Экземпляр JDA, используемый для чтения текущих команд в указанном контексте.
+     * @param action Функция, которая принимает список деклараций команд JDA для регистрации и возвращает список зарегистрированных CommandJDA после выполнения обновления.
+     * @return Список существующих либо только что обновлённых команд в виде объектов CommandJDA.
+     */
     private fun updateCommands(
         guildId: Long,
         jda: JDA,
@@ -108,7 +119,16 @@ class SlashCommandRegistrationListener @Autowired constructor(
         }
     }
 
-    private fun toJdaDeclaration(command: Command): SlashCommandData =
+    /**
+         * Преобразует устаревший объект команды в JDA-описание slash-команды для регистрации.
+         *
+         * Преобразование включает имя, описание, флаг NSFW, опции и значения прав по умолчанию; поддержка сабкоманд пока не реализована.
+         * При ошибке создания отдельной опции исключение логируется, а проблемная опция пропускается.
+         *
+         * @param command Устаревшая модель команды, содержащая аннотацию, зарегистрированные опции и требуемые права участников.
+         * @return `SlashCommandData` — объект JDA, готовый для добавления/обновления в списке slash-комманд.
+         */
+        private fun toJdaDeclaration(command: Command): SlashCommandData =
         Commands.slash(command.annotation.key, command.annotation.description).apply {
             isNSFW = command.annotation.nsfw
 
@@ -132,8 +152,11 @@ class SlashCommandRegistrationListener @Autowired constructor(
         }
 
     /**
-     * Converts DSL SlashCommandDeclaration to JDA SlashCommandData with full subcommand support
-     */
+         * Преобразует DSL-описание слэш-команды в объект JDA SlashCommandData с поддержкой подкоманд и групп.
+         *
+         * @param declaration DSL-описание команды, включая имя, описание, опции исполнителя, подкоманды и группы.
+         * @return Экземпляр `SlashCommandData`, соответствующий передённому описанию и готовый к регистрации в JDA.
+         */
     private fun toDslJdaDeclaration(declaration: SlashCommandDeclaration): SlashCommandData =
         Commands.slash(declaration.name, declaration.description).apply {
             // Apply default member permissions if set
@@ -170,8 +193,13 @@ class SlashCommandRegistrationListener @Autowired constructor(
         }
 
     /**
-     * Converts a subcommand declaration to JDA SubcommandData
-     */
+         * Преобразует описание подкоманды в объект SubcommandData для JDA.
+         *
+         * Если у подкоманды задан executor, его зарегистрированные опции добавляются в результат.
+         *
+         * @param subcommand Описание подкоманды (SlashCommandDeclaration).
+         * @return SubcommandData с именем, описанием и, при наличии, опциями подкоманды.
+         */
     private fun toSubcommandData(subcommand: SlashCommandDeclaration): SubcommandData =
         SubcommandData(subcommand.name, subcommand.description).apply {
             // Add options from the subcommand's executor
@@ -187,8 +215,10 @@ class SlashCommandRegistrationListener @Autowired constructor(
         }
 
     /**
-     * Converts a subcommand group declaration to JDA SubcommandGroupData
-     */
+         * Преобразует декларацию группы сабкоманд в объект SubcommandGroupData с вложенными сабкомандами.
+         *
+         * @return Экземпляр SubcommandGroupData, содержащий имя и описание группы и все её SubcommandData.
+         */
     private fun toSubcommandGroupData(group: SlashCommandGroupDeclaration): SubcommandGroupData =
         SubcommandGroupData(group.name, group.description).apply {
             // Add all subcommands in this group
@@ -197,7 +227,13 @@ class SlashCommandRegistrationListener @Autowired constructor(
             }
         }
 
-    // Helper function to retrieve commands for either global or specific guild
+    /**
+     * Получает список существующих команд для глобальной области или указанной гильдии.
+     *
+     * @param guildId Идентификатор гильдии; используйте 0 для глобальных команд.
+     * @param jda Экземпляр JDA, используемый для запроса команд.
+     * @return Список обнаруженных команд JDA; `null`, если гильдия с указанным ID не найдена.
+     */
     private fun fetchExistingCommands(guildId: Long, jda: JDA): List<CommandJDA>? {
         return if (guildId == 0L) {
             logger.debug { "Fetching existing global commands..." }

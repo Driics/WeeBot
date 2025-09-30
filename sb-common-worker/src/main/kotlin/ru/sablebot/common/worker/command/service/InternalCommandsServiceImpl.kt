@@ -48,6 +48,11 @@ class InternalCommandsServiceImpl @Autowired constructor(
 
     override fun isValidKey(event: SlashCommandInteractionEvent, key: String): Boolean = holderService.isAnyCommand(key)
 
+    /**
+     * Обрабатывает входящее SlashCommandInteractionEvent, маршрутизируя его сначала в DSL‑команду по полному пути, а при отсутствии — в устаревшую команду по локализованному ключу.
+     *
+     * @param event Событие слеш‑команды, полученное от Discord.
+     * @return `true`, если событие принято и обработано (включая случаи, когда дальнейшая обработка прекращена из‑за отсутствия разрешений или ошибок выполнения); `false`, если событие не применимо (нет гильдии) или для команды не найден соответствующий обработчик. */
     override fun sendCommand(event: SlashCommandInteractionEvent): Boolean {
         val guild = event.guild ?: return false
         val channel = event.channel.asTextChannel()
@@ -76,6 +81,15 @@ class InternalCommandsServiceImpl @Autowired constructor(
         return executeLegacyCommand(event, command, guild, channel)
     }
 
+    /**
+     * Обрабатывает и выполняет DSL-слэш-команду: проверяет права бота, сообщает о недостающих правах и запускает исполнение в корутине.
+     *
+     * @param event Событие взаимодействия слэш-команды.
+     * @param dslCommand Описание DSL-команды, содержащая метаданные и исполнителя.
+     * @param guild Сервер (Guild), в котором вызвана команда.
+     * @param channel Текстовый канал для отправки ответов и сообщений об ошибках.
+     * @return `true` если событие было обработано (включая случаи, когда выполнение было отменено из‑за недостатка прав), `false` если у команды отсутствует исполнитель и она не обработана.
+     */
     private fun executeDslCommand(
         event: SlashCommandInteractionEvent,
         dslCommand: ru.sablebot.common.worker.command.model.dsl.SlashCommandDeclaration,
@@ -137,6 +151,15 @@ class InternalCommandsServiceImpl @Autowired constructor(
         return true
     }
 
+    /**
+     * Обрабатывает legacy-реализацию slash-команды: проверяет отключение и права бота, выполняет команду и фиксирует слишком долгую обработку.
+     *
+     * @param event Событие взаимодействия slash-команды.
+     * @param command Объект legacy-команды для выполнения.
+     * @param guild Сервер (Guild), в контексте которого выполняется команда.
+     * @param channel Текстовый канал, где была вызвана команда.
+     * @return `true` если событие было обработано и не требует дальнейшей передачи. 
+     */
     private fun executeLegacyCommand(
         event: SlashCommandInteractionEvent,
         command: Command,

@@ -16,6 +16,12 @@ abstract class BaseCommandService @Autowired constructor(
 ): CommandsService, CommandHandler {
     private val logger: Logger = LoggerFactory.getLogger(BaseCommandService::class.java)
 
+    /**
+     * Обрабатывает входящее событие slash-команды: валидирует ключ команды и при успешной валидации делегирует её отправку.
+     *
+     * @param event Событие взаимодействия slash-команды; из него используется `fullCommandName` для определения ключа команды (поддерживает подкоманды и группы).
+     * @return `true`, если команда принята и отправлена на обработку; `false`, если ключ команды признан недействительным и обработка прервана.
+     */
     override fun handleSlashCommand(event: SlashCommandInteractionEvent): Boolean {
         // Use fullCommandName to support subcommands (e.g., "command subcommand" or "command group subcommand")
         val commandKey = event.fullCommandName
