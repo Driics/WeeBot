@@ -1,6 +1,7 @@
 package ru.sablebot.worker.listeners
 
 import dev.minn.jda.ktx.interactions.commands.Option
+import dev.minn.jda.ktx.interactions.commands.subcommand
 import io.github.oshai.kotlinlogging.KotlinLogging
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.events.session.ReadyEvent
@@ -9,9 +10,14 @@ import net.dv8tion.jda.api.interactions.commands.build.CommandData
 import net.dv8tion.jda.api.interactions.commands.build.Commands
 import net.dv8tion.jda.api.interactions.commands.build.OptionData
 import net.dv8tion.jda.api.interactions.commands.build.SlashCommandData
+import net.dv8tion.jda.api.interactions.commands.build.SubcommandData
+import net.dv8tion.jda.api.interactions.commands.build.SubcommandGroupData
 import org.springframework.beans.factory.annotation.Autowired
 import ru.sablebot.common.worker.command.model.Command
+import ru.sablebot.common.worker.command.model.dsl.SlashCommandDeclaration
+import ru.sablebot.common.worker.command.model.dsl.SlashCommandGroupDeclaration
 import ru.sablebot.common.worker.command.service.CommandsHolderService
+import ru.sablebot.common.worker.command.service.CommandsHolderServiceImpl
 import ru.sablebot.common.worker.event.DiscordEvent
 import ru.sablebot.common.worker.event.listeners.DiscordEventListener
 import ru.sablebot.common.worker.message.model.commands.options.BooleanDiscordOptionReference
@@ -62,9 +68,24 @@ class SlashCommandRegistrationListener @Autowired constructor(
     ): List<CommandJDA> {
         logger.info { "Starting command update for ${if (guildId == 0L) "global scope" else "guild ID: $guildId"}" }
 
-        val publicCommands = holderService.publicCommands.values.map { toJdaDeclaration(it) }
+        // Collect legacy commands
+        val legacyCommands = holderService.publicCommands.values.map { toJdaDeclaration(it) }
+
+        // Collect DSL commands
+        val dslCommands = if (holderService is CommandsHolderServiceImpl) {
+            holderService.dslCommands.map { wrapper ->
+                val declaration = wrapper.command().build()
+                toDslJdaDeclaration(declaration)
+            }
+        } else {
+            emptyList()
+        }
+
+        // Combine both command types
+        val publicCommands = legacyCommands + dslCommands
 
         // Log command type breakdown once instead of per command
+        logger.info { "Legacy commands: ${legacyCommands.size}, DSL commands: ${dslCommands.size}" }
         CommandJDA.Type.entries
             .filter { it != CommandJDA.Type.UNKNOWN }
             .forEach { type ->
@@ -160,5 +181,48 @@ class SlashCommandRegistrationListener @Autowired constructor(
                 }
             }
         }
+    }
+
+    private fun toDslJdaDeclaration(declaration: SlashCommandDeclaration): SlashCommandData {
+        val slashCommand = Commands.slash(declaration.name, declaration.description)
+
+        // Set permissions
+        declaration.defaultMemberPermissions?.let {
+            slashCommand.defaultPermissions = it
+        }
+
+        // Handle subcommands and subcommand groups
+        if (declaration.subcommands.isNotEmpty() || declaration.subcommandGroups.isNotEmpty()) {
+            // Add subcommand groups
+            declaration.subcommandGroups.forEach { group ->
+                val subcommandGroup = SubcommandGroupData(group.name, group.description)
+                group.subcommands.forEach { subcommand ->
+                    val subcommandData = SubcommandData(subcommand.name, subcommand.description)
+                    // Add options from executor if present
+                    subcommand.executor?.options?.registeredOptions?.forEach { option ->
+                        subcommandData.addOptions(*createOption(option).toTypedArray())
+                    }
+                    subcommandGroup.addSubcommands(subcommandData)
+                }
+                slashCommand.addSubcommandGroups(subcommandGroup)
+            }
+
+            // Add standalone subcommands
+            declaration.subcommands.forEach { subcommand ->
+                val subcommandData = SubcommandData(subcommand.name, subcommand.description)
+                // Add options from executor if present
+                subcommand.executor?.options?.registeredOptions?.forEach { option ->
+                    subcommandData.addOptions(*createOption(option).toTypedArray())
+                }
+                slashCommand.addSubcommands(subcommandData)
+            }
+        } else {
+            // Add options for the top-level command if it has an executor
+            declaration.executor?.options?.registeredOptions?.forEach { option ->
+                slashCommand.addOptions(*createOption(option).toTypedArray())
+            }
+        }
+
+        return slashCommand
     }
 }

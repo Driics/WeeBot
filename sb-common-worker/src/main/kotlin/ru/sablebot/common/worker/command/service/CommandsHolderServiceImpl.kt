@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service
 import ru.sablebot.common.utils.LocaleUtils
 import ru.sablebot.common.worker.command.model.Command
 import ru.sablebot.common.worker.command.model.DiscordCommand
+import ru.sablebot.common.worker.command.model.dsl.SlashCommandDeclarationWrapper
 import java.util.*
 
 @Service
@@ -13,6 +14,10 @@ class CommandsHolderServiceImpl : CommandsHolderService {
     override var commands: Map<String, Command> = mutableMapOf()
 
     override var publicCommands: Map<String, Command> = mutableMapOf()
+
+    // Store DSL-based command declarations
+    var dslCommands: List<SlashCommandDeclarationWrapper> = emptyList()
+        private set
 
     private lateinit var descriptorsMap: Map<String, List<DiscordCommand>>
     private lateinit var reverseCommandKeys: Set<String>
@@ -71,6 +76,11 @@ class CommandsHolderServiceImpl : CommandsHolderService {
         this.publicCommands = publicCommandMap.toMap()
         this.reverseCommandKeys = mutableReverseCommandKeys.toSet()
         this.localizedCommands = mutableLocalizedCommands.toMap()
+    }
+
+    @Autowired(required = false)
+    private fun registerDslCommands(dslCommandWrappers: List<SlashCommandDeclarationWrapper>) {
+        this.dslCommands = dslCommandWrappers
     }
 
     override val descriptors: Map<String, List<DiscordCommand>>
