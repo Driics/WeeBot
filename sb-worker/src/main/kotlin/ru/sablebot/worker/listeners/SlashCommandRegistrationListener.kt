@@ -69,22 +69,28 @@ class SlashCommandRegistrationListener @Autowired constructor(
         jda: JDA,
         action: (List<CommandData>) -> List<CommandJDA>
     ): List<CommandJDA> {
-        logger.info { "Starting command update for ${if (guildId == 0L) "global scope" else "guild ID: $guildId"}" }
+        val scope = if (guildId == 0L) "global" else "guild $guildId"
+        logger.debug { "Starting command registration for [$scope]" }
 
-        // Combine legacy commands and DSL commands
+        // Prepare legacy and DSL commands
         val legacyCommands = holderService.publicCommands.values.map { toJdaDeclaration(it) }
         val dslCommands = holderService.dslCommands.values.map { toDslJdaDeclaration(it) }
         
-        val allCommands = legacyCommands + dslCommands
+        // Deduplicate: DSL commands take priority over legacy with the same name
+        val dslCommandNames = dslCommands.map { it.name }.toSet()
+        val uniqueLegacyCommands = legacyCommands.filterNot { it.name in dslCommandNames }
+        val allCommands = uniqueLegacyCommands + dslCommands
+        
+        val duplicatesRemoved = legacyCommands.size - uniqueLegacyCommands.size
+        
+        logger.info { 
+            "[$scope] Подготовлено ${allCommands.size} команд(ы): " +
+            "${uniqueLegacyCommands.size} legacy, ${dslCommands.size} DSL" +
+            (if (duplicatesRemoved > 0) " ($duplicatesRemoved дубликат(ов) удалено, приоритет DSL)" else "")
+        }
+        
 
-        logger.info { "Registering ${legacyCommands.size} legacy commands and ${dslCommands.size} DSL commands" }
 
-        // Log command type breakdown once instead of per command
-        CommandJDA.Type.entries
-            .filter { it != CommandJDA.Type.UNKNOWN }
-            .forEach { type ->
-                logger.info { "Type ${type.name}: ${allCommands.count { it.type == type }} commands" }
-            }
 
         val existingCommands = fetchExistingCommands(guildId, jda) ?: return emptyList()
 
@@ -101,12 +107,12 @@ class SlashCommandRegistrationListener @Autowired constructor(
                 }
 
         return if (needsUpdate) {
-            logger.info { "Command mismatch detected. Updating commands for ${if (guildId == 0L) "global" else "guild ID: $guildId"}" }
+            logger.info { "[$scope] Обновление команд (обнаружено несоответствие)..." }
             val updatedCommands = action(allCommands)
-            logger.info { "Successfully updated ${updatedCommands.size} commands for ${if (guildId == 0L) "global" else "guild ID: $guildId"}" }
+            logger.info { "[$scope] ✓ Успешно зарегистрировано ${updatedCommands.size} команд(ы)" }
             updatedCommands
         } else {
-            logger.info { "No update needed. Commands are already up-to-date for ${if (guildId == 0L) "global" else "guild ID: $guildId"}" }
+            logger.debug { "[$scope] Обновление не требуется, команды актуальны" }
             existingCommands
         }
     }
