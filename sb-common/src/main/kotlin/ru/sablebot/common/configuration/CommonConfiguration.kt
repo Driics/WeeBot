@@ -42,8 +42,8 @@ class CommonConfiguration @Autowired constructor(
     @Bean
     fun taskExecutorMBean(executor: ThreadPoolTaskExecutor) =
         ThreadPoolTaskExecutorMBean(
-            taskExecutor = executor,
-            objectName = "Spring TaskExecutor"
+            name = "Spring TaskExecutor",
+            taskExecutor = executor
         )
 
     @Bean(EXECUTOR)

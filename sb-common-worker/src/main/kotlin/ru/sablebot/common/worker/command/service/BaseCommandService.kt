@@ -6,11 +6,13 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import ru.sablebot.common.worker.configuration.WorkerProperties
 import ru.sablebot.common.worker.message.service.MessageService
+import ru.sablebot.common.worker.shared.service.DiscordEntityAccessor
 
 abstract class BaseCommandService @Autowired constructor(
     protected val workerProperties: WorkerProperties,
     protected val holderService: CommandsHolderService,
     protected val messageService: MessageService,
+    protected val entityAccessor: DiscordEntityAccessor
 ): CommandsService, CommandHandler {
     private val logger: Logger = LoggerFactory.getLogger(BaseCommandService::class.java)
 

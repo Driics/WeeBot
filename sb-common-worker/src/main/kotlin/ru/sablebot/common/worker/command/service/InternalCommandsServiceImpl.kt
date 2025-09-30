@@ -1,5 +1,6 @@
 package ru.sablebot.common.worker.command.service
 
+import com.github.benmanes.caffeine.cache.Caffeine
 import io.github.oshai.kotlinlogging.KotlinLogging
 import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.entities.Member
@@ -11,10 +12,15 @@ import org.springframework.context.annotation.Lazy
 import org.springframework.core.annotation.Order
 import org.springframework.stereotype.Service
 import ru.sablebot.common.model.exception.DiscordException
-import ru.sablebot.common.worker.command.model.BotContext
 import ru.sablebot.common.worker.command.model.Command
+import ru.sablebot.common.worker.command.model.SlashCommandArguments
+import ru.sablebot.common.worker.command.model.SlashCommandArgumentsSource
+import ru.sablebot.common.worker.command.model.context.ApplicationCommandContext
+import ru.sablebot.common.worker.command.model.context.BotContext
 import ru.sablebot.common.worker.configuration.WorkerProperties
 import ru.sablebot.common.worker.message.service.MessageService
+import ru.sablebot.common.worker.shared.service.DiscordEntityAccessor
+import java.util.concurrent.TimeUnit
 import kotlin.time.measureTime
 
 @Order(0)
@@ -22,12 +28,19 @@ import kotlin.time.measureTime
 class InternalCommandsServiceImpl @Autowired constructor(
     workerProperties: WorkerProperties,
     @Lazy holderService: CommandsHolderService,
-    messageService: MessageService
-) : BaseCommandService(workerProperties, holderService, messageService), InternalCommandsService {
+    messageService: MessageService,
+    discordEntityAccessor: DiscordEntityAccessor
+) : BaseCommandService(workerProperties, holderService, messageService, discordEntityAccessor),
+    InternalCommandsService {
 
     companion object {
         private val log = KotlinLogging.logger { }
     }
+
+    val contexts = Caffeine
+        .newBuilder()
+        .expireAfterAccess(1, TimeUnit.DAYS)
+        .build<Long, BotContext>()
 
     override fun isApplicable(command: Command, user: User, member: Member, channel: TextChannel): Boolean =
         command.isAvailable(user, member, channel.guild)
@@ -72,7 +85,11 @@ class InternalCommandsServiceImpl @Autowired constructor(
                 if (workerProperties.commands.invokeLogging) {
                     log.info { "Invoke command [${command::class.simpleName}]: ${event.options}" }
                 }
-                command.execute(event, BotContext(event))
+                command.execute(
+                    event,
+                    ApplicationCommandContext(event),
+                    SlashCommandArguments(SlashCommandArgumentsSource.SlashCommandArgumentsEventSource(event))
+                )
             } catch (e: DiscordException) {
                 log.error(e) { "Command [${command.key}] execution error" }
             }
@@ -86,6 +103,4 @@ class InternalCommandsServiceImpl @Autowired constructor(
 
         return true
     }
-
-
 }

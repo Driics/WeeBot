@@ -5,9 +5,8 @@ import net.dv8tion.jda.api.entities.Guild
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.User
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
-import net.dv8tion.jda.api.interactions.commands.build.CommandData
-import net.dv8tion.jda.api.interactions.commands.build.OptionData
-import net.dv8tion.jda.internal.interactions.CommandDataImpl
+import ru.sablebot.common.worker.command.model.context.ApplicationCommandContext
+import ru.sablebot.common.worker.message.model.commands.options.ApplicationCommandOptions
 
 interface Command {
     fun isAvailable(
@@ -18,7 +17,8 @@ interface Command {
 
     fun execute(
         event: SlashCommandInteractionEvent,
-        context: BotContext
+        context: ApplicationCommandContext,
+        args: SlashCommandArguments
     )
 
     val annotation: DiscordCommand
@@ -29,11 +29,9 @@ interface Command {
     val permissions: Array<Permission>
         get() = annotation.permissions
 
-    val commandOptions: List<OptionData>
-        get() = ArrayList()
+    val subcommands: List<Command>
+        get() = emptyList()
 
-    val commandData: CommandData
-        get() = CommandDataImpl(key, annotation.description)
-            .addOptions(commandOptions)
-            .setNSFW(annotation.nsfw)
+    val commandOptions: ApplicationCommandOptions
+        get() = ApplicationCommandOptions.noOptions()
 }

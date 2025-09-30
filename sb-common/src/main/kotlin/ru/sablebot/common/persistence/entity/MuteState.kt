@@ -18,7 +18,7 @@ import java.time.Instant
 class MuteState @JvmOverloads constructor(
     userId: String = "",
     guildId: Long = 0,
-    @Column
+    @Column(name = "global", nullable = false)
     var isGlobal: Boolean = false,
     @Column(name = "channel_id")
     var channelId: String? = null,

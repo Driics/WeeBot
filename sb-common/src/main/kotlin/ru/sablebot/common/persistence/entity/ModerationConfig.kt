@@ -27,7 +27,7 @@ class ModerationConfig(
         fetch = FetchType.LAZY,
         orphanRemoval = true
     )
-    @OrderBy("strike_count")
+    @OrderBy("strikeCount")
     var actions: MutableList<ModerationAction> = mutableListOf()
 ) : GuildEntity() {
     constructor(guildId: Long) : this() {

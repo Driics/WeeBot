@@ -12,6 +12,7 @@ annotation class DiscordCommand(
     val key: String,
     val description: String,
     val permissions: Array<Permission> = [Permission.MESSAGE_SEND, Permission.MESSAGE_EMBED_LINKS],
+    val memberRequiredPermissions: Array<Permission> = [],
     val group: Array<String> = ["discord.command.group.common"],
     val priority: Int = 1,
     val hidden: Boolean = false,

@@ -8,11 +8,12 @@ import org.springframework.context.annotation.Lazy
 import ru.sablebot.common.configuration.CommonProperties
 import ru.sablebot.common.worker.command.service.CommandsService
 import ru.sablebot.common.worker.configuration.WorkerProperties
+import ru.sablebot.common.worker.message.model.InteractivityManager
 import ru.sablebot.common.worker.message.service.MessageService
 import ru.sablebot.common.worker.shared.service.DiscordService
 
 
-abstract class AbstractCommand : ru.sablebot.common.worker.command.model.Command {
+abstract class AbstractCommand : Command {
 
     @Autowired
     @Lazy
@@ -20,6 +21,9 @@ abstract class AbstractCommand : ru.sablebot.common.worker.command.model.Command
 
     @Autowired
     protected lateinit var commonProperties: CommonProperties
+
+    @Autowired
+    protected lateinit var interactivityManager: InteractivityManager
 
     @Autowired
     protected lateinit var workerProperties: WorkerProperties
