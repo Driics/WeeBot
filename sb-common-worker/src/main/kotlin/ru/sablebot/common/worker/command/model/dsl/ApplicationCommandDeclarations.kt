@@ -14,6 +14,7 @@ sealed class ExecutableApplicationCommandDeclaration {
 data class SlashCommandDeclaration(
     override val name: String,
     val description: String,
+    val nsfw: Boolean,
     override val category: CommandCategory,
     override val uniqueId: UUID,
     val examples: List<String>?,

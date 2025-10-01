@@ -17,7 +17,13 @@ class ExampleCommand : SlashCommandDeclarationWrapper {
         CommandCategory.GENERAL,
         UUID.fromString("37269d60-c881-49a9-b30f-397c890081d0")
     ) {
-        executor = ExampleCommandExecutor()
+        subcommand(
+            "test",
+            "demo subcommand",
+            UUID.fromString("5910c81e-1715-4d21-97c9-13798ae1a013")
+        ) {
+            executor = ExampleCommandExecutor()
+        }
     }
 
     inner class ExampleCommandExecutor : SlashCommandExecutor() {
