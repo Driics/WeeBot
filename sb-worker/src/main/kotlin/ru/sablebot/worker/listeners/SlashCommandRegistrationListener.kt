@@ -4,7 +4,6 @@ import dev.minn.jda.ktx.interactions.commands.Option
 import dev.minn.jda.ktx.interactions.commands.group
 import dev.minn.jda.ktx.interactions.commands.subcommand
 import io.github.oshai.kotlinlogging.KotlinLogging
-import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.events.session.ReadyEvent
 import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions
 import net.dv8tion.jda.api.interactions.commands.build.*
@@ -19,7 +18,6 @@ import ru.sablebot.common.worker.message.model.commands.options.BooleanDiscordOp
 import ru.sablebot.common.worker.message.model.commands.options.DiscordOptionReference
 import ru.sablebot.common.worker.message.model.commands.options.OptionReference
 import ru.sablebot.common.worker.message.model.commands.options.StringDiscordOptionReference
-import net.dv8tion.jda.api.interactions.commands.Command as CommandJDA
 
 
 @DiscordEvent
@@ -50,26 +48,14 @@ class SlashCommandRegistrationListener @Autowired constructor(
                 "${uniqueLegacyCommands.size} legacy, ${dslCommands.size} DSL" +
                 (if (duplicatesRemoved > 0) " ($duplicatesRemoved дубликат(ов) удалено, приоритет DSL)" else "")
             }
-            
-            // Use updateCommands() which replaces ALL commands (bulk overwrite)
+
             event.jda.updateCommands()
                 .addCommands(allCommands)
                 .queue(
                     { logger.info { "✓ Глобальные команды успешно обновлены: ${allCommands.size} команд(ы)" } },
                     { error -> logger.error(error) { "Ошибка при обновлении глобальных команд" } }
                 )
-            
-            logger.info { "✓ Global command registration complete" }
-        } catch (e: Exception) {
-            logger.error(e) { "Failed to register global commands" }
-        }
 
-        logger.info { "=== Slash command registration complete ===" }
-    }
-        logger.info { "=== Starting slash command registration ===" }
-        
-        try {
-            }
             logger.info { "✓ Global command registration complete" }
         } catch (e: Exception) {
             logger.error(e) { "Failed to register global commands" }
@@ -87,7 +73,7 @@ class SlashCommandRegistrationListener @Autowired constructor(
          * @param command Устаревшая модель команды, содержащая аннотацию, зарегистрированные опции и требуемые права участников.
          * @return `SlashCommandData` — объект JDA, готовый для добавления/обновления в списке slash-комманд.
          */
-        private fun toJdaDeclaration(command: Command): SlashCommandData =
+    private fun toJdaDeclaration(command: Command): SlashCommandData =
         Commands.slash(command.annotation.key, command.annotation.description).apply {
             isNSFW = command.annotation.nsfw
 
@@ -204,7 +190,6 @@ class SlashCommandRegistrationListener @Autowired constructor(
                 addSubcommands(toSubcommandData(subcommand))
             }
         }
-
     private fun createOption(interactionOption: OptionReference<*>): List<OptionData> {
         when (interactionOption) {
             is DiscordOptionReference -> {
