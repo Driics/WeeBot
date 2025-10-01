@@ -1,8 +1,6 @@
 package ru.sablebot.worker.listeners
 
 import dev.minn.jda.ktx.interactions.commands.Option
-import dev.minn.jda.ktx.interactions.commands.group
-import dev.minn.jda.ktx.interactions.commands.subcommand
 import io.github.oshai.kotlinlogging.KotlinLogging
 import net.dv8tion.jda.api.events.session.ReadyEvent
 import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions
@@ -52,11 +50,12 @@ class SlashCommandRegistrationListener @Autowired constructor(
             event.jda.updateCommands()
                 .addCommands(allCommands)
                 .queue(
-                    { logger.info { "✓ Глобальные команды успешно обновлены: ${allCommands.size} команд(ы)" } },
+                    {
+                        logger.info { "✓ Глобальные команды успешно обновлены: ${allCommands.size} команд(ы)" }
+                        logger.info { "✓ Global command registration complete" }
+                    },
                     { error -> logger.error(error) { "Ошибка при обновлении глобальных команд" } }
                 )
-
-            logger.info { "✓ Global command registration complete" }
         } catch (e: Exception) {
             logger.error(e) { "Failed to register global commands" }
         }
@@ -101,11 +100,13 @@ class SlashCommandRegistrationListener @Autowired constructor(
                 defaultPermissions = it
             }
 
+            isNSFW = declaration.nsfw
+
             if (declaration.subcommands.isNotEmpty() || declaration.subcommandGroups.isNotEmpty()) {
                 if (declaration.executor != null)
                     error("Command ${declaration::class.simpleName} has a root executor, but it also has subcommand/subcommand groups!")
 
-                declaration.subcommands.forEach { subcommand ->
+                /*declaration.subcommands.forEach { subcommand ->
                     subcommand(subcommand.name, subcommand.description) {
                         val executor = subcommand.executor ?: error("Subcommand does not have a executor!")
 
@@ -135,7 +136,10 @@ class SlashCommandRegistrationListener @Autowired constructor(
                             }
                         }
                     }
-                }
+                }*/
+
+                addSubcommands(*declaration.subcommands.map(::toSubcommandData).toTypedArray())
+                addSubcommandGroups(*declaration.subcommandGroups.map(::toSubcommandGroupData).toTypedArray())
             } else {
                 val executor = declaration.executor
 
@@ -148,11 +152,6 @@ class SlashCommandRegistrationListener @Autowired constructor(
                         }
                     }
                 }
-            }
-
-            logger.debug { 
-                "Converted DSL command '${declaration.name}': " +
-                "${declaration.subcommands.size} subcommand(s), ${declaration.subcommandGroups.size} group(s)" 
             }
         }
 
@@ -190,6 +189,7 @@ class SlashCommandRegistrationListener @Autowired constructor(
                 addSubcommands(toSubcommandData(subcommand))
             }
         }
+
     private fun createOption(interactionOption: OptionReference<*>): List<OptionData> {
         when (interactionOption) {
             is DiscordOptionReference -> {
