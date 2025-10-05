@@ -36,7 +36,7 @@ class PingCommand : AbstractCommand() {
                 )
             else
                 styled(
-                    contentText = "API Ping:`...ms`",
+                    contentText = "API Ping: `...ms`",
                     prefix = ":zap:"
                 )
         }

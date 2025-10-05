@@ -7,7 +7,6 @@ import ru.sablebot.common.worker.command.model.AbstractCommand
 import ru.sablebot.common.worker.command.model.DiscordCommand
 import ru.sablebot.common.worker.command.model.SlashCommandArguments
 import ru.sablebot.common.worker.command.model.context.ApplicationCommandContext
-import ru.sablebot.common.worker.message.model.styled
 
 @DiscordCommand(
     key = "help",
@@ -107,14 +106,85 @@ class HelpCommand : AbstractCommand() {
                         option(category.title, category.name, null, category.emoji)
                     }
                 }, { callbackContext, selected ->
+                    val selectedCategories = selected.mapNotNull { categoryName ->
+                        try {
+                            CommandCategory.valueOf(categoryName)
+                        } catch (_: IllegalArgumentException) {
+                            null
+                        }
+                    }
+
                     callbackContext.reply(true) {
-                        styled("You selected: ${selected.joinToString(", ")}", ":mag:")
+                        embed {
+                            title = "🔍 Filtered Commands"
+                            thumbnail = callbackContext.event.jda.selfUser.avatarUrl
+
+                            if (selectedCategories.isEmpty()) {
+                                description = "No valid categories selected."
+                            } else {
+                                description =
+                                    "Commands in selected categor${if (selectedCategories.size > 1) "ies" else "y"}:"
+
+                                selectedCategories.forEach { category ->
+                                    val commandsList =
+                                        buildCommandsList(category, commandMap, legacyByCategory, dslByCategory)
+
+                                    if (commandsList.isNotEmpty()) {
+                                        val categoryEmoji = category.emoji?.formatted ?: ""
+                                        field {
+                                            name = "$categoryEmoji ${category.title}"
+                                            value = commandsList.joinToString("\n")
+                                            inline = false
+                                        }
+                                    }
+                                }
+                            }
+
+                            footer {
+                                name = "Use /help to see all commands again"
+                            }
+                        }
                     }
                 })
             )
         }
     }
 
-    private fun formatCommandsCategoryInfo(category: CommandCategory): Nothing = TODO()
+    private fun buildCommandsList(
+        category: CommandCategory,
+        commandMap: Map<String, net.dv8tion.jda.api.interactions.commands.Command>,
+        legacyByCategory: Map<CommandCategory, List<ru.sablebot.common.worker.command.model.Command>>,
+        dslByCategory: Map<CommandCategory, List<ru.sablebot.common.worker.command.model.dsl.SlashCommandDeclaration>>
+    ): List<String> {
+        val commandsList = mutableListOf<String>()
 
+        legacyByCategory[category]?.forEach { command ->
+            commandMap[command.annotation.key]?.let { discordCmd ->
+                commandsList.add("${discordCmd.asMention} — ${command.annotation.description}")
+            }
+        }
+
+        dslByCategory[category]?.forEach { dslCommand ->
+            val baseCommand = commandMap[dslCommand.name] ?: return@forEach
+
+            if (dslCommand.subcommands.isNotEmpty() || dslCommand.subcommandGroups.isNotEmpty()) {
+                dslCommand.subcommands.forEach { subcommand ->
+                    val subcommandMention = "</${dslCommand.name} ${subcommand.name}:${baseCommand.idLong}>"
+                    commandsList.add("$subcommandMention — ${subcommand.description}")
+                }
+
+                dslCommand.subcommandGroups.forEach { group ->
+                    group.subcommands.forEach { subcommand ->
+                        val subcommandMention =
+                            "</${dslCommand.name} ${group.name} ${subcommand.name}:${baseCommand.idLong}>"
+                        commandsList.add("$subcommandMention — ${subcommand.description}")
+                    }
+                }
+            } else {
+                commandsList.add("${baseCommand.asMention} — ${dslCommand.description}")
+            }
+        }
+
+        return commandsList
+    }
 }
