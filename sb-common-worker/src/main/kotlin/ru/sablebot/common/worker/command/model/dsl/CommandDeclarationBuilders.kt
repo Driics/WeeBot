@@ -25,6 +25,7 @@ class SlashCommandDeclarationBuilder(
     val category: CommandCategory,
     val uniqueId: UUID
 ) {
+    var nsfw = false
     var examples: List<String>? = null
     var executor: SlashCommandExecutor? = null
     var botPermissions: Set<Permission>? = null
@@ -66,6 +67,7 @@ class SlashCommandDeclarationBuilder(
         SlashCommandDeclaration(
             name,
             description,
+            nsfw,
             category,
             uniqueId,
             examples,

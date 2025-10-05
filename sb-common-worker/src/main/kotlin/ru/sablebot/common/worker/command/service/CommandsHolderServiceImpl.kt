@@ -3,6 +3,7 @@ package ru.sablebot.common.worker.command.service
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
+import ru.sablebot.common.model.CommandCategory
 import ru.sablebot.common.utils.LocaleUtils
 import ru.sablebot.common.worker.command.model.Command
 import ru.sablebot.common.worker.command.model.DiscordCommand
@@ -25,7 +26,7 @@ class CommandsHolderServiceImpl : CommandsHolderService {
     override var dslCommands: Map<String, SlashCommandDeclaration> = mutableMapOf()
     private var dslCommandsByFullPath: Map<String, SlashCommandDeclaration> = mutableMapOf()
 
-    private lateinit var descriptorsMap: Map<String, List<DiscordCommand>>
+    private lateinit var descriptorsMap: Map<CommandCategory, List<DiscordCommand>>
     private lateinit var reverseCommandKeys: Set<String>
     private lateinit var localizedCommands: Map<Locale, Map<String, Command>>
 
@@ -142,9 +143,10 @@ class CommandsHolderServiceImpl : CommandsHolderService {
 
         dslWrappers.forEach { wrapper ->
             val declaration = wrapper.command().build()
-            dslCommandMap[declaration.name] = declaration
-            
-            // Register main command by name
+            logger.debug { "Processing DSL command: ${declaration.name}" }
+
+            // Register main command by name (ADD TO BOTH MAPS!)
+            dslCommandMap[declaration.name] = declaration  // ← ДОБАВИТЬ ЭТУ СТРОКУ
             dslCommandsByPathMap[declaration.name] = declaration
             logger.debug { "Registered DSL command: ${declaration.name}" }
 
@@ -167,7 +169,7 @@ class CommandsHolderServiceImpl : CommandsHolderService {
 
         this.dslCommands = dslCommandMap.toMap()
         this.dslCommandsByFullPath = dslCommandsByPathMap.toMap()
-        
+
         logger.info { "DSL commands registered: ${dslCommandMap.keys}" }
         logger.info { "Total DSL command paths registered: ${dslCommandsByPathMap.size}" }
     }
@@ -182,7 +184,7 @@ class CommandsHolderServiceImpl : CommandsHolderService {
         return dslCommandsByFullPath[fullPath]
     }
 
-    override val descriptors: Map<String, List<DiscordCommand>>
+    override val descriptors: Map<CommandCategory, List<DiscordCommand>>
         get() {
             if (!::descriptorsMap.isInitialized) {
                 descriptorsMap = commands.values
@@ -191,7 +193,7 @@ class CommandsHolderServiceImpl : CommandsHolderService {
                     .filterNot { it.hidden }
                     .sortedBy { it.priority }
                     .toList()
-                    .groupBy { it.group.first() }
+                    .groupBy { it.group }
                     .toSortedMap()
             }
 

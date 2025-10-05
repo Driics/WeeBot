@@ -6,7 +6,7 @@ import net.dv8tion.jda.api.entities.User
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.annotation.Lazy
 import ru.sablebot.common.configuration.CommonProperties
-import ru.sablebot.common.worker.command.service.CommandsService
+import ru.sablebot.common.worker.command.service.CommandsHolderService
 import ru.sablebot.common.worker.configuration.WorkerProperties
 import ru.sablebot.common.worker.message.model.InteractivityManager
 import ru.sablebot.common.worker.message.service.MessageService
@@ -30,7 +30,7 @@ abstract class AbstractCommand : Command {
 
     @Autowired
     @Lazy
-    protected lateinit var commandsService: CommandsService
+    protected lateinit var holderService: CommandsHolderService
 
     @Autowired
     @Lazy
