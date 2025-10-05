@@ -28,7 +28,7 @@ class SlashCommandRegistrationListener @Autowired constructor(
 
     override fun onReady(event: ReadyEvent) {
         logger.info { "=== Starting slash command registration ===" }
-        
+
         try {
             // Prepare legacy and DSL commands
             val legacyCommands = holderService.publicCommands.values.map { toJdaDeclaration(it) }
@@ -59,8 +59,6 @@ class SlashCommandRegistrationListener @Autowired constructor(
         } catch (e: Exception) {
             logger.error(e) { "Failed to register global commands" }
         }
-
-        logger.info { "=== Slash command registration complete ===" }
     }
 
     /**
@@ -106,37 +104,6 @@ class SlashCommandRegistrationListener @Autowired constructor(
                 if (declaration.executor != null)
                     error("Command ${declaration::class.simpleName} has a root executor, but it also has subcommand/subcommand groups!")
 
-                /*declaration.subcommands.forEach { subcommand ->
-                    subcommand(subcommand.name, subcommand.description) {
-                        val executor = subcommand.executor ?: error("Subcommand does not have a executor!")
-
-                        for (ref in executor.options.registeredOptions) {
-                            try {
-                                addOptions(*createOption(ref).toTypedArray())
-                            } catch (e: Exception) {
-                                logger.error(e) { "Something went wrong while trying to add options of $executor" }
-                            }
-                        }
-                    }
-                }
-
-                declaration.subcommandGroups.forEach { group ->
-                    group(group.name, group.description) {
-                        group.subcommands.forEach { subcommand ->
-                            subcommand(subcommand.name, subcommand.description) {
-                                val executor = subcommand.executor ?: error("Subcommand does not have a executor!")
-
-                                for (ref in executor.options.registeredOptions) {
-                                    try {
-                                        addOptions(*createOption(ref).toTypedArray())
-                                    } catch (e: Exception) {
-                                        logger.error(e) { "Something went wrong while trying to add options of $executor" }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }*/
 
                 addSubcommands(*declaration.subcommands.map(::toSubcommandData).toTypedArray())
                 addSubcommandGroups(*declaration.subcommandGroups.map(::toSubcommandGroupData).toTypedArray())
