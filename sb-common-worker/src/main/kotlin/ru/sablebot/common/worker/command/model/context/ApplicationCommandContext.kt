@@ -5,10 +5,15 @@ import ru.sablebot.common.persistence.entity.GuildConfig
 import ru.sablebot.common.persistence.entity.LocalUser
 import ru.sablebot.common.worker.message.model.InteractionContext
 
-// TODO: add correctly work with guildConfigs
-
+/**
+ * Контекст выполнения команды приложения.
+ *
+ * @param event событие взаимодействия с командой
+ * @param guildConfig конфигурация гильдии
+ * @param userLocal локальный пользователь, может быть null если пользователь не найден
+ */
 class ApplicationCommandContext(
     val event: GenericCommandInteractionEvent,
-    val config: GuildConfig,
+    val guildConfig: GuildConfig,
     val userLocal: LocalUser?
 ) : InteractionContext(event)

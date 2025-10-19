@@ -1,10 +1,11 @@
 package ru.sablebot.common.worker.metrics.service
 
-import com.codahale.metrics.annotation.CachedGauge
+import io.micrometer.core.instrument.Gauge
+import io.micrometer.core.instrument.MeterRegistry
+import jakarta.annotation.PostConstruct
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 import ru.sablebot.common.worker.shared.service.DiscordService
-import java.util.concurrent.TimeUnit
 
 @Component
 class DiscordMetricsRegistry {
@@ -15,58 +16,52 @@ class DiscordMetricsRegistry {
         const val GAUGE_TEXT_CHANNELS: String = "discord.textChannels"
         const val GAUGE_VOICE_CHANNELS: String = "discord.voiceChannels"
         const val GAUGE_PING: String = "discord.average.ping"
+
+        const val COUNTER_COMMANDS_EXECUTIONS_PERSIST = "commands.executions.persist"
+        const val GAUGE_JVM_UPTIME = "jvm.uptime"
     }
 
     @Autowired
     private lateinit var discordService: DiscordService
 
+    @Autowired
+    private lateinit var meterRegistry: MeterRegistry
+
     private val shardManager by lazy { discordService.shardManager }
 
-    @get:CachedGauge(
-        name = GAUGE_GUILDS,
-        absolute = true,
-        timeout = 15,
-        timeoutUnit = TimeUnit.SECONDS
-    )
-    val guildCount by lazy { shardManager.guildCache.size() }
+    @PostConstruct
+    fun registerMetrics() {
+        // Register guild count gauge
+        Gauge.builder(GAUGE_GUILDS, shardManager) { it.guildCache.size().toDouble() }
+            .description("Number of Discord guilds")
+            .register(meterRegistry)
 
-    @get:CachedGauge(
-        name = GAUGE_USERS,
-        absolute = true,
-        timeout = 15,
-        timeoutUnit = TimeUnit.SECONDS
-    )
-    val usersCount by lazy { shardManager.userCache.size() }
+        // Register user count gauge
+        Gauge.builder(GAUGE_USERS, shardManager) { it.userCache.size().toDouble() }
+            .description("Number of Discord users")
+            .register(meterRegistry)
 
-    @get:CachedGauge(
-        name = GAUGE_PING,
-        absolute = true,
-        timeout = 15,
-        timeoutUnit = TimeUnit.SECONDS
-    )
-    val averagePing by lazy { shardManager.averageGatewayPing }
+        // Register average ping gauge
+        Gauge.builder(GAUGE_PING, shardManager) { it.averageGatewayPing.toDouble() }
+            .description("Average gateway ping in milliseconds")
+            .baseUnit("ms")
+            .register(meterRegistry)
 
-    @get:CachedGauge(
-        name = GAUGE_VOICE_CHANNELS,
-        absolute = true,
-        timeout = 15,
-        timeoutUnit = TimeUnit.SECONDS
-    )
-    val voiceChannelsCount by lazy { shardManager.voiceChannelCache.size() }
+        // Register voice channels count gauge
+        Gauge.builder(GAUGE_VOICE_CHANNELS, shardManager) { it.voiceChannelCache.size().toDouble() }
+            .description("Number of voice channels")
+            .register(meterRegistry)
 
-    @get:CachedGauge(
-        name = GAUGE_TEXT_CHANNELS,
-        absolute = true,
-        timeout = 15,
-        timeoutUnit = TimeUnit.SECONDS
-    )
-    val textChannelsCount by lazy { shardManager.textChannelCache.size() }
+        // Register text channels count gauge
+        Gauge.builder(GAUGE_TEXT_CHANNELS, shardManager) { it.textChannelCache.size().toDouble() }
+            .description("Number of text channels")
+            .register(meterRegistry)
 
-    @get:CachedGauge(
-        name = GAUGE_CHANNELS,
-        absolute = true,
-        timeout = 15,
-        timeoutUnit = TimeUnit.SECONDS
-    )
-    val channelsCount by lazy { voiceChannelsCount + textChannelsCount }
+        // Register total channels count gauge
+        Gauge.builder(GAUGE_CHANNELS, shardManager) {
+            (it.voiceChannelCache.size() + it.textChannelCache.size()).toDouble()
+        }
+            .description("Total number of channels (voice + text)")
+            .register(meterRegistry)
+    }
 }

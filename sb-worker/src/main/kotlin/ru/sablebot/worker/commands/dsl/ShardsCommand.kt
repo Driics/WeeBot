@@ -132,7 +132,7 @@ class ShardsCommand : SlashCommandDeclarationWrapper {
                             👥 **Total Users**: ${statusDto.userCount}
                             📺 **Text Channels**: ${statusDto.textChannelCount}
                             🔊 **Voice Channels**: ${statusDto.voiceChannelCount}
-                            ⏱️ **Uptime**: ${TimeFormat.RELATIVE.format(statusDto.uptimeDuration)}
+                            ⏱️ **Uptime**: ${TimeFormat.RELATIVE.format(System.currentTimeMillis() - statusDto.uptimeDuration)}
                             🚀 **Commands Executed**: ${statusDto.executedCommands}
                         """.trimIndent()
                         inline = false
@@ -226,7 +226,7 @@ class ShardsCommand : SlashCommandDeclarationWrapper {
                                 👥 **Total Users**: ${statusDto.userCount}
                                 📺 **Text Channels**: ${statusDto.textChannelCount}
                                 🔊 **Voice Channels**: ${statusDto.voiceChannelCount}
-                                ⏱️ **Uptime**: ${formatUptime(statusDto.uptimeDuration)}
+                                ⏱️ **Uptime**: ${TimeFormat.RELATIVE.format(System.currentTimeMillis() - statusDto.uptimeDuration)}
                                 🚀 **Commands Executed**: ${statusDto.executedCommands}
                             """.trimIndent()
                             inline = false
@@ -242,20 +242,6 @@ class ShardsCommand : SlashCommandDeclarationWrapper {
                     )
                 }
             })
-        }
-
-        private fun formatUptime(uptimeMs: Long): String {
-            val seconds = uptimeMs / 1000
-            val minutes = seconds / 60
-            val hours = minutes / 60
-            val days = hours / 24
-
-            return when {
-                days > 0 -> "${days}d ${hours % 24}h ${minutes % 60}m"
-                hours > 0 -> "${hours}h ${minutes % 60}m ${seconds % 60}s"
-                minutes > 0 -> "${minutes}m ${seconds % 60}s"
-                else -> "${seconds}s"
-            }
         }
 
     }

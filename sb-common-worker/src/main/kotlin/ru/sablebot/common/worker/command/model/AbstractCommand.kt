@@ -33,6 +33,7 @@ abstract class AbstractCommand : Command {
     @Lazy
     protected lateinit var holderService: CommandsHolderService
 
+    @Autowired
     protected lateinit var entityAccessor: DiscordEntityAccessor
 
     @Autowired
