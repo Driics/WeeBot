@@ -2,10 +2,10 @@ package ru.sablebot.common.worker.command.service
 
 import com.github.benmanes.caffeine.cache.Caffeine
 import io.github.oshai.kotlinlogging.KotlinLogging
-import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.User
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
+import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.annotation.Lazy
@@ -55,7 +55,7 @@ class InternalCommandsServiceImpl @Autowired constructor(
      * @return `true`, если событие принято и обработано (включая случаи, когда дальнейшая обработка прекращена из‑за отсутствия разрешений или ошибок выполнения); `false`, если событие не применимо (нет гильдии) или для команды не найден соответствующий обработчик. */
     override fun sendCommand(event: SlashCommandInteractionEvent): Boolean {
         val guild = event.guild ?: return false
-        val channel = event.channel.asTextChannel()
+        val guildChannel = event.guildChannel
 
         log.info { "Received slash command event: ${event.name}, fullCommandName: ${event.fullCommandName}" }
 
@@ -65,7 +65,7 @@ class InternalCommandsServiceImpl @Autowired constructor(
 
         if (dslCommand != null) {
             log.info { "Found DSL command: ${dslCommand.name}" }
-            return executeDslCommand(event, dslCommand, guild, channel)
+            return executeDslCommand(event, dslCommand, guild, guildChannel)
         }
 
         log.debug { "No DSL command found for '$fullCommandName', trying legacy command with key '${event.name}'" }
@@ -78,7 +78,7 @@ class InternalCommandsServiceImpl @Autowired constructor(
         }
 
         log.info { "Found legacy command: ${command.key}" }
-        return executeLegacyCommand(event, command, guild, channel)
+        return executeLegacyCommand(event, command, guild, guildChannel)
     }
 
     /**
@@ -94,7 +94,7 @@ class InternalCommandsServiceImpl @Autowired constructor(
         event: SlashCommandInteractionEvent,
         dslCommand: ru.sablebot.common.worker.command.model.dsl.SlashCommandDeclaration,
         guild: net.dv8tion.jda.api.entities.Guild,
-        channel: TextChannel
+        channel: GuildChannel
     ): Boolean {
         val executor = dslCommand.executor ?: run {
             log.warn { "DSL command ${dslCommand.name} has no executor" }
@@ -107,16 +107,11 @@ class InternalCommandsServiceImpl @Autowired constructor(
             val self = guild.selfMember
             if (!self.hasPermission(channel, *requiredPermissions.toTypedArray())) {
                 val missingPermissions = requiredPermissions.filterNot { self.hasPermission(channel, it) }
-                    .joinToString("\n") { it.name }
+                    .joinToString(", ") { "`${it.name}`" }
 
-                if (self.hasPermission(channel, Permission.MESSAGE_SEND)) {
-                    if (self.hasPermission(channel, Permission.MESSAGE_EMBED_LINKS)) {
-                        messageService.sendMessageSilent(channel::sendMessage, "Bot is missing required permissions")
-                    } else {
-                        val title = "Error permissions"
-                        messageService.sendMessageSilent(channel::sendMessage, "$title\n\n$missingPermissions")
-                    }
-                }
+                event.reply("Недостаточно прав бота:\n$missingPermissions")
+                    .setEphemeral(true)
+                    .queue()
 
                 return true
             }
@@ -131,7 +126,11 @@ class InternalCommandsServiceImpl @Autowired constructor(
                 // Launch executor in coroutine scope since execute is a suspend function
                 coroutineLauncher.launchMessageJob(event) {
                     executor.execute(
-                        ApplicationCommandContext(event),
+                        ApplicationCommandContext(
+                            event,
+                            entityAccessor.getOrCreate(guild),
+                            entityAccessor.getOrCreate(event.user)
+                        ),
                         SlashCommandArguments(SlashCommandArgumentsSource.SlashCommandArgumentsEventSource(event))
                     )
                 }
@@ -164,7 +163,7 @@ class InternalCommandsServiceImpl @Autowired constructor(
         event: SlashCommandInteractionEvent,
         command: Command,
         guild: net.dv8tion.jda.api.entities.Guild,
-        channel: TextChannel
+        channel: GuildChannel
     ): Boolean {
         if (workerProperties.commands.disabled.contains(command.key))
             return true
@@ -174,16 +173,11 @@ class InternalCommandsServiceImpl @Autowired constructor(
             val self = guild.selfMember
             if (!self.hasPermission(channel, *requiredPermissions)) {
                 val missingPermissions = requiredPermissions.filterNot { self.hasPermission(channel, it) }
-                    .joinToString("\n") { it.name }
+                    .joinToString(", ") { "`${it.name}`" }
 
-                if (self.hasPermission(channel, Permission.MESSAGE_SEND)) {
-                    if (self.hasPermission(channel, Permission.MESSAGE_EMBED_LINKS)) {
-                        messageService.sendMessageSilent(channel::sendMessage, "Pizdec")
-                    } else {
-                        val title = "Error permissions"
-                        messageService.sendMessageSilent(channel::sendMessage, "$title\n\n$missingPermissions")
-                    }
-                }
+                event.reply("Недостаточно прав бота:\n$missingPermissions")
+                    .setEphemeral(true)
+                    .queue()
 
                 return true
             }
@@ -196,7 +190,11 @@ class InternalCommandsServiceImpl @Autowired constructor(
                 }
                 command.execute(
                     event,
-                    ApplicationCommandContext(event),
+                    ApplicationCommandContext(
+                        event,
+                        entityAccessor.getOrCreate(guild),
+                        entityAccessor.getOrCreate(event.user)
+                    ),
                     SlashCommandArguments(SlashCommandArgumentsSource.SlashCommandArgumentsEventSource(event))
                 )
             } catch (e: DiscordException) {

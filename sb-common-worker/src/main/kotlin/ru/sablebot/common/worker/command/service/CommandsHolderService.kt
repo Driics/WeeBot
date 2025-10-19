@@ -1,5 +1,6 @@
 package ru.sablebot.common.worker.command.service
 
+import ru.sablebot.common.model.CommandCategory
 import ru.sablebot.common.worker.command.model.Command
 import ru.sablebot.common.worker.command.model.DiscordCommand
 import ru.sablebot.common.worker.command.model.dsl.SlashCommandDeclaration
@@ -11,7 +12,7 @@ interface CommandsHolderService {
 
     var publicCommands: Map<String, Command>
 
-    val descriptors: Map<String, List<DiscordCommand>>
+    val descriptors: Map<CommandCategory, List<DiscordCommand>>
 
     // DSL commands
     val dslCommands: Map<String, SlashCommandDeclaration>
