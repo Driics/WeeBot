@@ -20,18 +20,17 @@ class DiscordMetricsRegistry(
         const val GAUGE_PING: String = "discord.average.ping"
     }
 
-    private val shardManager
-        get() = discordService.shardManager
-
     private fun gauge(
         name: String,
         description: String,
+        unit: String? = null,
         f: (ShardManager) -> Double
     ) = MeterBinder { registry ->
-        Gauge.builder(name, shardManager) { sm ->
-            runCatching { f(sm) }.getOrElse { 0.0 }
+        Gauge.builder(name, discordService) { ds: DiscordService ->
+            runCatching { f(ds.shardManager) }.getOrElse { 0.0 }
         }
             .description(description)
+            .apply { if (unit != null) baseUnit(unit) }
             .strongReference(true)
             .register(registry)
     }
@@ -43,8 +42,7 @@ class DiscordMetricsRegistry(
     fun gaugeUsers() = gauge(GAUGE_USERS, "Number of Discord users") { it.userCache.size().toDouble() }
 
     @Bean
-    // TODO: Add base units
-    fun gaugePing() = gauge(GAUGE_PING, "Average gateway ping in milliseconds") { it.averageGatewayPing }
+    fun gaugePing() = gauge(GAUGE_PING, "Average gateway ping in milliseconds", unit = "ms") { it.averageGatewayPing }
 
     @Bean
     fun gaugeVoiceChannelCount() =
