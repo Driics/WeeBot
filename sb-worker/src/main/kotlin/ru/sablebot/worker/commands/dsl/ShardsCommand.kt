@@ -2,7 +2,6 @@ package ru.sablebot.worker.commands.dsl
 
 import dev.minn.jda.ktx.interactions.components.option
 import net.dv8tion.jda.api.utils.TimeFormat
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 import ru.sablebot.common.model.CommandCategory
 import ru.sablebot.common.model.status.ShardDto
@@ -18,13 +17,10 @@ import java.awt.Color
 import java.util.*
 
 @Component
-class ShardsCommand : SlashCommandDeclarationWrapper {
-
-    @Autowired
-    private lateinit var interactivityManager: InteractivityManager
-
-    @Autowired
-    private lateinit var gatewayService: GatewayService
+class ShardsCommand(
+    private val interactivityManager: InteractivityManager,
+    private val gatewayService: GatewayService
+) : SlashCommandDeclarationWrapper {
 
     override fun command() = slashCommand(
         "shards",
@@ -56,7 +52,7 @@ class ShardsCommand : SlashCommandDeclarationWrapper {
                 }
 
                 // Start with the first shard (shard 0)
-                val currentShardId = 0
+                val currentShardId = allShards.first().id
                 displayShardInfo(hook, currentShardId, allShards, statusDto)
             } catch (e: Exception) {
                 hook.editOriginal {

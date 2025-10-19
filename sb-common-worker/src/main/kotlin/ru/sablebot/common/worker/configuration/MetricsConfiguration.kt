@@ -9,27 +9,27 @@ import org.springframework.boot.actuate.autoconfigure.metrics.MeterRegistryCusto
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 
-@Configuration
+@Configuration(proxyBeanMethods = false)
 open class MetricsConfiguration {
     /**
      * Customizes the global MeterRegistry with application-specific tags
      */
     @Bean
-    open fun metricsCommonTags(): MeterRegistryCustomizer<MeterRegistry> {
+    fun metricsCommonTags(): MeterRegistryCustomizer<MeterRegistry> {
         return MeterRegistryCustomizer { registry ->
             registry.config().commonTags("application", "sablebot")
         }
     }
 
     @Bean
-    open fun jvmMemoryMetrics(): JvmMemoryMetrics = JvmMemoryMetrics()
+    fun jvmMemoryMetrics(): JvmMemoryMetrics = JvmMemoryMetrics()
 
     @Bean
-    open fun jvmGcMetrics(): JvmGcMetrics = JvmGcMetrics()
+    fun jvmGcMetrics(): JvmGcMetrics = JvmGcMetrics()
 
     @Bean
-    open fun jvmThreadMetrics(): JvmThreadMetrics = JvmThreadMetrics()
+    fun jvmThreadMetrics(): JvmThreadMetrics = JvmThreadMetrics()
 
     @Bean
-    open fun processorMetrics(): ProcessorMetrics = ProcessorMetrics()
+    fun processorMetrics(): ProcessorMetrics = ProcessorMetrics()
 }

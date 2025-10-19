@@ -173,7 +173,7 @@ class InternalCommandsServiceImpl @Autowired constructor(
             val self = guild.selfMember
             if (!self.hasPermission(channel, *requiredPermissions)) {
                 val missingPermissions = requiredPermissions.filterNot { self.hasPermission(channel, it) }
-                    .joinToString("\n") { it.name }
+                    .joinToString(", ") { "`${it.name}`" }
 
                 event.reply("Недостаточно прав бота:\n$missingPermissions")
                     .setEphemeral(false)

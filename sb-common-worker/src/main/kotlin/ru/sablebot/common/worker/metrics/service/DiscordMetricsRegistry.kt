@@ -32,34 +32,46 @@ class DiscordMetricsRegistry {
     @PostConstruct
     fun registerMetrics() {
         // Register guild count gauge
-        Gauge.builder(GAUGE_GUILDS, shardManager) { it.guildCache.size().toDouble() }
+        Gauge.builder(GAUGE_GUILDS, shardManager) {
+            runCatching { it.guildCache.size().toDouble() }.getOrElse { 0.0 }
+        }
             .description("Number of Discord guilds")
             .register(meterRegistry)
 
         // Register user count gauge
-        Gauge.builder(GAUGE_USERS, shardManager) { it.userCache.size().toDouble() }
+        Gauge.builder(GAUGE_USERS, shardManager) {
+            runCatching { it.userCache.size().toDouble() }.getOrElse { 0.0 }
+        }
             .description("Number of Discord users")
             .register(meterRegistry)
 
         // Register average ping gauge
-        Gauge.builder(GAUGE_PING, shardManager) { it.averageGatewayPing.toDouble() }
+        Gauge.builder(GAUGE_PING, shardManager) {
+            runCatching { it.averageGatewayPing }.getOrElse { 0.0 }
+        }
             .description("Average gateway ping in milliseconds")
             .baseUnit("ms")
             .register(meterRegistry)
 
         // Register voice channels count gauge
-        Gauge.builder(GAUGE_VOICE_CHANNELS, shardManager) { it.voiceChannelCache.size().toDouble() }
+        Gauge.builder(GAUGE_VOICE_CHANNELS, shardManager) {
+            runCatching { it.voiceChannelCache.size().toDouble() }.getOrElse { 0.0 }
+        }
             .description("Number of voice channels")
             .register(meterRegistry)
 
         // Register text channels count gauge
-        Gauge.builder(GAUGE_TEXT_CHANNELS, shardManager) { it.textChannelCache.size().toDouble() }
+        Gauge.builder(GAUGE_TEXT_CHANNELS, shardManager) {
+            runCatching { it.textChannelCache.size().toDouble() }.getOrElse { 0.0 }
+        }
             .description("Number of text channels")
             .register(meterRegistry)
 
         // Register total channels count gauge
         Gauge.builder(GAUGE_CHANNELS, shardManager) {
-            (it.voiceChannelCache.size() + it.textChannelCache.size()).toDouble()
+            runCatching {
+                (it.voiceChannelCache.size() + it.textChannelCache.size()).toDouble()
+            }.getOrElse { 0.0 }
         }
             .description("Total number of channels (voice + text)")
             .register(meterRegistry)
