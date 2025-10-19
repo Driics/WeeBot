@@ -110,7 +110,7 @@ class InternalCommandsServiceImpl @Autowired constructor(
                     .joinToString(", ") { "`${it.name}`" }
 
                 event.reply("Недостаточно прав бота:\n$missingPermissions")
-                    .setEphemeral(false)
+                    .setEphemeral(true)
                     .queue()
 
                 return true
@@ -176,10 +176,10 @@ class InternalCommandsServiceImpl @Autowired constructor(
                     .joinToString(", ") { "`${it.name}`" }
 
                 event.reply("Недостаточно прав бота:\n$missingPermissions")
-                    .setEphemeral(false)
+                    .setEphemeral(true)
                     .queue()
 
-                return false
+                return true
             }
         }
 
