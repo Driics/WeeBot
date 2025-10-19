@@ -131,7 +131,11 @@ class InternalCommandsServiceImpl @Autowired constructor(
                 // Launch executor in coroutine scope since execute is a suspend function
                 coroutineLauncher.launchMessageJob(event) {
                     executor.execute(
-                        ApplicationCommandContext(event),
+                        ApplicationCommandContext(
+                            event,
+                            entityAccessor.getOrCreate(guild),
+                            entityAccessor.getOrCreate(event.user)
+                        ),
                         SlashCommandArguments(SlashCommandArgumentsSource.SlashCommandArgumentsEventSource(event))
                     )
                 }
@@ -196,7 +200,11 @@ class InternalCommandsServiceImpl @Autowired constructor(
                 }
                 command.execute(
                     event,
-                    ApplicationCommandContext(event),
+                    ApplicationCommandContext(
+                        event,
+                        entityAccessor.getOrCreate(guild),
+                        entityAccessor.getOrCreate(event.user)
+                    ),
                     SlashCommandArguments(SlashCommandArgumentsSource.SlashCommandArgumentsEventSource(event))
                 )
             } catch (e: DiscordException) {

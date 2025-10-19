@@ -28,7 +28,7 @@ class ExampleCommand : SlashCommandDeclarationWrapper {
 
     inner class ExampleCommandExecutor : SlashCommandExecutor() {
         override suspend fun execute(context: ApplicationCommandContext, args: SlashCommandArguments) {
-            context.reply(true, "Works")
+            context.reply(true, context.config.commandLocale)
         }
     }
 }
