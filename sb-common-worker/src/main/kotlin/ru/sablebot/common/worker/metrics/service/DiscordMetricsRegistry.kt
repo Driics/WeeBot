@@ -2,6 +2,7 @@ package ru.sablebot.common.worker.metrics.service
 
 import io.micrometer.core.instrument.Gauge
 import io.micrometer.core.instrument.binder.MeterBinder
+import net.dv8tion.jda.api.sharding.ShardManager
 import org.springframework.context.annotation.Bean
 import org.springframework.stereotype.Component
 import ru.sablebot.common.worker.shared.service.DiscordService
@@ -22,60 +23,39 @@ class DiscordMetricsRegistry(
     private val shardManager
         get() = discordService.shardManager
 
-    @Bean
-    fun gaugeGuilds() = MeterBinder { registry ->
-        Gauge.builder(GAUGE_GUILDS, shardManager) {
-            runCatching { it.guildCache.size().toDouble() }.getOrElse { 0.0 }
+    private fun gauge(
+        name: String,
+        description: String,
+        f: (ShardManager) -> Double
+    ) = MeterBinder { registry ->
+        Gauge.builder(name, shardManager) { sm ->
+            runCatching { f(sm) }.getOrElse { 0.0 }
         }
-            .description("Number of Discord guilds")
+            .description(description)
+            .strongReference(true)
             .register(registry)
     }
 
     @Bean
-    fun gaugeUsers() = MeterBinder { registry ->
-        Gauge.builder(GAUGE_USERS, shardManager) {
-            runCatching { it.userCache.size().toDouble() }.getOrElse { 0.0 }
-        }
-            .description("Number of Discord users")
-            .register(registry)
-    }
+    fun gaugeGuilds() = gauge(GAUGE_GUILDS, "Number of Discord guilds") { it.guildCache.size().toDouble() }
 
     @Bean
-    fun gaugePing() = MeterBinder { registry ->
-        Gauge.builder(GAUGE_PING, shardManager) {
-            runCatching { it.averageGatewayPing }.getOrElse { 0.0 }
-        }
-            .description("Average gateway ping in milliseconds")
-            .baseUnit("ms")
-            .register(registry)
-    }
+    fun gaugeUsers() = gauge(GAUGE_USERS, "Number of Discord users") { it.userCache.size().toDouble() }
 
     @Bean
-    fun gaugeVoiceChannelCount() = MeterBinder { registry ->
-        Gauge.builder(GAUGE_VOICE_CHANNELS, shardManager) {
-            runCatching { it.voiceChannelCache.size().toDouble() }.getOrElse { 0.0 }
-        }
-            .description("Number of voice channels")
-            .register(registry)
-    }
+    // TODO: Add base units
+    fun gaugePing() = gauge(GAUGE_PING, "Average gateway ping in milliseconds") { it.averageGatewayPing }
 
     @Bean
-    fun gaugeTextChannelCount() = MeterBinder { registry ->
-        Gauge.builder(GAUGE_TEXT_CHANNELS, shardManager) {
-            runCatching { it.textChannelCache.size().toDouble() }.getOrElse { 0.0 }
-        }
-            .description("Number of text channels")
-            .register(registry)
-    }
+    fun gaugeVoiceChannelCount() =
+        gauge(GAUGE_VOICE_CHANNELS, "Number of voice channels") { it.voiceChannelCache.size().toDouble() }
 
     @Bean
-    fun gaugeChannelCount() = MeterBinder { registry ->
-        Gauge.builder(GAUGE_CHANNELS, shardManager) {
-            runCatching {
-                (it.voiceChannelCache.size() + it.textChannelCache.size()).toDouble()
-            }.getOrElse { 0.0 }
-        }
-            .description("Total number of channels (voice + text)")
-            .register(registry)
+    fun gaugeTextChannelCount() =
+        gauge(GAUGE_TEXT_CHANNELS, "Number of text channels") { it.textChannelCache.size().toDouble() }
+
+    @Bean
+    fun gaugeChannelCount() = gauge(GAUGE_CHANNELS, "Total number of channels (voice + text)") {
+        (it.voiceChannelCache.size() + it.textChannelCache.size()).toDouble()
     }
 }
