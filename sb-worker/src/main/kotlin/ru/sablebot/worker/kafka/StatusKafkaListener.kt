@@ -1,21 +1,26 @@
-package ru.sablebot.worker.rabbit
+package ru.sablebot.worker.kafka
 
 import io.micrometer.core.instrument.MeterRegistry
 import net.dv8tion.jda.api.JDA
-import org.springframework.amqp.rabbit.annotation.RabbitListener
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.kafka.annotation.KafkaListener
+import org.springframework.messaging.handler.annotation.SendTo
 import org.springframework.stereotype.Component
-import ru.sablebot.common.configuration.RabbitConfiguration
+import ru.sablebot.common.configuration.KafkaConfiguration
 import ru.sablebot.common.model.status.ShardDto
 import ru.sablebot.common.model.status.StatusDto
 
 @Component
-class StatusQueueListener : BaseQueueListener() {
+class StatusKafkaListener : BaseKafkaListener() {
 
     @Autowired
     private lateinit var meterRegistry: MeterRegistry
 
-    @RabbitListener(queues = [RabbitConfiguration.QUEUE_STATUS_REQUEST])
+    @KafkaListener(
+        topics = [KafkaConfiguration.TOPIC_STATUS_REQUEST],
+        groupId = "sablebot-status-group"
+    )
+    @SendTo
     fun getStatus(dummy: String): StatusDto {
         val shardManager = discordService.shardManager
 

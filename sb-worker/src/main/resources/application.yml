@@ -10,7 +10,7 @@ spring:
     timestamp: "@build.timestamp@"
     name: "SablebotBot-Worker"
   datasource:
-
+    url: ""
   quartz:
     job-store-type: jdbc
     jdbc:
@@ -23,12 +23,49 @@ spring:
       org.quartz.jobStore.tablePrefix: "qrtz_"
   liquibase:
     change-log: "classpath:db/master.xml"
+  kafka:
+    bootstrap-servers: ${sablebot.common.kafka.bootstrap-servers}
+    consumer:
+      group-id: ${sablebot.common.kafka.group-id}
+      auto-offset-reset: latest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "ru.sablebot.common.model.*"
+        max.partition.fetch.bytes: 10485760  # 10MB
+        max.poll.records: 500
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+      properties:
+        max.request.size: 10485760  # 10MB
+        batch.size: 16384
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,prometheus
+  metrics:
+    tags:
+      application: sablebot
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+
 
 sablebot:
+  common:
+    kafka:
+      bootstrap-servers: ""
+      group-id: "sablebot-worker-group"
   worker:
     discord:
       token: ""
-      playingStatus: "Suck"
+      playingStatus: "Still testing"
       shardsTotal: 1
     commands:
       invokeLogging: true

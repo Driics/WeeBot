@@ -13,7 +13,7 @@ class CommonProperties {
     var jmx: Jmx = Jmx()
     var discord: Discord = Discord()
     var execution: Execution = Execution()
-    var rabbitMQ: RabbitMQ = RabbitMQ()
+    var kafka: Kafka = Kafka()
     var branding: Branding = Branding()
     var domainCache: DomainCache = DomainCache()
     var youTubeApiKeys: List<String> = emptyList()
@@ -39,11 +39,9 @@ class CommonProperties {
         var queueCapacity: Int = 10
     }
 
-    class RabbitMQ {
-        var hostname: String = "localhost"
-        var port: Int = com.rabbitmq.client.ConnectionFactory.DEFAULT_AMQP_PORT
-        var username: String = ""
-        var password: String = ""
+    class Kafka {
+        var bootstrapServers: String = "localhost:9092"
+        var groupId: String = "sablebot-worker-group"
     }
 
     class Branding {
