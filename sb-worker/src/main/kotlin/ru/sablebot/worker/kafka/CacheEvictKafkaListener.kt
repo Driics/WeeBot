@@ -12,8 +12,10 @@ class CacheEvictKafkaListener(
 ) : BaseKafkaListener() {
 
     @KafkaListener(
+        id = "cache-evict-listener",
         topics = [KafkaConfiguration.TOPIC_CACHE_EVICT_REQUEST],
-        groupId = "sablebot-cache-group"
+        groupId = "\${sablebot.common.kafka.group-id}",
+        concurrency = "\${sablebot.worker.kafka.cache-evict.concurrency:3}"
     )
     fun evictCache(req: CacheEvictRequest) = cacheManager.evict(req.cacheName, req.guildId)
 }

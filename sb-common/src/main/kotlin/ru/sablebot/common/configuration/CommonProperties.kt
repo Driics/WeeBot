@@ -2,6 +2,7 @@ package ru.sablebot.common.configuration
 
 import jakarta.validation.constraints.Max
 import jakarta.validation.constraints.Min
+import jakarta.validation.constraints.NotBlank
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.stereotype.Component
 import org.springframework.validation.annotation.Validated
@@ -40,8 +41,16 @@ class CommonProperties {
     }
 
     class Kafka {
+        @field:NotBlank
         var bootstrapServers: String = "localhost:9092"
+
+        @field:NotBlank
         var groupId: String = "sablebot-worker-group"
+        var cacheEvict: CacheEvict = CacheEvict()
+
+        class CacheEvict {
+            var concurrency: Int = 1
+        }
     }
 
     class Branding {

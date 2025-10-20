@@ -2,7 +2,6 @@ package ru.sablebot.worker.kafka
 
 import io.micrometer.core.instrument.MeterRegistry
 import net.dv8tion.jda.api.JDA
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.messaging.handler.annotation.SendTo
 import org.springframework.stereotype.Component
@@ -11,17 +10,16 @@ import ru.sablebot.common.model.status.ShardDto
 import ru.sablebot.common.model.status.StatusDto
 
 @Component
-class StatusKafkaListener : BaseKafkaListener() {
-
-    @Autowired
-    private lateinit var meterRegistry: MeterRegistry
+class StatusKafkaListener(
+    private val meterRegistry: MeterRegistry
+) : BaseKafkaListener() {
 
     @KafkaListener(
         topics = [KafkaConfiguration.TOPIC_STATUS_REQUEST],
         groupId = "sablebot-status-group"
     )
     @SendTo
-    fun getStatus(dummy: String): StatusDto {
+    fun getStatus(@Suppress("unused") dummy: String): StatusDto {
         val shardManager = discordService.shardManager
 
         return StatusDto(

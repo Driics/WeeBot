@@ -14,7 +14,9 @@ import org.springframework.kafka.config.TopicBuilder
 import org.springframework.kafka.core.*
 import org.springframework.kafka.listener.ConcurrentMessageListenerContainer
 import org.springframework.kafka.listener.ContainerProperties
+import org.springframework.kafka.listener.DefaultErrorHandler
 import org.springframework.kafka.requestreply.ReplyingKafkaTemplate
+import org.springframework.kafka.support.ExponentialBackOffWithMaxRetries
 import org.springframework.kafka.support.serializer.JsonDeserializer
 import org.springframework.kafka.support.serializer.JsonSerializer
 
@@ -50,7 +52,8 @@ class KafkaConfiguration(
             ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG to StringSerializer::class.java,
             ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG to JsonSerializer::class.java,
             ProducerConfig.ACKS_CONFIG to "all",
-            ProducerConfig.RETRIES_CONFIG to 3
+            ProducerConfig.RETRIES_CONFIG to 3,
+            JsonSerializer.ADD_TYPE_INFO_HEADERS to true
         )
 
         return DefaultKafkaProducerFactory(configProps)
@@ -76,8 +79,8 @@ class KafkaConfiguration(
             ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG to StringDeserializer::class.java,
             ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG to JsonDeserializer::class.java,
             ConsumerConfig.AUTO_OFFSET_RESET_CONFIG to "latest",
-            JsonDeserializer.TRUSTED_PACKAGES to "ru.sablebot.common.model.*",
-            JsonDeserializer.USE_TYPE_INFO_HEADERS to false
+            JsonDeserializer.TRUSTED_PACKAGES to "ru.sablebot.common.model.*,java.lang",  // ← Add java.lang for String
+            JsonDeserializer.USE_TYPE_INFO_HEADERS to true
         )
 
         return DefaultKafkaConsumerFactory(props)
@@ -88,6 +91,11 @@ class KafkaConfiguration(
         val factory = ConcurrentKafkaListenerContainerFactory<String, Any>()
         factory.consumerFactory = consumerFactory()
         factory.setReplyTemplate(kafkaTemplate())
+        factory.setCommonErrorHandler(
+            DefaultErrorHandler(ExponentialBackOffWithMaxRetries(10).apply {
+                initialInterval = 200L; multiplier = 2.0; maxInterval = 5000L
+            })
+        )
         return factory
     }
 
@@ -96,13 +104,30 @@ class KafkaConfiguration(
         ReplyingKafkaTemplate(producerFactory(), replyContainer())
 
     @Bean
-    fun replyContainer(): ConcurrentMessageListenerContainer<String, Any> {
-        val containerProps = ContainerProperties(TOPIC_STATUS_REPLY, TOPIC_CHECK_OWNER_REPLY)
+    fun replyConsumerFactory(): ConsumerFactory<String, Any> {
+        val kafka = commonProperties.kafka
 
-        return ConcurrentMessageListenerContainer(consumerFactory(), containerProps)
+        val props = mutableMapOf<String, Any>(
+            ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG to kafka.bootstrapServers,
+            ConsumerConfig.GROUP_ID_CONFIG to "sablebot-reply-group",
+            ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG to StringDeserializer::class.java,
+            ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG to JsonDeserializer::class.java,
+            ConsumerConfig.AUTO_OFFSET_RESET_CONFIG to "latest",
+            JsonDeserializer.TRUSTED_PACKAGES to "ru.sablebot.common.model.*,java.lang",
+            JsonDeserializer.USE_TYPE_INFO_HEADERS to true
+        )
+
+        return DefaultKafkaConsumerFactory(props)
     }
 
-    // Topic creation beans (auto-create topics)
+    @Bean
+    fun replyContainer(): ConcurrentMessageListenerContainer<String, Any> {
+        val containerProps = ContainerProperties(TOPIC_STATUS_REPLY, TOPIC_CHECK_OWNER_REPLY)
+        containerProps.groupId = "sablebot-reply-group"
+
+        return ConcurrentMessageListenerContainer(replyConsumerFactory(), containerProps)
+    }
+
     @Bean
     fun guildInfoRequestTopic(): NewTopic = TopicBuilder.name(TOPIC_GUILD_INFO_REQUEST)
         .partitions(3).replicas(1).build()
