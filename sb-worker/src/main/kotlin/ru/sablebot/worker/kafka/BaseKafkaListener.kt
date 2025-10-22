@@ -1,4 +1,4 @@
-package ru.sablebot.worker.rabbit
+package ru.sablebot.worker.kafka
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import net.dv8tion.jda.api.entities.Guild
@@ -8,7 +8,7 @@ import ru.sablebot.common.worker.configuration.WorkerProperties
 import ru.sablebot.common.worker.shared.service.DiscordService
 
 @Component
-abstract class BaseQueueListener {
+abstract class BaseKafkaListener {
     @Autowired
     protected lateinit var discordService: DiscordService
 

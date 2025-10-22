@@ -29,7 +29,7 @@ import java.util.concurrent.ThreadPoolExecutor
 @ComponentScan("ru.sablebot")
 @ConfigurationPropertiesScan("ru.sablebot")
 @EnableJpaRepositories("ru.sablebot")
-@Import(MBeanConfiguration::class, RabbitConfiguration::class)
+@Import(MBeanConfiguration::class, KafkaConfiguration::class)
 @Configuration
 class CommonConfiguration @Autowired constructor(
     private val commonProperties: CommonProperties
