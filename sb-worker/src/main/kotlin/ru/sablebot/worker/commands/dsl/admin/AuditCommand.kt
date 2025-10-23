@@ -2,11 +2,13 @@ package ru.sablebot.worker.commands.dsl.admin
 
 import dev.minn.jda.ktx.interactions.components.SelectOption
 import net.dv8tion.jda.api.Permission
+import net.dv8tion.jda.api.entities.Guild
 import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 import org.springframework.stereotype.Component
 import ru.sablebot.common.model.AuditActionType
 import ru.sablebot.common.model.CommandCategory
+import ru.sablebot.common.persistence.entity.AuditConfig
 import ru.sablebot.common.service.AuditConfigService
 import ru.sablebot.common.worker.command.model.SlashCommandArguments
 import ru.sablebot.common.worker.command.model.context.ApplicationCommandContext
@@ -14,6 +16,7 @@ import ru.sablebot.common.worker.command.model.dsl.SlashCommandDeclarationWrappe
 import ru.sablebot.common.worker.command.model.dsl.SlashCommandExecutor
 import ru.sablebot.common.worker.command.model.dsl.slashCommand
 import ru.sablebot.common.worker.message.model.InteractivityManager
+import ru.sablebot.common.worker.message.model.commands.options.ApplicationCommandOptions
 import ru.sablebot.common.worker.message.model.styled
 import java.awt.Color
 import java.util.*
@@ -34,7 +37,7 @@ class AuditCommand(
 
         subcommand(
             "enable",
-            "Включить систему аудита на сервере",
+            "Enable the audit system on the server",
             UUID.fromString("a1b2c3d4-e5f6-7890-abcd-ef1234567891")
         ) {
             executor = EnableAuditExecutor()
@@ -50,7 +53,7 @@ class AuditCommand(
 
         subcommand(
             "status",
-            "Показать текущий статус системы аудита",
+            "Show the current status of the audit system",
             UUID.fromString("a1b2c3d4-e5f6-7890-abcd-ef1234567893")
         ) {
             executor = StatusAuditExecutor()
@@ -58,29 +61,24 @@ class AuditCommand(
 
         subcommand(
             "setactions",
-            "Настроить отслеживаемые действия для аудита",
+            "Configure monitored actions for auditing",
             UUID.fromString("a1b2c3d4-e5f6-7890-abcd-ef1234567895")
         ) {
             executor = SetActionsAuditExecutor()
         }
 
-        /*subcommand(
+        subcommand(
             "setchannel",
             "Установить канал для отправки сообщений аудита",
             UUID.fromString("a1b2c3d4-e5f6-7890-abcd-ef1234567894")
         ) {
             executor = SetChannelAuditExecutor()
-        }*/
+        }
     }
 
     inner class EnableAuditExecutor : SlashCommandExecutor() {
         override suspend fun execute(context: ApplicationCommandContext, args: SlashCommandArguments) {
-            val guild = context.event.guild ?: run {
-                context.reply(true) {
-                    styled(" Эта команда доступна только на серверах!", "❌")
-                }
-                return
-            }
+            val guild = context.requireGuild() ?: return
 
             val config = auditConfigService.getOrCreate(guild.idLong)
 
@@ -121,23 +119,8 @@ class AuditCommand(
 
     inner class StatusAuditExecutor : SlashCommandExecutor() {
         override suspend fun execute(context: ApplicationCommandContext, args: SlashCommandArguments) {
-            val guild = context.event.guild ?: run {
-                context.reply(true) {
-                    embed {
-                        title = "❌ Error"
-                        description = "This command is only available on servers!"
-                        color = Color.RED.rgb
-                    }
-                }
-                return
-            }
-
-            val config = auditConfigService.getByGuildId(guild.idLong) ?: run {
-                context.reply(true) {
-                    styled("Something went wrong. Config not found", "😟")
-                }
-                return
-            }
+            val guild = context.requireGuild() ?: return
+            val config = context.requireAuditConfig(guild.idLong) ?: return
 
             val statusEmoji = if (config.enabled) "🟢" else "🔴"
             val statusText = if (config.enabled) "Enabled" else "Disabled"
@@ -192,25 +175,75 @@ class AuditCommand(
         }
     }
 
-    inner class SetActionsAuditExecutor : SlashCommandExecutor() {
+    inner class SetChannelAuditExecutor : SlashCommandExecutor() {
+        inner class Options : ApplicationCommandOptions() {
+            val channelOption = channel("channel", "Канал для отправки логов аудита")
+        }
+
+        override val options = Options()
+
         override suspend fun execute(context: ApplicationCommandContext, args: SlashCommandArguments) {
-            val guild = context.event.guild ?: run {
+            val guild = context.requireGuild() ?: return
+
+            val channel = args[options.channelOption]
+
+
+            val permissions = setOf(Permission.MESSAGE_SEND, Permission.MESSAGE_EMBED_LINKS)
+            // Check bot permissions
+            if (!guild.selfMember.hasPermission(channel, permissions)) {
                 context.reply(true) {
                     embed {
-                        title = "❌ Error"
-                        description = "This command is only available on servers!"
+                        title = "❌ Not enough rights"
+                        description =
+                            "The bot does not have the rights to send messages to channel  ${channel.asMention}."
                         color = Color.RED.rgb
+
+                        field {
+                            name = "Required rights:"
+                            value = permissions.joinToString(", ") { "`${it.name}`" }
+                            inline = true
+                        }
                     }
                 }
                 return
             }
 
-            val config = auditConfigService.getByGuildId(guild.idLong) ?: run {
+            val config = context.requireAuditConfig(guild.idLong) ?: return
+
+            if (!config.enabled) {
                 context.reply(true) {
-                    styled("Something went wrong. Config not found", "😟")
+                    embed {
+                        title = "⚠️ Предупреждение"
+                        description = "Система аудита отключена.\n\nИспользуйте `/audit enable` для включения."
+                        color = Color.ORANGE.rgb
+                    }
                 }
                 return
             }
+
+            config.forwardEnabled = true
+            config.forwardChannelId = channel.idLong
+            auditConfigService.save(config)
+
+            context.reply(true) {
+                embed {
+                    title = "✅ Канал установлен"
+                    description = "Канал для логов аудита установлен: ${channel.asMention}\n\n" +
+                            "Логи будут отправляться в этот канал."
+                    color = Color.GREEN.rgb
+
+                    footer {
+                        name = "Не забудьте настроить отслеживаемые действия через /audit setactions"
+                    }
+                }
+            }
+        }
+    }
+
+    inner class SetActionsAuditExecutor : SlashCommandExecutor() {
+        override suspend fun execute(context: ApplicationCommandContext, args: SlashCommandArguments) {
+            val guild = context.requireGuild() ?: return
+            val config = context.requireAuditConfig(guild.idLong) ?: return
 
             if (!config.enabled) {
                 context.reply(true) {
@@ -331,4 +364,29 @@ class AuditCommand(
             AuditActionType.VOICE_LEAVE -> "Выход из голосового канала"
         }
     }
+
+    private suspend fun ApplicationCommandContext.requireGuild(): Guild? {
+        val guild = this.event.guild
+        if (guild == null) {
+            this.reply(true) {
+                embed {
+                    title = "❌ Error"
+                    description = "This command is only available on servers!"
+                    color = Color.RED.rgb
+                }
+            }
+        }
+        return guild
+    }
+
+    private suspend fun ApplicationCommandContext.requireAuditConfig(guildId: Long): AuditConfig? {
+        val config = auditConfigService.getByGuildId(guildId)
+        if (config == null) {
+            this.reply(true) {
+                styled("Something went wrong. Config not found", "😟")
+            }
+        }
+        return config
+    }
 }
+
