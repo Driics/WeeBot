@@ -24,7 +24,7 @@ class ActionsHolderService {
         userId: Long,
     ) = leaveNotifiedCache.put(getMemberKey(guildId, userId), true)
 
-    fun getMemberKey(
+    private fun getMemberKey(
         guildId: Long,
         userId: Long,
     ): String = "${guildId}_${userId}"
