@@ -10,7 +10,7 @@ spring:
     timestamp: "@build.timestamp@"
     name: "SablebotBot-Worker"
   datasource:
-    url: ""
+    url: ${DB_URL}
   quartz:
     job-store-type: jdbc
     jdbc:
@@ -60,11 +60,11 @@ management:
 sablebot:
   common:
     kafka:
-      bootstrap-servers: ""
+      bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
       group-id: "sablebot-worker-group"
   worker:
     discord:
-      token: ""
+      token: ${DISCORD_TOKEN}
       playingStatus: "Still testing"
       shardsTotal: 1
     commands:
