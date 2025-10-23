@@ -1,5 +1,7 @@
 package ru.sablebot.common.configuration
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.KotlinModule
 import org.apache.kafka.clients.admin.AdminClientConfig
 import org.apache.kafka.clients.admin.NewTopic
 import org.apache.kafka.clients.consumer.ConsumerConfig
@@ -17,6 +19,7 @@ import org.springframework.kafka.listener.ContainerProperties
 import org.springframework.kafka.listener.DefaultErrorHandler
 import org.springframework.kafka.requestreply.ReplyingKafkaTemplate
 import org.springframework.kafka.support.ExponentialBackOffWithMaxRetries
+import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
 import org.springframework.kafka.support.serializer.JsonDeserializer
 import org.springframework.kafka.support.serializer.JsonSerializer
 
@@ -41,6 +44,13 @@ class KafkaConfiguration(
         // Reply topics for request-reply pattern
         const val TOPIC_STATUS_REPLY = "sablebot.status.reply"
         const val TOPIC_CHECK_OWNER_REPLY = "sablebot.check.owner.reply"
+    }
+
+    @Bean
+    fun objectMapper(): ObjectMapper {
+        return ObjectMapper().apply {
+            registerModule(KotlinModule.Builder().build())
+        }
     }
 
     @Bean
@@ -76,14 +86,24 @@ class KafkaConfiguration(
         val props = mutableMapOf<String, Any>(
             ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG to kafka.bootstrapServers,
             ConsumerConfig.GROUP_ID_CONFIG to "sablebot-worker-group",
-            ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG to StringDeserializer::class.java,
-            ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG to JsonDeserializer::class.java,
-            ConsumerConfig.AUTO_OFFSET_RESET_CONFIG to "latest",
-            JsonDeserializer.TRUSTED_PACKAGES to "ru.sablebot.common.model.*,java.lang",  // ← Add java.lang for String
-            JsonDeserializer.USE_TYPE_INFO_HEADERS to true
+            ConsumerConfig.AUTO_OFFSET_RESET_CONFIG to "latest"
         )
 
-        return DefaultKafkaConsumerFactory(props)
+        // Create JsonDeserializer with custom ObjectMapper
+        val jsonDeserializer = JsonDeserializer<Any>(objectMapper()).apply {
+            addTrustedPackages("ru.sablebot.common.model.*", "java.lang")
+            setUseTypeHeaders(true)
+        }
+
+        // Wrap deserializers with ErrorHandlingDeserializer
+        val errorHandlingKeyDeserializer = ErrorHandlingDeserializer(StringDeserializer())
+        val errorHandlingValueDeserializer = ErrorHandlingDeserializer(jsonDeserializer)
+
+        return DefaultKafkaConsumerFactory(
+            props,
+            errorHandlingKeyDeserializer,
+            errorHandlingValueDeserializer
+        )
     }
 
     @Bean
@@ -110,14 +130,24 @@ class KafkaConfiguration(
         val props = mutableMapOf<String, Any>(
             ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG to kafka.bootstrapServers,
             ConsumerConfig.GROUP_ID_CONFIG to "sablebot-reply-group",
-            ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG to StringDeserializer::class.java,
-            ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG to JsonDeserializer::class.java,
-            ConsumerConfig.AUTO_OFFSET_RESET_CONFIG to "latest",
-            JsonDeserializer.TRUSTED_PACKAGES to "ru.sablebot.common.model.*,java.lang",
-            JsonDeserializer.USE_TYPE_INFO_HEADERS to true
+            ConsumerConfig.AUTO_OFFSET_RESET_CONFIG to "latest"
         )
 
-        return DefaultKafkaConsumerFactory(props)
+        // Create JsonDeserializer with custom ObjectMapper
+        val jsonDeserializer = JsonDeserializer<Any>(objectMapper()).apply {
+            addTrustedPackages("ru.sablebot.common.model.*", "java.lang")
+            setUseTypeHeaders(true)
+        }
+
+        // Wrap deserializers with ErrorHandlingDeserializer
+        val errorHandlingKeyDeserializer = ErrorHandlingDeserializer(StringDeserializer())
+        val errorHandlingValueDeserializer = ErrorHandlingDeserializer(jsonDeserializer)
+
+        return DefaultKafkaConsumerFactory(
+            props,
+            errorHandlingKeyDeserializer,
+            errorHandlingValueDeserializer
+        )
     }
 
     @Bean

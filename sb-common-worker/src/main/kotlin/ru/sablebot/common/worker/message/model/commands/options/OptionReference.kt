@@ -1,5 +1,7 @@
 package ru.sablebot.common.worker.message.model.commands.options
 
+import net.dv8tion.jda.api.entities.Member
+import net.dv8tion.jda.api.entities.User
 import net.dv8tion.jda.api.interactions.commands.OptionMapping
 import ru.sablebot.common.worker.message.model.commands.autocomplete.AutocompleteExecutor
 
@@ -45,3 +47,37 @@ class BooleanDiscordOptionReference<T>(
         return option.asBoolean as T
     }
 }
+
+class ChannelDiscordOptionReference<T>(
+    name: String,
+    description: String,
+    required: Boolean
+) : DiscordOptionReference<T>(name, description, required) {
+    override fun get(option: OptionMapping): T = option.asChannel as T
+}
+
+class RoleDiscordOptionReference<T>(
+    name: String,
+    description: String,
+    required: Boolean
+) : DiscordOptionReference<T>(name, description, required) {
+    override fun get(option: OptionMapping): T = option.asRole as T
+}
+
+class UserDiscordOptionReference<T>(
+    name: String,
+    description: String,
+    required: Boolean
+) : DiscordOptionReference<T>(name, description, required) {
+    override fun get(option: OptionMapping): T {
+        val user = option.asUser
+        val member = option.asMember
+
+        return UserAndMember(user, member) as T
+    }
+}
+
+data class UserAndMember(
+    val user: User,
+    val member: Member?
+)

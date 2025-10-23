@@ -7,6 +7,7 @@ import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
 import net.dv8tion.jda.api.utils.FileUpload
 import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.context.annotation.Lazy
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import ru.sablebot.common.persistence.entity.AuditAction
@@ -28,6 +29,7 @@ abstract class LoggingAuditForwardProvider : AuditForwardProvider {
     protected lateinit var discordService: DiscordService
 
     @Autowired
+    @Lazy
     protected lateinit var auditService: AuditService
 
     @Autowired

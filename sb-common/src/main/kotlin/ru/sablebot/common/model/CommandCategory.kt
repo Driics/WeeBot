@@ -9,4 +9,5 @@ enum class CommandCategory(
 ) {
     GENERAL("General", "Universal commands", Emoji.fromUnicode("\uD83C\uDF89")),
     MODERATION("Moderation", "Moderation commands", Emoji.fromUnicode("\uD83C\uDF89")),
+    ADMIN("Admin", "Admins commands", Emoji.fromUnicode("\uD83C\uDF89")),
 }

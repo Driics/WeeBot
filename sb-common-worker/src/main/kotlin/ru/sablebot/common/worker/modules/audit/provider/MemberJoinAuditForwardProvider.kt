@@ -7,7 +7,7 @@ import ru.sablebot.common.model.AuditActionType
 import ru.sablebot.common.persistence.entity.AuditAction
 
 @ForwardProvider(AuditActionType.MEMBER_JOIN)
-class MemberJoinAuditForwardProvider : LoggingAuditForwardProvider() {
+open class MemberJoinAuditForwardProvider : LoggingAuditForwardProvider() {
     override fun build(
         action: AuditAction,
         messageBuilder: MessageCreateBuilder,

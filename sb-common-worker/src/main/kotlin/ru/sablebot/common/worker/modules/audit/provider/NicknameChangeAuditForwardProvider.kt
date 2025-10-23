@@ -7,7 +7,7 @@ import ru.sablebot.common.model.AuditActionType
 import ru.sablebot.common.persistence.entity.AuditAction
 
 @ForwardProvider(AuditActionType.MEMBER_NAME_CHANGE)
-class NicknameChangeAuditForwardProvider : LoggingAuditForwardProvider() {
+open class NicknameChangeAuditForwardProvider : LoggingAuditForwardProvider() {
     companion object {
         const val OLD_NAME = "old"
         const val NEW_NAME = "new"

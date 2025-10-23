@@ -252,7 +252,7 @@ class InteractivityManager {
     ) = entitySelectMenu(
         callbackAlwaysEphemeral,
         builder
-    ) { context, strings ->
+    ) { context, entities ->
         if (targetUserId != context.user.idLong) {
             context.reply(true) {
                 styled(
@@ -263,7 +263,7 @@ class InteractivityManager {
             return@entitySelectMenu
         }
 
-        callback.invoke(context, strings)
+        callback.invoke(context, entities)
     }
 
     /**
