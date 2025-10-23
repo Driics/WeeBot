@@ -122,15 +122,15 @@ abstract class LoggingAuditForwardProvider : AuditForwardProvider {
         }
     }
 
-    protected fun getReferenceContent(reference: NamedReference, isChannel: Boolean): String? =
-        messageService.getMessage(
-            "audit.reference.content",
-            reference.name,
-            if (isChannel) reference.asChannelMention else reference.asUserMention
-        )
+    protected fun getReferenceContent(reference: NamedReference, isChannel: Boolean): String? = "TEST VALUE"
+    /*messageService.getMessage(
+        "audit.reference.content",
+        reference.name,
+        if (isChannel) reference.asChannelMention else reference.asUserMention
+    )*/
 
-    protected fun getReferenceShortContent(reference: NamedReference): String? =
-        messageService.getMessage("audit.reference.short.content", reference.name)
+    protected fun getReferenceShortContent(reference: NamedReference): String? = "TEST VALUE"
+    /*messageService.getMessage("audit.reference.short.content", reference.name)*/
 
     protected abstract fun build(
         action: AuditAction,
