@@ -184,6 +184,41 @@ class InteractivityManager {
     /**
      * Creates an interactive select menu
      */
+    fun stringSelectMenuForUser(
+        targetUser: User,
+        callbackAlwaysEphemeral: Boolean,
+        builder: (StringSelectMenu.Builder).() -> (Unit) = {},
+        callback: suspend (ComponentContext, List<String>) -> (Unit)
+    ) = stringSelectMenuForUser(targetUser.idLong, callbackAlwaysEphemeral, builder, callback)
+
+    /**
+     * Creates an interactive select menu
+     */
+    fun stringSelectMenuForUser(
+        targetUserId: Long,
+        callbackAlwaysEphemeral: Boolean,
+        builder: (StringSelectMenu.Builder).() -> (Unit) = {},
+        callback: suspend (ComponentContext, List<String>) -> (Unit)
+    ) = stringSelectMenu(
+        callbackAlwaysEphemeral,
+        builder
+    ) { context, strings ->
+        if (targetUserId != context.user.idLong) {
+            context.reply(true) {
+                styled(
+                    "Who are you?",
+                    "??"
+                )
+            }
+            return@stringSelectMenu
+        }
+
+        callback.invoke(context, strings)
+    }
+
+    /**
+     * Creates an interactive select menu
+     */
     fun stringSelectMenu(
         callbackAlwaysEphemeral: Boolean,
         builder: (StringSelectMenu.Builder).() -> (Unit) = {},
@@ -194,6 +229,41 @@ class InteractivityManager {
         return StringSelectMenu.create(UnleashedComponentId(menuId).toString())
             .apply(builder)
             .build()
+    }
+
+    /**
+     * Creates an interactive select menu
+     */
+    fun entitySelectMenuForUser(
+        targetUser: User,
+        callbackAlwaysEphemeral: Boolean,
+        builder: (EntitySelectMenu.Builder).() -> (Unit) = {},
+        callback: suspend (ComponentContext, List<IMentionable>) -> (Unit)
+    ) = entitySelectMenuForUser(targetUser.idLong, callbackAlwaysEphemeral, builder, callback)
+
+    /**
+     * Creates an interactive select menu
+     */
+    fun entitySelectMenuForUser(
+        targetUserId: Long,
+        callbackAlwaysEphemeral: Boolean,
+        builder: (EntitySelectMenu.Builder).() -> (Unit) = {},
+        callback: suspend (ComponentContext, List<IMentionable>) -> (Unit)
+    ) = entitySelectMenu(
+        callbackAlwaysEphemeral,
+        builder
+    ) { context, strings ->
+        if (targetUserId != context.user.idLong) {
+            context.reply(true) {
+                styled(
+                    "Who are you?",
+                    "??"
+                )
+            }
+            return@entitySelectMenu
+        }
+
+        callback.invoke(context, strings)
     }
 
     /**
