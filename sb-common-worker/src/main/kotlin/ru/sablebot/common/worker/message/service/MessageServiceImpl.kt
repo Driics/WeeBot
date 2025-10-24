@@ -30,7 +30,7 @@ class MessageServiceImpl @Autowired constructor(
     override fun getMessageByLocale(key: String?, locale: Locale?, vararg args: Any?): String? {
         return key?.let {
             val resolvedLocale = locale ?: contextService.getLocale()
-            context.getMessage(it, args as Array<Any>?, it, resolvedLocale)
+            context.getMessage(it, args as Array<*>?, it, resolvedLocale)
         }
     }
 

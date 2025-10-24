@@ -7,5 +7,9 @@ abstract class VoiceAuditForwardProvider : LoggingAuditForwardProvider() {
     protected fun getUserMessage(
         action: AuditAction,
         key: String
-    ): String = "Test ${getReferenceContent(action.user, false)} ${getReferenceShortContent(action.channel)}"
+    ): String? = messageService.getMessage(
+        key,
+        getReferenceContent(action.user, false),
+        getReferenceShortContent(action.channel)
+    )
 }

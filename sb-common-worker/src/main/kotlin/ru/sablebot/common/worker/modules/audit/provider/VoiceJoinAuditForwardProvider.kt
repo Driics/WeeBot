@@ -10,7 +10,7 @@ import ru.sablebot.common.persistence.entity.AuditAction
 open class VoiceJoinAuditForwardProvider : VoiceAuditForwardProvider() {
     override fun build(action: AuditAction, messageBuilder: MessageCreateBuilder, embedBuilder: EmbedBuilder) {
         InlineEmbed(embedBuilder).apply {
-            description = getUserMessage(action, "test")
+            description = getUserMessage(action, "audit.message.voice.join.message")
             footer("Member ID: ${action.user.id}")
         }
     }
