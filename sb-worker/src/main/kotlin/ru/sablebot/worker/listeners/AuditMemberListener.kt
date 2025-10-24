@@ -1,6 +1,5 @@
 package ru.sablebot.worker.listeners
 
-import net.dv8tion.jda.api.events.guild.member.GuildMemberUpdateEvent
 import net.dv8tion.jda.api.events.guild.member.update.GuildMemberUpdateNicknameEvent
 import ru.sablebot.common.model.AuditActionType
 import ru.sablebot.common.service.MemberService
@@ -25,16 +24,12 @@ class AuditMemberListener(
         if (event.member.effectiveName != member.effectiveName) {
             auditService.log(event.guild, AuditActionType.MEMBER_NAME_CHANGE)
                 .withUser(member)
-                .withAttribute(NicknameChangeAuditForwardProvider.OLD_NAME, member.effectiveName)
-                .withAttribute(NicknameChangeAuditForwardProvider.NEW_NAME, event.member.effectiveName)
+                .withAttribute(NicknameChangeAuditForwardProvider.OLD_NAME, event.oldNickname)
+                .withAttribute(NicknameChangeAuditForwardProvider.NEW_NAME, event.newNickname)
                 .save()
 
             member.effectiveName = event.member.effectiveName
             memberService.save(member)
         }
-    }
-
-    override fun onGuildMemberUpdate(event: GuildMemberUpdateEvent) {
-
     }
 }

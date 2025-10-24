@@ -5,5 +5,5 @@ import jakarta.persistence.MappedSuperclass
 
 @MappedSuperclass
 abstract class UserEntity(
-    @Column(name = "user_id") var userId: String = ""
+    @Column(name = "user_id") var userId: Long = 0L,
 ): BaseEntity()

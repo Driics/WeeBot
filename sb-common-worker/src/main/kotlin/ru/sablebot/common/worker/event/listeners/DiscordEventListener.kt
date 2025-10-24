@@ -13,12 +13,11 @@ abstract class DiscordEventListener: ListenerAdapter() {
     @Autowired
     protected lateinit var taskExecutor: TaskExecutor
     @Autowired
-    protected lateinit var applicatonContext: ApplicationContext
+    protected lateinit var applicationContext: ApplicationContext
     @Autowired
     protected lateinit var contextService: ContextService
 
-    private var _auditService: AuditService? = null
-
-    protected val auditService: AuditService
-        get() = _auditService ?: applicatonContext.getBean(AuditService::class.java)
+    protected val auditService: AuditService by lazy {
+        applicationContext.getBean(AuditService::class.java)
+    }
 }

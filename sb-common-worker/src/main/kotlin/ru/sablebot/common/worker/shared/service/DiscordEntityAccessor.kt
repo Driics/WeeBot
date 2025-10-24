@@ -24,10 +24,10 @@ open class DiscordEntityAccessor(
     protected val memberService: MemberService,
     protected val memberRepository: LocalMemberRepository,
 ) {
-    private val `$userLock`: Any = arrayOfNulls<Any>(0)
+    // TODO: in future migrate from userLock and memberLock to Striped/ConcurrentHashMap<key, lock>
+    private val userLock = Any()
 
-    // TODO: refactoring to avoid using this
-    private val `$memberLock`: Any = arrayOfNulls<Any>(0)
+    private val memberLock = Any()
 
     @Transactional
     open fun getOrCreate(guild: Guild): GuildConfig {
@@ -42,11 +42,11 @@ open class DiscordEntityAccessor(
 
         var localUser = userService.get(user)
         if (localUser == null) {
-            synchronized(`$userLock`) {
+            synchronized(userLock) {
                 localUser = userService.get(user)
                 if (localUser == null) {
                     localUser = LocalUser().apply {
-                        userId = user.id
+                        userId = user.idLong
                     }
                     updateIfRequired(user, localUser)
                     userRepository.flush()
@@ -65,7 +65,7 @@ open class DiscordEntityAccessor(
 
         var localMember = memberService.get(member)
         if (localMember == null) {
-            synchronized(`$memberLock`) {
+            synchronized(memberLock) {
                 localMember = memberService.get(member)
                 if (localMember == null) {
                     localMember = LocalMember(
@@ -126,19 +126,29 @@ open class DiscordEntityAccessor(
     }
 
     private fun updateIfRequired(member: Member, localMember: LocalMember?): LocalMember? {
-        try {
-            var shouldSave = false
-            if (localMember?.id == null) {
-                shouldSave = true;
+        localMember ?: return null
+        return try {
+            var shouldSave = localMember.id == null
+
+            if (member.effectiveName != localMember.effectiveName) {
+                localMember.effectiveName = member.effectiveName
+                shouldSave = true
             }
 
-            updateIfRequired(member.user, localMember?.user);
+            val newRoles = member.roles.map { it.idLong }
+
+            if (newRoles != localMember.lastKnownRoles) {
+                localMember.lastKnownRoles = newRoles
+                shouldSave = true
+            }
+
+            updateIfRequired(member.user, localMember.user);
 
             if (shouldSave) {
-                memberService.save(localMember!!);
-            }
+                memberService.save(localMember);
+            } else localMember
         } catch (_: ObjectOptimisticLockingFailureException) {
+            localMember
         }
-        return localMember
     }
 }
