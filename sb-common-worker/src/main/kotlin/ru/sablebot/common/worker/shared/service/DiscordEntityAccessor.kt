@@ -46,7 +46,7 @@ open class DiscordEntityAccessor(
                 localUser = userService.get(user)
                 if (localUser == null) {
                     localUser = LocalUser().apply {
-                        userId = user.idLong
+                        userId = user.id
                     }
                     updateIfRequired(user, localUser)
                     userRepository.flush()

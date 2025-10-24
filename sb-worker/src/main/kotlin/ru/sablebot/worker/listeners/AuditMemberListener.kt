@@ -1,6 +1,7 @@
 package ru.sablebot.worker.listeners
 
 import net.dv8tion.jda.api.events.guild.member.update.GuildMemberUpdateNicknameEvent
+import net.dv8tion.jda.api.events.guild.voice.GuildVoiceUpdateEvent
 import ru.sablebot.common.model.AuditActionType
 import ru.sablebot.common.service.MemberService
 import ru.sablebot.common.service.UserService
@@ -17,6 +18,7 @@ class AuditMemberListener(
     private val memberService: MemberService,
     private val entityAccessor: DiscordEntityAccessor
 ) : DiscordEventListener() {
+
     override fun onGuildMemberUpdateNickname(event: GuildMemberUpdateNicknameEvent) {
         entityAccessor.getOrCreate(event.member)
         val member = memberService.get(event.member) ?: return
@@ -30,6 +32,15 @@ class AuditMemberListener(
 
             member.effectiveName = event.member.effectiveName
             memberService.save(member)
+        }
+    }
+
+    override fun onGuildVoiceUpdate(event: GuildVoiceUpdateEvent) {
+        if (event.channelJoined != null && !event.member.user.isBot) {
+            auditService.log(event.guild, AuditActionType.VOICE_JOIN)
+                .withUser(event.member)
+                .withChannel(event.channelJoined)
+                .save()
         }
     }
 }

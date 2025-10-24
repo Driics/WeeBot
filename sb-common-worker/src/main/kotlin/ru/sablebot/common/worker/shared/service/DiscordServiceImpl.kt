@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service
 import ru.sablebot.common.configuration.CommonProperties
 import ru.sablebot.common.worker.command.service.CommandsHolderService
 import ru.sablebot.common.worker.configuration.WorkerProperties
+import ru.sablebot.common.worker.shared.support.JmxJDAMBean
 import javax.security.auth.login.LoginException
 
 
@@ -87,7 +88,7 @@ open class DiscordServiceImpl @Autowired constructor(
     }
 
     override fun onReady(event: ReadyEvent) {
-//        mBeanExporter.registerManagedResource(JmxJDAMBean(event.jda))
+        mBeanExporter.registerManagedResource(JmxJDAMBean(event.jda))
         setUpStatus()
     }
 
