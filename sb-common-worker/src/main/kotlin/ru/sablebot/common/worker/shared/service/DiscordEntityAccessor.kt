@@ -1,28 +1,33 @@
 package ru.sablebot.common.worker.shared.service
 
 import net.dv8tion.jda.api.entities.Guild
+import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.User
 import org.springframework.orm.ObjectOptimisticLockingFailureException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import ru.sablebot.common.persistence.entity.GuildConfig
+import ru.sablebot.common.persistence.entity.LocalMember
 import ru.sablebot.common.persistence.entity.LocalUser
+import ru.sablebot.common.persistence.repository.LocalMemberRepository
 import ru.sablebot.common.persistence.repository.LocalUserRepository
 import ru.sablebot.common.service.ConfigService
+import ru.sablebot.common.service.MemberService
 import ru.sablebot.common.service.UserService
 import java.util.*
 
-
-/*
-TODO: add users and members
- */
 @Service
 open class DiscordEntityAccessor(
     protected val configService: ConfigService,
     protected val userService: UserService,
-    protected val userRepository: LocalUserRepository
+    protected val userRepository: LocalUserRepository,
+    protected val memberService: MemberService,
+    protected val memberRepository: LocalMemberRepository,
 ) {
     private val `$userLock`: Any = arrayOfNulls<Any>(0)
+
+    // TODO: refactoring to avoid using this
+    private val `$memberLock`: Any = arrayOfNulls<Any>(0)
 
     @Transactional
     open fun getOrCreate(guild: Guild): GuildConfig {
@@ -51,6 +56,30 @@ open class DiscordEntityAccessor(
         }
 
         return updateIfRequired(user, localUser)
+    }
+
+    @Transactional
+    open fun getOrCreate(member: Member): LocalMember? {
+        if (!memberService.isApplicable(member))
+            return null
+
+        var localMember = memberService.get(member)
+        if (localMember == null) {
+            synchronized(`$memberLock`) {
+                localMember = memberService.get(member)
+                if (localMember == null) {
+                    localMember = LocalMember(
+                        user = getOrCreate(member.user),
+                        effectiveName = member.effectiveName
+                    ).apply { guildId = member.guild.idLong }
+
+                    updateIfRequired(member, localMember)
+                    memberRepository.flush()
+                    return localMember
+                }
+            }
+        }
+        return updateIfRequired(member, localMember)
     }
 
     private fun updateIfRequired(guild: Guild, config: GuildConfig): GuildConfig {
@@ -94,5 +123,22 @@ open class DiscordEntityAccessor(
         } catch (_: ObjectOptimisticLockingFailureException) {
             localUser
         }
+    }
+
+    private fun updateIfRequired(member: Member, localMember: LocalMember?): LocalMember? {
+        try {
+            var shouldSave = false
+            if (localMember?.id == null) {
+                shouldSave = true;
+            }
+
+            updateIfRequired(member.user, localMember?.user);
+
+            if (shouldSave) {
+                memberService.save(localMember!!);
+            }
+        } catch (_: ObjectOptimisticLockingFailureException) {
+        }
+        return localMember
     }
 }
