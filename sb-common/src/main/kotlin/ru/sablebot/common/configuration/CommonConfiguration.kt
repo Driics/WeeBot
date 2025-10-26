@@ -8,6 +8,7 @@ import org.springframework.context.MessageSource
 import org.springframework.context.annotation.*
 import org.springframework.core.Ordered
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory
 import org.springframework.retry.annotation.EnableRetry
 import org.springframework.scheduling.TaskScheduler
 import org.springframework.scheduling.annotation.EnableAsync
@@ -16,12 +17,14 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler
 import org.springframework.scheduling.support.TaskUtils
 import org.springframework.transaction.annotation.EnableTransactionManagement
+import org.springframework.web.client.RestTemplate
 import ru.sablebot.common.support.ModuleMessageSource
 import ru.sablebot.common.support.SbCacheManager
 import ru.sablebot.common.support.SbCacheManagerImpl
 import ru.sablebot.common.support.SbMessageSource
 import ru.sablebot.common.support.jmx.ThreadPoolTaskExecutorMBean
 import java.util.concurrent.ThreadPoolExecutor
+import kotlin.time.Duration.Companion.seconds
 
 @EnableAsync
 @EnableRetry(order = Ordered.HIGHEST_PRECEDENCE)
@@ -80,4 +83,15 @@ class CommonConfiguration @Autowired constructor(
 
     @Bean
     fun messageSource(messageSources: List<ModuleMessageSource>): MessageSource = SbMessageSource(messageSources)
+
+    @Bean
+    fun restTemplate(): RestTemplate = RestTemplate(createRequestFactory())
+
+    private fun createRequestFactory(): HttpComponentsClientHttpRequestFactory =
+        HttpComponentsClientHttpRequestFactory().apply {
+            val timeout = 10.seconds.inWholeMilliseconds.toInt()
+            setConnectTimeout(timeout)
+            setReadTimeout(timeout)
+            setConnectionRequestTimeout(timeout)
+        }
 }
