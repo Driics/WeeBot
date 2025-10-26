@@ -8,6 +8,8 @@ import kotlinx.coroutines.withContext
 import org.springframework.stereotype.Service
 import org.springframework.web.client.RestTemplate
 import org.springframework.web.client.getForObject
+import org.springframework.web.util.UriComponentsBuilder
+import java.net.URI
 
 @Service
 class SteamService(
@@ -24,7 +26,13 @@ class SteamService(
 
     override suspend fun getPrice(gameId: String): PriceInfo? = withContext(Dispatchers.IO) {
         try {
-            val url = "$STEAM_STORE_API/appdetails?appids=$gameId&cc=us"
+
+            val url = UriComponentsBuilder.fromUri(URI.create(STEAM_STORE_API))
+                .path("/appdetails")
+                .queryParam("appids", gameId)
+                .queryParam("cc", "us")
+                .build(true).toUriString()
+
             val response = restTemplate.getForObject<Map<String, Any>>(url)
 
             @Suppress("UNCHECKED_CAST")
@@ -86,7 +94,10 @@ class SteamService(
 
     override suspend fun searchGame(gameName: String): List<GameSearchResult> = withContext(Dispatchers.IO) {
         try {
-            val url = "$STEAM_SEARCH_API/${gameName}"
+            val url = UriComponentsBuilder.fromUri(URI.create(STEAM_SEARCH_API))
+                .path("/${gameName}")
+                .build(true)
+                .toUriString()
             val response = restTemplate.getForObject(url, String::class.java) ?: return@withContext emptyList()
 
             val searchResults = objectMapper.readValue(response, Array<SteamSearchItem>::class.java)
@@ -109,7 +120,11 @@ class SteamService(
      */
     suspend fun getGameDetails(appId: String): SteamGameDetails? = withContext(Dispatchers.IO) {
         try {
-            val url = "$STEAM_STORE_API/appdetails?appids=$appId"
+            val url = UriComponentsBuilder.fromUri(URI.create(STEAM_STORE_API))
+                .path("/appdetails")
+                .queryParam("appids", appId)
+                .build(true).toUriString()
+
             val response = restTemplate.getForObject<Map<String, Any>>(url)
 
             @Suppress("UNCHECKED_CAST")

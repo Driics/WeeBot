@@ -35,10 +35,11 @@ data class PriceInfo(
     val providerName: String
 ) {
     val isFree: Boolean
-        get() = originalPrice == null || originalPrice == 0.0
+        get() = (discountedPrice ?: originalPrice ?: 0.0) == 0.0
 
     val isOnSale: Boolean
-        get() = discountedPrice != null && discountedPrice < (originalPrice ?: 0.0)
+        get() = (discountPercentage ?: 0) > 0 ||
+                (discountedPrice != null && originalPrice != null && discountedPrice < originalPrice)
 
     val finalPrice: Double
         get() = discountedPrice ?: originalPrice ?: 0.0
