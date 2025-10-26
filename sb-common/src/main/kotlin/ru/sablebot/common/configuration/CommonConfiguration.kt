@@ -16,6 +16,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler
 import org.springframework.scheduling.support.TaskUtils
 import org.springframework.transaction.annotation.EnableTransactionManagement
+import ru.sablebot.common.support.ModuleMessageSource
 import ru.sablebot.common.support.SbCacheManager
 import ru.sablebot.common.support.SbCacheManagerImpl
 import ru.sablebot.common.support.SbMessageSource
@@ -78,5 +79,5 @@ class CommonConfiguration @Autowired constructor(
     fun sbCacheManager(): SbCacheManager = SbCacheManagerImpl()
 
     @Bean
-    fun messageSource(): MessageSource = SbMessageSource()
+    fun messageSource(messageSources: List<ModuleMessageSource>): MessageSource = SbMessageSource(messageSources)
 }

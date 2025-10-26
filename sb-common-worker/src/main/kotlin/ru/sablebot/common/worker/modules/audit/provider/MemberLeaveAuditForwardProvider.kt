@@ -6,8 +6,8 @@ import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder
 import ru.sablebot.common.model.AuditActionType
 import ru.sablebot.common.persistence.entity.AuditAction
 
-@ForwardProvider(AuditActionType.MEMBER_JOIN)
-open class MemberJoinAuditForwardProvider : LoggingAuditForwardProvider() {
+@ForwardProvider(AuditActionType.MEMBER_LEAVE)
+open class MemberLeaveAuditForwardProvider : LoggingAuditForwardProvider() {
     override fun build(
         action: AuditAction,
         messageBuilder: MessageCreateBuilder,
@@ -15,7 +15,7 @@ open class MemberJoinAuditForwardProvider : LoggingAuditForwardProvider() {
     ) {
         InlineEmbed(embedBuilder).apply {
             val message = messageService.getMessage(
-                "audit.member.join.message",
+                "audit.member.leave.message",
                 getReferenceContent(action.user, false)
             )
 

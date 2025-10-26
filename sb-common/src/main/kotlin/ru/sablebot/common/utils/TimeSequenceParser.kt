@@ -13,7 +13,7 @@ object TimeSequenceParser {
     ) {
         MONTH(ChronoUnit.MONTHS, 11, "^месяц(а|ев)?$".toRegex(), "^months?$".toRegex()),
         WEEK(ChronoUnit.WEEKS, 31, "^недел[юиь]$".toRegex(), "^weeks?$".toRegex()),
-        DAY(ChronoUnit.DAYS, 6, "^день|дн(я|ей)$".toRegex(), "^days?$".toRegex()),
+        DAY(ChronoUnit.DAYS, 6, "^(день|дн(я|ей))$".toRegex(), "^days?$".toRegex()),
         HOUR(ChronoUnit.HOURS, 23, "^час(а|ов)?$".toRegex(), "^hours?$".toRegex()),
         MINUTE(ChronoUnit.MINUTES, 59, "^минут[уы]?$".toRegex(), "^minutes?$".toRegex()),
         SECOND(ChronoUnit.SECONDS, 59, "^секунд[уы]?$".toRegex(), "^seconds?$".toRegex()),
@@ -79,6 +79,10 @@ object TimeSequenceParser {
             ?: throw IllegalArgumentException("Incorrect period/duration: $value")
 
         val groups = matcher.groupValues
+
+        if (groups.drop(1).all { it.isEmpty() }) {
+            throw IllegalArgumentException("Incorrect period/duration: $value")
+        }
 
         return listOf(
             ChronoUnit.YEARS to groups.getOrNull(2),
