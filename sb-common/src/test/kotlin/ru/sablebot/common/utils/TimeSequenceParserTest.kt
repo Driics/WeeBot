@@ -80,8 +80,8 @@ class TimeSequenceParserTest {
 
         assertEquals(2_678_400_000L, TimeSequenceParser.parseShort("1мес"))
 
-        // FIXME: org.opentest4j.AssertionFailedError: expected: <5356800000> but was: <5097600000>
         assertEquals(2_678_400_000L, TimeSequenceParser.parseShort("1месяц"))
+        // FIXME: org.opentest4j.AssertionFailedError: expected: <5356800000> but was: <5097600000>
         assertEquals(5_356_800_000L, TimeSequenceParser.parseShort("2месяца"))
         assertEquals(13_392_000_000L, TimeSequenceParser.parseShort("5месяцев"))
 
@@ -148,8 +148,7 @@ class TimeSequenceParserTest {
         assertEquals(604_195_200_000L, TimeSequenceParser.parseShort("999w"))
 
         // Test very large numbers
-        // FIXME: org.opentest4j.AssertionFailedError: expected: <31536000000> but was: <1000000000>
-        assertEquals(31_536_000_000L, TimeSequenceParser.parseShort("1000000s"))
+        assertEquals(1_000_000_000L, TimeSequenceParser.parseShort("1000000s"))
         assertEquals(60_000_000L, TimeSequenceParser.parseShort("1000min"))
 
         // Test combinations with large numbers

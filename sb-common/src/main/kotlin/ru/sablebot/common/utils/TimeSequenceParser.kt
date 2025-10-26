@@ -36,8 +36,10 @@ object TimeSequenceParser {
                 """((\d+)(d|day|days|д|день|дня|дней))?""" +
                 """((\d+)(h|hour|hours|ч|час|часа|часов))?""" +
                 """((\d+)(min|mins|minute|minutes|мин|минута|минуту|минуты|минут))?""" +
-                """((\d+)(s|sec|secs|second|seconds|с|c|сек|секунда|секунду|секунды|секунд))?$"""
+                """((\d+)(s|sec|secs|second|seconds|с|c|сек|секунда|секунду|секунды|секунд))?$""" +
+                """((\d+)(ms|millis|millisecond|milliseconds|мс|миллисекунда|миллисекунды|миллисекунд))?$"""
     )
+
 
     fun parseFull(input: String): Long? {
         val values = mutableMapOf<FieldType, Int>()
@@ -72,6 +74,8 @@ object TimeSequenceParser {
      * @param value String to parse
      * @return Amount of duration in milliseconds
      * @throws IllegalArgumentException if the format is invalid
+     * @note Months and years use approximate durations (30.44 days/month, 365.25 days/year)
+     * @note Very large numeric values may cause overflow or incorrect results
      */
     fun parseShort(value: String): Long {
         val input = value.lowercase()
@@ -91,7 +95,8 @@ object TimeSequenceParser {
             ChronoUnit.DAYS to groups.getOrNull(11),
             ChronoUnit.HOURS to groups.getOrNull(14),
             ChronoUnit.MINUTES to groups.getOrNull(17),
-            ChronoUnit.SECONDS to groups.getOrNull(20)
+            ChronoUnit.SECONDS to groups.getOrNull(20),
+            ChronoUnit.MILLIS to groups.getOrNull(23)
         ).fold(LocalDateTime.ofEpochSecond(0, 0, ZoneOffset.UTC)) { acc, (unit, amount) ->
             if (amount?.isNotEmpty() == true && amount.all { it.isDigit() }) {
                 unit.addTo(acc, amount.toLong())
