@@ -19,10 +19,16 @@ data class TrackRequest(
     var timeCode: Long? = null,
 
     // опционально: мета для UI (title/uri/length), чтобы не дергать decodetrack
+    val identifier: String? = null,
     val title: String? = null,
+    val author: String? = null,
     val uri: String? = null,
+    val sourceName: String? = null,
     val lengthMs: Long? = null,
-    val isSeekable: Boolean? = null
+    val isStream: Boolean? = null,
+    val isSeekable: Boolean? = null,
+    val artworkUrl: String? = null,
+    val isrc: String? = null
 ) {
     fun reset() {
         endReason = null
