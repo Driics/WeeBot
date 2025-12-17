@@ -42,11 +42,17 @@ class DefaultAudioServiceImpl(
 
         this.jdaProvider = { shardId -> discordService.getShardById(shardId) }
 
+        val availableShards = (0 until workerProperties.discord.shardsTotal)
+            .mapNotNull { shardId ->
+                discordService.getShardById(shardId)?.let { shardId to it }
+            }
+            .toMap()
+
         configureInternal(
             userId = discordService.selfUser.idLong,
             shardsTotal = workerProperties.discord.shardsTotal,
-            // FIXME: Return type mismatch: expected 'Pair<Int, JDA>', actual 'Unit' in return.
-            shardById = { shardId -> shardId to (discordService.getShardById(shardId) ?: return@configureInternal) })
+            shardById = { shardId -> shardId to availableShards[shardId]!! }
+        )
 
         builder.setVoiceDispatchInterceptor(JDAVoiceUpdateListener(lavalink))
     }
@@ -62,8 +68,7 @@ class DefaultAudioServiceImpl(
 
     override fun disconnect(guild: Guild) = guild.jda.directAudioController.disconnect(guild)
 
-    // FIXME: "Unresolved reference 'isConnected'" error
-    override fun isConnected(guild: Guild): Boolean = guild.jda.directAudioController.isConnected(guild)
+    override fun isConnected(guild: Guild): Boolean = guild.audioManager.isConnected
 
     override fun shutdown() {
         runCatching {
@@ -110,7 +115,9 @@ class DefaultAudioServiceImpl(
         try {
             val instances = discoveryClient.getInstances(discovery.serviceName)
             val instanceUris = instances.mapNotNull { instance ->
-                runCatching { instance to URI("ws://${instance.host}:${instance.port}") }.getOrNull()
+                val secure = instance.metadata["secure"]?.toBoolean() ?: false
+                val protocol = if (secure) "wss" else "ws"
+                runCatching { instance to URI("$protocol://${instance.host}:${instance.port}") }.getOrNull()
             }.toSet()
             val liveUris = instanceUris.map { it.second }.toSet()
 
