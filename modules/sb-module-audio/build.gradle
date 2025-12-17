@@ -1,0 +1,5 @@
+dependencies {
+    implementation project(":sb-common-worker")
+    implementation("dev.arbjerg:lavalink-client:3.3.0")
+    implementation "dev.arbjerg:lavaplayer:2.2.4"
+}

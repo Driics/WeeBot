@@ -71,11 +71,12 @@ object TimeSequenceParser {
     /**
      * Parses duration string
      *
+     * Months and years use calendar arithmetic from epoch 0 (1970-01-01), so their exact duration depends on the reference date
+     * Very large numeric values may cause overflow or incorrect results
+     *
      * @param value String to parse
      * @return Amount of duration in milliseconds
      * @throws IllegalArgumentException if the format is invalid
-     * @note Months and years use approximate durations (30.44 days/month, 365.25 days/year)
-     * @note Very large numeric values may cause overflow or incorrect results
      */
     fun parseShort(value: String): Long {
         val input = value.lowercase()

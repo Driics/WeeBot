@@ -1,0 +1,64 @@
+plugins {
+    id 'org.springframework.boot'
+    id 'io.spring.dependency-management'
+    id 'java'
+    id 'application'
+}
+
+description = 'SableBot Discord Bot Web Application'
+
+ext {
+    moduleName = 'SableBot-Web'
+}
+
+application {
+    mainClass = 'ru.sablebot.api.Launcher'
+}
+
+tasks.named('bootJar') {
+    archiveFileName = 'SableBot-API.jar'
+}
+
+dependencies {
+    implementation project(':sb-common')
+
+    // MapStruct — поставлю последнюю 1.x, если нужно можно обновить до 1.6.x
+    annotationProcessor "org.mapstruct:mapstruct-processor:1.6.2"   // актуальная 1.6.x линия [web:116]
+
+    implementation "org.springframework.boot:spring-boot-starter-web"
+    implementation "org.springframework.boot:spring-boot-starter-security"
+    implementation "org.springframework.security:spring-security-acl"
+
+    implementation("org.springframework.boot:spring-boot-starter-oauth2-client:3.5.8")
+
+    // OpenCV: используем свежую 4.9.0-0 из org.openpnp [web:119]
+    implementation "org.openpnp:opencv:4.9.0-0"
+
+    // SOCIAL DEPENDENCIES
+
+    // Twitch4J — последняя стабильная 1.24.0 [web:125]
+    implementation("com.github.twitch4j:twitch4j:1.24.0") {
+        exclude group: "com.fasterxml.jackson.core", module: "jackson-databind"
+    }
+
+    // VK Java SDK — последняя 1.0.16 [web:121][web:131]
+    implementation "com.vk.api:sdk:1.0.16"
+
+    // Rome — последняя 2.1.0 [web:122][web:127]
+    implementation "com.rometools:rome:2.1.0"
+
+    testImplementation "org.springframework.boot:spring-boot-starter-test"
+    testImplementation "org.springframework.security:spring-security-test"
+}
+
+tasks.named('processResources') {
+    filesMatching("**/application.yml") {
+        filter(ReplaceTokens, tokens: [
+                "build.version"     : project.version.toString(),
+                "build.timestamp"   : System.currentTimeMillis().toString(),
+                "JDA.version"       : "5.2.1",          // пример: подставь свой целевой JDA [web:116]
+                "lavaplayer.version": "2.2.0",         // пример: подставь нужную версию lavaplayer [web:116]
+                "spring.version"    : dependencyManagement.importedProperties['spring.version']
+        ])
+    }
+}
