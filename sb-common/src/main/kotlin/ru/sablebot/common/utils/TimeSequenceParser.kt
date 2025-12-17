@@ -40,6 +40,13 @@ object TimeSequenceParser {
                 """((\d+)(ms|millis|millisecond|milliseconds|мс|миллисекунда|миллисекунды|миллисекунд))?$"""
     )
 
+    private const val MS_IN_SECOND = 1000L
+    private const val MS_IN_MINUTE = 60 * MS_IN_SECOND
+    private const val MS_IN_HOUR = 60 * MS_IN_MINUTE
+    private const val MS_IN_DAY = 24 * MS_IN_HOUR
+    private const val MS_IN_WEEK = 7 * MS_IN_DAY
+    private const val MS_IN_MONTH = 30 * MS_IN_DAY
+    private const val MS_IN_YEAR = 365 * MS_IN_DAY
 
     fun parseFull(input: String): Long? {
         val values = mutableMapOf<FieldType, Int>()
@@ -71,7 +78,9 @@ object TimeSequenceParser {
     /**
      * Parses duration string
      *
-     * Months and years use calendar arithmetic from epoch 0 (1970-01-01), so their exact duration depends on the reference date
+     * Months and years use fixed arithmetic:
+     * 1 month = 30 days
+     * 1 year = 365 days
      * Very large numeric values may cause overflow or incorrect results
      *
      * @param value String to parse
@@ -89,21 +98,41 @@ object TimeSequenceParser {
             throw IllegalArgumentException("Incorrect period/duration: $value")
         }
 
-        return listOf(
-            ChronoUnit.YEARS to groups.getOrNull(2),
-            ChronoUnit.MONTHS to groups.getOrNull(5),
-            ChronoUnit.WEEKS to groups.getOrNull(8),
-            ChronoUnit.DAYS to groups.getOrNull(11),
-            ChronoUnit.HOURS to groups.getOrNull(14),
-            ChronoUnit.MINUTES to groups.getOrNull(17),
-            ChronoUnit.SECONDS to groups.getOrNull(20),
-            ChronoUnit.MILLIS to groups.getOrNull(23)
-        ).fold(LocalDateTime.ofEpochSecond(0, 0, ZoneOffset.UTC)) { acc, (unit, amount) ->
-            if (amount?.isNotEmpty() == true && amount.all { it.isDigit() }) {
-                unit.addTo(acc, amount.toLong())
-            } else {
-                acc
-            }
-        }.toEpochSecond(ZoneOffset.UTC) * 1000
+        var duration = 0L
+
+        // Years (Index 2)
+        groups.getOrNull(2)?.takeIf { it.isNotEmpty() }?.let {
+            duration += it.toLong() * MS_IN_YEAR
+        }
+        // Months (Index 5)
+        groups.getOrNull(5)?.takeIf { it.isNotEmpty() }?.let {
+            duration += it.toLong() * MS_IN_MONTH
+        }
+        // Weeks (Index 8)
+        groups.getOrNull(8)?.takeIf { it.isNotEmpty() }?.let {
+            duration += it.toLong() * MS_IN_WEEK
+        }
+        // Days (Index 11)
+        groups.getOrNull(11)?.takeIf { it.isNotEmpty() }?.let {
+            duration += it.toLong() * MS_IN_DAY
+        }
+        // Hours (Index 14)
+        groups.getOrNull(14)?.takeIf { it.isNotEmpty() }?.let {
+            duration += it.toLong() * MS_IN_HOUR
+        }
+        // Minutes (Index 17)
+        groups.getOrNull(17)?.takeIf { it.isNotEmpty() }?.let {
+            duration += it.toLong() * MS_IN_MINUTE
+        }
+        // Seconds (Index 20)
+        groups.getOrNull(20)?.takeIf { it.isNotEmpty() }?.let {
+            duration += it.toLong() * MS_IN_SECOND
+        }
+        // Millis (Index 23)
+        groups.getOrNull(23)?.takeIf { it.isNotEmpty() }?.let {
+            duration += it.toLong()
+        }
+
+        return duration
     }
 }

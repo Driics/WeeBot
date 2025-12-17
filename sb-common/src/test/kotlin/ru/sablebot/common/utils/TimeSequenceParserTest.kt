@@ -42,8 +42,7 @@ class TimeSequenceParserTest {
         assertEquals(90_000L, TimeSequenceParser.parseShort("1min30s"))
 
         // Test larger combinations
-        // FIXME: org.opentest4j.AssertionFailedError: expected: <2678461000> but was: <3373261000>
-        assertEquals(2_678_461_000L, TimeSequenceParser.parseShort("1mo1w1d1h1min1s"))
+        assertEquals(3_286_861_000L, TimeSequenceParser.parseShort("1mo1w1d1h1min1s"))
     }
 
     @Test
@@ -78,12 +77,11 @@ class TimeSequenceParserTest {
         assertEquals(3_024_000_000L, TimeSequenceParser.parseShort("5недель"))
         assertEquals(604_800_000L, TimeSequenceParser.parseShort("1неделю"))
 
-        assertEquals(2_678_400_000L, TimeSequenceParser.parseShort("1мес"))
+        assertEquals(2_592_000_000L, TimeSequenceParser.parseShort("1мес"))
 
-        assertEquals(2_678_400_000L, TimeSequenceParser.parseShort("1месяц"))
-        // FIXME: org.opentest4j.AssertionFailedError: expected: <5356800000> but was: <5097600000>
-        assertEquals(5_356_800_000L, TimeSequenceParser.parseShort("2месяца"))
-        assertEquals(13_392_000_000L, TimeSequenceParser.parseShort("5месяцев"))
+        assertEquals(2_592_000_000L, TimeSequenceParser.parseShort("1месяц"))
+        assertEquals(5_184_000_000L, TimeSequenceParser.parseShort("2месяца"))
+        assertEquals(12_960_000_000L, TimeSequenceParser.parseShort("5месяцев"))
 
         assertEquals(31_536_000_000L, TimeSequenceParser.parseShort("1г"))
         assertEquals(31_536_000_000L, TimeSequenceParser.parseShort("1год"))

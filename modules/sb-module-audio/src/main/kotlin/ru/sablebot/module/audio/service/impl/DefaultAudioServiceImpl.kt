@@ -45,6 +45,7 @@ class DefaultAudioServiceImpl(
         configureInternal(
             userId = discordService.selfUser.idLong,
             shardsTotal = workerProperties.discord.shardsTotal,
+            // FIXME: Return type mismatch: expected 'Pair<Int, JDA>', actual 'Unit' in return.
             shardById = { shardId -> shardId to (discordService.getShardById(shardId) ?: return@configureInternal) })
 
         builder.setVoiceDispatchInterceptor(JDAVoiceUpdateListener(lavalink))
@@ -61,10 +62,16 @@ class DefaultAudioServiceImpl(
 
     override fun disconnect(guild: Guild) = guild.jda.directAudioController.disconnect(guild)
 
+    // FIXME: "Unresolved reference 'isConnected'" error
     override fun isConnected(guild: Guild): Boolean = guild.jda.directAudioController.isConnected(guild)
 
     override fun shutdown() {
-        runCatching { lavalink.close() }
+        runCatching {
+            lavalink.close()
+            registeredNodeUris.clear()
+        }.onFailure { e ->
+            log.warn(e) { "Failed to shutdown Lavalink client" }
+        }
     }
 
     private fun configureInternal(
@@ -102,13 +109,13 @@ class DefaultAudioServiceImpl(
 
         try {
             val instances = discoveryClient.getInstances(discovery.serviceName)
-            val liveUris = instances.mapNotNull { instance ->
-                runCatching { URI("ws://${instance.host}:${instance.port}") }.getOrNull()
+            val instanceUris = instances.mapNotNull { instance ->
+                runCatching { instance to URI("ws://${instance.host}:${instance.port}") }.getOrNull()
             }.toSet()
+            val liveUris = instanceUris.map { it.second }.toSet()
 
-            instances.forEach { instance ->
+            instanceUris.forEach { (instance, uri) ->
                 runCatching {
-                    val uri = URI("ws://${instance.host}:${instance.port}")
                     if (registeredNodeUris.add(uri)) {
                         val instanceName = instance.metadata["instanceName"] ?: instance.instanceId
                         addOrReplaceNode(instanceName, uri, discovery.password, secure = false)
