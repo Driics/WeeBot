@@ -37,7 +37,7 @@ class ValidationService(
 
         val instance: PlaybackInstance? = playerService.get(requestedBy.guild)
 
-        if (track.isStream == true && cfg == null) {
+        if (track.isStream == true && (cfg == null || !cfg.streamsEnabled)) {
             throw ValidationException("discord.command.audio.queue.limits.streams")
         }
 
@@ -84,7 +84,7 @@ class ValidationService(
         var filtered = tracks
 
         // streams filter[web:2]
-        if (filtered.isNotEmpty() && cfg.isStreamsEnabled.not()) {
+        if (filtered.isNotEmpty() && !cfg.streamsEnabled) {
             filtered = filtered.filter { it.isStream != true }
             if (filtered.isEmpty()) {
                 throw ValidationException("discord.command.audio.queue.limits.streams")
