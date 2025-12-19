@@ -118,7 +118,7 @@ class ValidationService(
         // queue slots per user
         if (instance != null && queueLimit != null) {
             val userQueue = instance.queueSnapshot(requestedBy)
-            val availableSlots = queueLimit.toInt() - userQueue.size
+            val availableSlots = queueLimit.coerceAtMost(Int.MAX_VALUE.toLong()).toInt() - userQueue.size
             if (availableSlots <= 0) {
                 throw ValidationException("discord.command.audio.queue.limits.items", queueLimit)
             }

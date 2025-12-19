@@ -14,7 +14,6 @@ class PlaybackInstance(
 
     var audioManager: AudioManager? = null // можно вообще удалить в v4, если используешь DirectAudioController
     var mode: RepeatMode = RepeatMode.NONE
-        private set
 
     var cursor: Int = -1
         private set

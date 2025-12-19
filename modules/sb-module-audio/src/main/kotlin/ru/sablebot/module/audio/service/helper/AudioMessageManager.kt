@@ -13,6 +13,7 @@ import ru.sablebot.common.worker.event.service.ContextService
 import ru.sablebot.common.worker.feature.service.FeatureSetService
 import ru.sablebot.common.worker.shared.service.DiscordService
 import ru.sablebot.module.audio.model.TrackRequest
+import ru.sablebot.module.audio.utils.MessageController
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.locks.ReentrantLock
@@ -69,16 +70,18 @@ class AudioMessageManager(
                 return
             }
 
-            controllers[request.guildId]?.doForMessage { message ->
-                message?.editMessage(getPlayMessage(request).build())?.queue(
-                    { },
-                    { throwable ->
-                        if (throwable is ErrorResponseException) {
-                            handleUpdateError(request, throwable)
+            controllers[request.guildId]?.executeForMessage(
+                { message ->
+                    message.editMessage(getPlayMessage(request).build())?.queue(
+                        { },
+                        { throwable ->
+                            if (throwable is ErrorResponseException) {
+                                handleUpdateError(request, throwable)
+                            }
                         }
-                    }
-                )
-            }
+                    )
+                }
+            )
         } catch (e: PermissionException) {
             logger.warn(e) { "No permission to update" }
             cancelUpdate(request)
@@ -93,7 +96,7 @@ class AudioMessageManager(
                 contextService.withContext(request.guildId) {
                     updateMessage(request)
                 }
-            })
+            }, workerProperties.audio.panelRefreshInterval.toLong())
 
             updaterTasks.put(request.guildId, task)?.cancel(true)
         }
@@ -112,11 +115,9 @@ class AudioMessageManager(
         } finally {
             lock.unlock()
 
-            if (!lock.hasQueuedThreads()) {
-                guildLocks.remove(request.guildId)
-
-                if (lock.hasQueuedThreads()) {
-                    guildLocks[request.guildId] = lock
+            synchronized(guildLocks) {
+                if (!lock.hasQueuedThreads()) {
+                    guildLocks.remove(request.guildId, lock)
                 }
             }
         }
