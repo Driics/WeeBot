@@ -8,7 +8,8 @@ data class KafkaProperties(
     val consumer: ConsumerProperties = ConsumerProperties(),
     val producer: ProducerProperties = ProducerProperties(),
     val topic: TopicProperties = TopicProperties(),
-    val retry: RetryProperties = RetryProperties()
+    val retry: RetryProperties = RetryProperties(),
+    val deadLetter: DeadLetterProperties = DeadLetterProperties()
 ) {
     data class ConsumerProperties(
         val workerGroupId: String = "sablebot-worker-group",
@@ -32,5 +33,10 @@ data class KafkaProperties(
         val initialInterval: Long = 200L,
         val multiplier: Double = 2.0,
         val maxInterval: Long = 5000L
+    )
+
+    data class DeadLetterProperties(
+        val enabled: Boolean = true,
+        val useSingleTopic: Boolean = false // false = per-topic DLT, true = single DLT
     )
 }

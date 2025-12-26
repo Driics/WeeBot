@@ -5,9 +5,12 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.apache.kafka.clients.admin.AdminClientConfig
 import org.apache.kafka.clients.admin.NewTopic
 import org.apache.kafka.clients.consumer.ConsumerConfig
+import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.ProducerConfig
+import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.kafka.common.serialization.StringSerializer
+import org.slf4j.LoggerFactory
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -17,6 +20,7 @@ import org.springframework.kafka.config.TopicBuilder
 import org.springframework.kafka.core.*
 import org.springframework.kafka.listener.ConcurrentMessageListenerContainer
 import org.springframework.kafka.listener.ContainerProperties
+import org.springframework.kafka.listener.DeadLetterPublishingRecoverer
 import org.springframework.kafka.listener.DefaultErrorHandler
 import org.springframework.kafka.requestreply.ReplyingKafkaTemplate
 import org.springframework.kafka.support.ExponentialBackOffWithMaxRetries
@@ -30,6 +34,8 @@ import org.springframework.kafka.support.serializer.JsonSerializer
 class KafkaConfiguration(
     private val kafkaProperties: KafkaProperties
 ) {
+    private val logger = LoggerFactory.getLogger(KafkaConfiguration::class.java)
+
     @Bean
     fun objectMapper(): ObjectMapper = jacksonObjectMapper()
 
@@ -62,7 +68,7 @@ class KafkaConfiguration(
         ConcurrentKafkaListenerContainerFactory<String, Any>().apply {
             this.consumerFactory = consumerFactory
             setReplyTemplate(kafkaTemplate)
-            setCommonErrorHandler(buildErrorHandler())
+            setCommonErrorHandler(buildErrorHandler(kafkaTemplate))
         }
 
     @Bean
@@ -121,7 +127,7 @@ class KafkaConfiguration(
         )
     }
 
-    private fun buildErrorHandler(): DefaultErrorHandler {
+    private fun buildErrorHandler(kafkaTemplate: KafkaTemplate<String, Any>): DefaultErrorHandler {
         val backOff = ExponentialBackOffWithMaxRetries(
             kafkaProperties.retry.maxRetries
         ).apply {
@@ -129,6 +135,57 @@ class KafkaConfiguration(
             multiplier = kafkaProperties.retry.multiplier
             maxInterval = kafkaProperties.retry.maxInterval
         }
-        return DefaultErrorHandler(backOff)
+
+        val recoverer = buildDeadLetterRecoverer(kafkaTemplate)
+
+        return DefaultErrorHandler(recoverer, backOff).apply {
+            setRetryListeners({ record, ex, deliveryAttempt ->
+                logger.warn(
+                    "Retry attempt {} for topic={}, partition={}, offset={}, exception={}",
+                    deliveryAttempt,
+                    record.topic(),
+                    record.partition(),
+                    record.offset(),
+                    ex.message
+                )
+            })
+        }
+    }
+
+    private fun buildDeadLetterRecoverer(
+        kafkaTemplate: KafkaTemplate<String, Any>
+    ): DeadLetterPublishingRecoverer {
+        val destinationResolver: (ConsumerRecord<*, *>, Exception) -> TopicPartition = { record, ex ->
+            val deadLetterTopic = if (kafkaProperties.deadLetter.useSingleTopic) {
+                KafkaTopics.DEAD_LETTER
+            } else {
+                KafkaTopics.deadLetterTopicFor(record.topic())
+            }
+
+            logger.error(
+                "Sending record to DLT: topic={}, partition={}, offset={}, dlt={}, exception={}",
+                record.topic(),
+                record.partition(),
+                record.offset(),
+                deadLetterTopic,
+                ex.message
+            )
+
+            TopicPartition(deadLetterTopic, -1) // -1 = use default partitioning
+        }
+
+        return DeadLetterPublishingRecoverer(kafkaTemplate, destinationResolver).apply {
+            setHeadersFunction { _, exception ->
+                // Add custom headers to DLT message for debugging
+                org.springframework.kafka.support.KafkaHeaders.DLT_EXCEPTION_MESSAGE
+                mapOf(
+                    "x-original-exception" to (exception.message ?: "Unknown error").toByteArray(),
+                    "x-failed-timestamp" to System.currentTimeMillis().toString().toByteArray()
+                ).entries.fold(org.apache.kafka.common.header.internals.RecordHeaders()) { headers, entry ->
+                    headers.add(entry.key, entry.value)
+                    headers
+                }
+            }
+        }
     }
 }
