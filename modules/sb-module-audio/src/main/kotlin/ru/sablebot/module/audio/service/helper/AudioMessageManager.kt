@@ -2,6 +2,7 @@ package ru.sablebot.module.audio.service.helper
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import net.dv8tion.jda.api.EmbedBuilder
+import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.exceptions.ErrorResponseException
 import net.dv8tion.jda.api.exceptions.PermissionException
 import net.dv8tion.jda.api.requests.ErrorResponse
@@ -15,6 +16,8 @@ import ru.sablebot.common.worker.configuration.WorkerProperties
 import ru.sablebot.common.worker.event.service.ContextService
 import ru.sablebot.common.worker.feature.service.FeatureSetService
 import ru.sablebot.common.worker.shared.service.DiscordService
+import ru.sablebot.module.audio.model.PlaybackInstance
+import ru.sablebot.module.audio.model.RepeatMode
 import ru.sablebot.module.audio.model.TrackRequest
 import ru.sablebot.module.audio.utils.MessageController
 import java.time.Duration
@@ -34,6 +37,12 @@ class AudioMessageManager(
 ) {
     companion object {
         private val logger = KotlinLogging.logger {}
+
+        private const val MAX_SHORT_QUEUE = 5
+        private const val DEFAULT_VOLUME = 100
+        private const val MIN_LOAD_PERCENT = 0
+        private const val MAX_LOAD_PERCENT = 100
+        private const val PAUSE_EMOJI = "⏸"
     }
 
     private val updaterTasks = ConcurrentHashMap<Long, ScheduledFuture<*>>()
@@ -140,6 +149,94 @@ class AudioMessageManager(
         }
     }
 
-    private fun getPlayMessage(request: TrackRequest): EmbedBuilder {
+    private fun getBasicMessage(request: TrackRequest): EmbedBuilder {
+        return EmbedBuilder()
     }
+
+    private fun getPlayMessage(request: TrackRequest): EmbedBuilder {
+        val instance = TrackData.get(request.track).instance
+        val context = PlayMessageContext(
+            request = request,
+            instance = instance,
+            isRefreshable = isRefreshable(instance.guildId),
+            isEnded = request.endReason != null
+        )
+
+        return buildEmbed(getBasicMessage(request)) {
+            description = null
+
+            withPlaylistLink(context)
+            withQueuePreview(context)
+            withTrackInfoFields(context)
+
+            if (!context.isEnded) {
+                withPlaybackStatusFields(context)
+                withNodeFooter(context)
+            }
+        }
+    }
+
+    // Extension function for cleaner embed building
+    private inline fun buildEmbed(
+        base: EmbedBuilder,
+        block: EmbedBuilder.() -> Unit
+    ): EmbedBuilder = base.apply(block)
+
+    // Using sealed interface for field types
+    private sealed interface EmbedField {
+        val name: String
+        val value: Emoji
+        val inline: Boolean
+
+        data class Volume(val volume: Int) : EmbedField {
+            override val name = "Volume"
+            override val value = Emoji.fromFormatted("$volume")
+            override val inline = true
+        }
+
+        data class RepeatMode(val mode: ru.sablebot.module.audio.model.RepeatMode) : EmbedField {
+            override val name = "Repeat"
+            override val value = mode.emoji
+            override val inline = true
+        }
+
+        data object Paused : EmbedField {
+            override val name = "Status"
+            override val value = Emoji.fromUnicode(PAUSE_EMOJI)
+            override val inline = true
+        }
+    }
+
+    private fun collectStatusFields(context: PlayMessageContext): List<EmbedField> = buildList {
+        val player = context.instance.player
+
+        if (player.volume != DEFAULT_VOLUME) {
+            add(EmbedField.Volume(player.volume))
+        }
+
+        if (context.instance.mode != RepeatMode.NONE) {
+            add(EmbedField.RepeatMode(context.instance.mode))
+        }
+
+        if (player.paused) {
+            add(EmbedField.Paused)
+        }
+    }
+
+    private fun EmbedBuilder.withPlaybackStatusFields(context: PlayMessageContext) {
+        collectStatusFields(context).forEach { field ->
+            addField(
+                messageService.getMessage("discord.command.audio.panel.${field.name.lowercase()}"),
+                field.value,
+                field.inline
+            )
+        }
+    }
+
+    private data class PlayMessageContext(
+        val request: TrackRequest,
+        val instance: PlaybackInstance,
+        val isRefreshable: Boolean,
+        val isEnded: Boolean
+    )
 }
