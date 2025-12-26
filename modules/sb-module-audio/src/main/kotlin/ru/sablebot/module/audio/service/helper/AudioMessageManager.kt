@@ -1,9 +1,11 @@
 package ru.sablebot.module.audio.service.helper
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import net.dv8tion.jda.api.EmbedBuilder
 import net.dv8tion.jda.api.exceptions.ErrorResponseException
 import net.dv8tion.jda.api.exceptions.PermissionException
 import net.dv8tion.jda.api.requests.ErrorResponse
+import net.dv8tion.jda.api.utils.messages.MessageEditData
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.scheduling.TaskScheduler
 import ru.sablebot.common.configuration.CommonConfiguration
@@ -74,7 +76,7 @@ class AudioMessageManager(
 
             controllers[request.guildId]?.executeForMessage(
                 { message ->
-                    message.editMessage(getPlayMessage(request).build())?.queue(
+                    message.editMessage(MessageEditData.fromEmbeds(getPlayMessage(request).build())).queue(
                         { },
                         { throwable ->
                             if (throwable is ErrorResponseException) {
@@ -136,5 +138,8 @@ class AudioMessageManager(
                 }
             }
         }
+    }
+
+    private fun getPlayMessage(request: TrackRequest): EmbedBuilder {
     }
 }
