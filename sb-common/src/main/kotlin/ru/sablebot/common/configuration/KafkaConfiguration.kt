@@ -159,50 +159,11 @@ class KafkaConfiguration(
     }
 
     @Bean
-    fun guildInfoRequestTopic(): NewTopic = TopicBuilder.name(TOPIC_GUILD_INFO_REQUEST)
-        .partitions(3).replicas(1).build()
-
-    @Bean
-    fun rankingUpdateRequestTopic(): NewTopic = TopicBuilder.name(TOPIC_RANKING_UPDATE_REQUEST)
-        .partitions(3).replicas(1).build()
-
-    @Bean
-    fun commandListRequestTopic(): NewTopic = TopicBuilder.name(TOPIC_COMMAND_LIST_REQUEST)
-        .partitions(3).replicas(1).build()
-
-    @Bean
-    fun statusRequestTopic(): NewTopic = TopicBuilder.name(TOPIC_STATUS_REQUEST)
-        .partitions(3).replicas(1).build()
-
-    @Bean
-    fun statusReplyTopic(): NewTopic = TopicBuilder.name(TOPIC_STATUS_REPLY)
-        .partitions(3).replicas(1).build()
-
-    @Bean
-    fun webhookGetRequestTopic(): NewTopic = TopicBuilder.name(TOPIC_WEBHOOK_GET_REQUEST)
-        .partitions(3).replicas(1).build()
-
-    @Bean
-    fun webhookUpdateRequestTopic(): NewTopic = TopicBuilder.name(TOPIC_WEBHOOK_UPDATE_REQUEST)
-        .partitions(3).replicas(1).build()
-
-    @Bean
-    fun webhookDeleteRequestTopic(): NewTopic = TopicBuilder.name(TOPIC_WEBHOOK_DELETE_REQUEST)
-        .partitions(3).replicas(1).build()
-
-    @Bean
-    fun patreonWebhookRequestTopic(): NewTopic = TopicBuilder.name(TOPIC_PATREON_WEBHOOK_REQUEST)
-        .partitions(3).replicas(1).build()
-
-    @Bean
-    fun checkOwnerRequestTopic(): NewTopic = TopicBuilder.name(TOPIC_CHECK_OWNER_REQUEST)
-        .partitions(3).replicas(1).build()
-
-    @Bean
-    fun checkOwnerReplyTopic(): NewTopic = TopicBuilder.name(TOPIC_CHECK_OWNER_REPLY)
-        .partitions(3).replicas(1).build()
-
-    @Bean
-    fun cacheEvictRequestTopic(): NewTopic = TopicBuilder.name(TOPIC_CACHE_EVICT_REQUEST)
-        .partitions(3).replicas(1).build()
+    fun kafkaTopics(): List<NewTopic> = listOf(
+        TOPIC_GUILD_INFO_REQUEST, TOPIC_RANKING_UPDATE_REQUEST, TOPIC_COMMAND_LIST_REQUEST,
+        TOPIC_STATUS_REQUEST, TOPIC_STATUS_REPLY, TOPIC_WEBHOOK_GET_REQUEST,
+        TOPIC_WEBHOOK_UPDATE_REQUEST, TOPIC_WEBHOOK_DELETE_REQUEST,
+        TOPIC_PATREON_WEBHOOK_REQUEST, TOPIC_CHECK_OWNER_REQUEST,
+        TOPIC_CHECK_OWNER_REPLY, TOPIC_CACHE_EVICT_REQUEST
+    ).map { TopicBuilder.name(it).partitions(3).replicas(1).build() }
 }

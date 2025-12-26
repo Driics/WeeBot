@@ -3,6 +3,7 @@ package ru.sablebot.module.audio.service.helper
 import io.github.oshai.kotlinlogging.KotlinLogging
 import net.dv8tion.jda.api.exceptions.ErrorResponseException
 import net.dv8tion.jda.api.exceptions.PermissionException
+import net.dv8tion.jda.api.requests.ErrorResponse
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.scheduling.TaskScheduler
 import ru.sablebot.common.configuration.CommonConfiguration
@@ -14,6 +15,7 @@ import ru.sablebot.common.worker.feature.service.FeatureSetService
 import ru.sablebot.common.worker.shared.service.DiscordService
 import ru.sablebot.module.audio.model.TrackRequest
 import ru.sablebot.module.audio.utils.MessageController
+import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.locks.ReentrantLock
@@ -90,13 +92,26 @@ class AudioMessageManager(
         }
     }
 
+    private fun handleUpdateError(
+        request: TrackRequest,
+        e: ErrorResponseException
+    ) {
+        when (e.errorResponse) {
+            ErrorResponse.UNKNOWN_MESSAGE, ErrorResponse.MISSING_ACCESS -> cancelUpdate(request)
+            else -> {
+                logger.error(e) { "Update error" }
+                return
+            }
+        }
+    }
+
     private fun runUpdater(request: TrackRequest) {
         syncByGuild(request) {
             val task = scheduler.scheduleWithFixedDelay({
                 contextService.withContext(request.guildId) {
                     updateMessage(request)
                 }
-            }, workerProperties.audio.panelRefreshInterval.toLong())
+            }, Duration.ofMillis(workerProperties.audio.panelRefreshInterval.toLong()))
 
             updaterTasks.put(request.guildId, task)?.cancel(true)
         }

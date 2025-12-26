@@ -14,7 +14,7 @@ interface MusicConfigRepository : GuildRepository<MusicConfig> {
     @Transactional
     @Query("UPDATE MusicConfig m SET m.voiceVolume = :voiceVolume WHERE m.guildId = :guildId")
     fun updateVolume(
-        @Param("guild_id") guildId: Long,
+        @Param("guildId") guildId: Long,
         @Param("voiceVolume") voiceVolume: Int
     )
 }

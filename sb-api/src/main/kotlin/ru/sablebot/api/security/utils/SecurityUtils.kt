@@ -7,8 +7,8 @@ import ru.sablebot.api.security.models.DiscordUserDetails
 
 object SecurityUtils {
 
-    val currentUser: DiscordUserDetails? =
-        getDetails(SecurityContextHolder.getContext().authentication)
+    val currentUser: DiscordUserDetails?
+        get() = getDetails(SecurityContextHolder.getContext().authentication)
 
     fun getDetails(authentication: Authentication?): DiscordUserDetails? {
         val principal = authentication?.principal

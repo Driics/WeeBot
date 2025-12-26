@@ -1,11 +1,15 @@
 package ru.sablebot.common.worker.message.model.commands.options
 
+import dev.minn.jda.ktx.interactions.commands.Option
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.User
 import net.dv8tion.jda.api.interactions.commands.OptionMapping
+import net.dv8tion.jda.api.interactions.commands.build.OptionData
 import ru.sablebot.common.worker.message.model.commands.autocomplete.AutocompleteExecutor
 
-sealed class OptionReference<T>(val name: String)
+sealed class OptionReference<T>(val name: String) {
+    open fun toOptionData(): List<OptionData> = emptyList()
+}
 
 sealed class DiscordOptionReference<T>(
     name: String,
@@ -29,6 +33,10 @@ class StringDiscordOptionReference<T>(
     }
 
     override fun get(option: OptionMapping): T = option.asString as T
+
+    override fun toOptionData() = listOf(
+        Option<String>(name, description, required)
+    )
 
     sealed class Choice {
         class RawChoice(

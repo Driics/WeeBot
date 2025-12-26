@@ -156,12 +156,11 @@ class DefaultAudioServiceImpl(
         lavalink.addNode(nodeOptions)
     }
 
-    private fun removeNodeByUri(uri: URI): Boolean {
-        val node: LavalinkNode? = lavalink.nodes.firstOrNull { it.baseUri == uri.host }
-        return if (node != null) {
-            runCatching { node.close() }.isSuccess
-        } else false
-    }
+    private fun removeNodeByUri(uri: URI): Boolean =
+        lavalink.nodes
+            .firstOrNull { it.baseUri == uri.toString() }
+            ?.let { runCatching { it.close() }.isSuccess }
+            ?: false
 
     private fun optimalNodeOrThrow(): LavalinkNode =
         lavalink.nodes.filter { it.available }.minByOrNull { it.penalties.calculateTotal() }
