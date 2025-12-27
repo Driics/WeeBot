@@ -1,8 +1,9 @@
 package ru.sablebot.module.audio.service.helper
 
+import dev.arbjerg.lavalink.client.LavalinkNode
+import dev.arbjerg.lavalink.client.player.LavalinkPlayer
 import io.github.oshai.kotlinlogging.KotlinLogging
 import net.dv8tion.jda.api.EmbedBuilder
-import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.exceptions.ErrorResponseException
 import net.dv8tion.jda.api.exceptions.PermissionException
 import net.dv8tion.jda.api.requests.ErrorResponse
@@ -12,23 +13,29 @@ import org.springframework.scheduling.TaskScheduler
 import ru.sablebot.common.configuration.CommonConfiguration
 import ru.sablebot.common.configuration.CommonProperties
 import ru.sablebot.common.service.MusicConfigService
+import ru.sablebot.common.utils.CommonUtils
 import ru.sablebot.common.worker.configuration.WorkerProperties
 import ru.sablebot.common.worker.event.service.ContextService
 import ru.sablebot.common.worker.feature.service.FeatureSetService
+import ru.sablebot.common.worker.message.service.MessageService
 import ru.sablebot.common.worker.shared.service.DiscordService
 import ru.sablebot.module.audio.model.PlaybackInstance
 import ru.sablebot.module.audio.model.RepeatMode
 import ru.sablebot.module.audio.model.TrackRequest
+import ru.sablebot.module.audio.service.ILavalinkV4AudioService
 import ru.sablebot.module.audio.utils.MessageController
 import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.locks.ReentrantLock
+import kotlin.math.roundToInt
 
 class AudioMessageManager(
     @param:Qualifier(CommonConfiguration.SCHEDULER)
     private val scheduler: TaskScheduler,
     private val contextService: ContextService,
+    private val audioService: ILavalinkV4AudioService,
+    private val messageService: MessageService,
     private val discordService: DiscordService,
     private val featureSetService: FeatureSetService,
     private val musicConfigService: MusicConfigService,
@@ -163,7 +170,7 @@ class AudioMessageManager(
         )
 
         return buildEmbed(getBasicMessage(request)) {
-            description = null
+            setDescription(null)
 
             withPlaylistLink(context)
             withQueuePreview(context)
@@ -176,62 +183,180 @@ class AudioMessageManager(
         }
     }
 
+    private fun EmbedBuilder.withPlaylistLink(context: PlayMessageContext) {
+        val playlistUuid = context.instance.playlistUuid ?: return
+
+        setDescription(
+            messageService.getMessage(
+                "discord.command.audio.panel.playlist",
+                commonProperties.branding.websiteUrl,
+                playlistUuid
+            )
+        )
+    }
+
+    private fun EmbedBuilder.withQueuePreview(context: PlayMessageContext) {
+        if (context.isEnded) return
+
+        val queue = context.instance.queueSnapshot()
+        if (queue.size <= 1) return
+
+        val config = musicConfigService.getByGuildId(context.instance.guildId)
+        if (config?.showQueue != true) return
+
+        val nextTracks = queue.subList(1, minOf(queue.size, MAX_SHORT_QUEUE + 1))
+        val startIndex = context.instance.cursor + 2
+
+        addQueue(this, context.instance, nextTracks, startIndex, compact = true)
+    }
+
+    // endregion
+
+    private fun buildDurationText(context: PlayMessageContext): String {
+        return if (context.isEnded) {
+            buildEndedDurationText(context)
+        } else {
+            getTextProgress(context.instance, context.request.track, context.isRefreshable)
+        }
+    }
+
+    private fun buildEndedDurationText(context: PlayMessageContext): String = buildString {
+        val info = context.request.track.info
+        val hasDuration = !info.isStream && info.length > 0
+
+        if (hasDuration) {
+            append(CommonUtils.formatDuration(context.request.track.duration))
+            append(" (")
+        }
+
+        append(messageService.getEnumTitle(context.request.endReason))
+
+        val endMember = getMemberName(context.request, forEndReason = true)
+        if (endMember.isNotBlank()) {
+            append(" - **")
+            append(endMember)
+            append("**")
+        }
+
+        if (hasDuration) {
+            append(")")
+        }
+
+        append(CommonUtils.EMPTY_SYMBOL)
+    }
+
+    // region Track Info Fields
+
+    private fun EmbedBuilder.withTrackInfoFields(context: PlayMessageContext) {
+        val durationText = buildDurationText(context)
+        val requestedBy = getMemberName(context.request, forEndReason = false)
+        val isCompactLayout = !context.request.isStream && context.isRefreshable
+
+        if (isCompactLayout) {
+            withCompactTrackField(requestedBy, durationText)
+        } else {
+            withExpandedTrackFields(durationText, requestedBy)
+        }
+    }
+
+    private fun EmbedBuilder.withCompactTrackField(requestedBy: String, durationText: String) {
+        val label = buildString {
+            append(messageService.getMessage("discord.command.audio.panel.requestedBy"))
+            append(": ")
+            append(requestedBy)
+        }
+        addField(label, durationText, true)
+    }
+
+    private fun EmbedBuilder.withExpandedTrackFields(durationText: String, requestedBy: String) {
+        addField(
+            messageService.getMessage("discord.command.audio.panel.duration"),
+            durationText,
+            true
+        )
+        addField(
+            messageService.getMessage("discord.command.audio.panel.requestedBy"),
+            requestedBy,
+            true
+        )
+    }
+
+    private fun EmbedBuilder.withPlaybackStatusFields(context: PlayMessageContext) {
+        val player = context.instance.player
+
+        withVolumeField(player)
+        withRepeatModeField(context.instance)
+        withPausedField(player)
+    }
+
+    private fun EmbedBuilder.withVolumeField(player: LavalinkPlayer) {
+        val volume = player.volume
+        if (volume == DEFAULT_VOLUME) return
+
+        addField(
+            messageService.getMessage("discord.command.audio.panel.volume"),
+            "$volume% TODO icon",
+            true
+        )
+    }
+
+    private fun EmbedBuilder.withRepeatModeField(instance: PlaybackInstance) {
+        val mode = instance.mode
+        if (mode == RepeatMode.NONE) return
+
+        addField(
+            messageService.getMessage("discord.command.audio.panel.repeatMode"),
+            mode.emoji.formatted,
+            true
+        )
+    }
+
+    private fun EmbedBuilder.withPausedField(player: LavalinkPlayer) {
+        if (!player.paused) return
+
+        addField(
+            messageService.getMessage("discord.command.audio.panel.paused"),
+            PAUSE_EMOJI,
+            true
+        )
+    }
+
+    private fun EmbedBuilder.withNodeFooter(context: PlayMessageContext) {
+        val node = audioService.lavalink.nodes
+            .firstOrNull { it.getPlayer(context.instance.guildId).block() == context.instance.player }
+            ?: return
+
+        val footerText = buildNodeFooterText(node, context.isRefreshable)
+        setFooter(footerText, null)
+    }
+
+    private fun buildNodeFooterText(node: LavalinkNode, isRefreshable: Boolean): String {
+        val baseText = messageService.getMessage(
+            "discord.command.audio.panel.poweredBy",
+            node.name
+        )
+
+        if (!isRefreshable) return baseText
+
+        val stats = node.stats ?: return baseText
+
+        val loadPercentage = (stats.cpu.systemLoad * 100)
+            .roundToInt()
+            .coerceIn(MIN_LOAD_PERCENT, MAX_LOAD_PERCENT)
+
+        val loadText = messageService.getMessage(
+            "discord.command.audio.panel.load",
+            loadPercentage
+        )
+
+        return "$baseText $loadText"
+    }
+
     // Extension function for cleaner embed building
     private inline fun buildEmbed(
         base: EmbedBuilder,
         block: EmbedBuilder.() -> Unit
     ): EmbedBuilder = base.apply(block)
-
-    // Using sealed interface for field types
-    private sealed interface EmbedField {
-        val name: String
-        val value: Emoji
-        val inline: Boolean
-
-        data class Volume(val volume: Int) : EmbedField {
-            override val name = "Volume"
-            override val value = Emoji.fromFormatted("$volume")
-            override val inline = true
-        }
-
-        data class RepeatMode(val mode: ru.sablebot.module.audio.model.RepeatMode) : EmbedField {
-            override val name = "Repeat"
-            override val value = mode.emoji
-            override val inline = true
-        }
-
-        data object Paused : EmbedField {
-            override val name = "Status"
-            override val value = Emoji.fromUnicode(PAUSE_EMOJI)
-            override val inline = true
-        }
-    }
-
-    private fun collectStatusFields(context: PlayMessageContext): List<EmbedField> = buildList {
-        val player = context.instance.player
-
-        if (player.volume != DEFAULT_VOLUME) {
-            add(EmbedField.Volume(player.volume))
-        }
-
-        if (context.instance.mode != RepeatMode.NONE) {
-            add(EmbedField.RepeatMode(context.instance.mode))
-        }
-
-        if (player.paused) {
-            add(EmbedField.Paused)
-        }
-    }
-
-    private fun EmbedBuilder.withPlaybackStatusFields(context: PlayMessageContext) {
-        collectStatusFields(context).forEach { field ->
-            addField(
-                messageService.getMessage("discord.command.audio.panel.${field.name.lowercase()}"),
-                field.value,
-                field.inline
-            )
-        }
-    }
 
     private data class PlayMessageContext(
         val request: TrackRequest,

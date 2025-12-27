@@ -8,7 +8,7 @@ import net.dv8tion.jda.api.requests.restaction.interactions.ReplyCallbackAction
 import java.util.*
 
 interface MessageService {
-    fun getMessage(code: String, vararg args: Any?): String?
+    fun getMessage(code: String, vararg args: Any?): String
 
     fun getMessageByLocale(key: String?, locale: Locale?, vararg args: Any?): String?
 

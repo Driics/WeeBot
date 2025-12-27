@@ -25,7 +25,7 @@ data class TrackRequest(
     val uri: String? = null,
     val sourceName: String? = null,
     val lengthMs: Long? = null,
-    val isStream: Boolean? = null,
+    val isStream: Boolean = false,
     val isSeekable: Boolean? = null,
     val artworkUrl: String? = null,
     val isrc: String? = null

@@ -23,9 +23,8 @@ class MessageServiceImpl @Autowired constructor(
             setFooter("Test embed footer")
         }
 
-    override fun getMessage(code: String, vararg args: Any?): String? {
-        return getMessageByLocale(code, contextService.getLocale(), *args)
-    }
+    override fun getMessage(code: String, vararg args: Any?): String =
+        getMessageByLocale(code, contextService.getLocale(), *args) ?: "Unknown"
 
     override fun getMessageByLocale(key: String?, locale: Locale?, vararg args: Any?): String? {
         return key?.let {
