@@ -9,7 +9,7 @@ import ru.sablebot.common.worker.shared.service.AudioService
 interface ILavalinkV4AudioService : AudioService {
     val lavalink: LavalinkClient
 
-    fun player(guildId: Long): LavalinkPlayer?
+    fun player(guildId: Long): LavalinkPlayer
 
     fun connect(channel: VoiceChannel)
     fun disconnect(guild: Guild)

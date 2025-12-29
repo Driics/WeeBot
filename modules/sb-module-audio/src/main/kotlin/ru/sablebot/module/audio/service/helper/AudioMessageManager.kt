@@ -10,6 +10,7 @@ import net.dv8tion.jda.api.requests.ErrorResponse
 import net.dv8tion.jda.api.utils.messages.MessageEditData
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.scheduling.TaskScheduler
+import org.springframework.stereotype.Service
 import ru.sablebot.common.configuration.CommonConfiguration
 import ru.sablebot.common.configuration.CommonProperties
 import ru.sablebot.common.service.MusicConfigService
@@ -29,6 +30,7 @@ import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.math.roundToInt
 
+@Service
 class AudioMessageManager(
     @param:Qualifier(CommonConfiguration.SCHEDULER)
     private val scheduler: TaskScheduler,
