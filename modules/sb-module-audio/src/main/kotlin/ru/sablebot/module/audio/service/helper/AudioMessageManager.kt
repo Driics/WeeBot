@@ -1,5 +1,7 @@
 package ru.sablebot.module.audio.service.helper
 
+import com.sedmelluq.discord.lavaplayer.track.AudioTrack
+import com.sedmelluq.discord.lavaplayer.track.AudioTrackInfo
 import dev.arbjerg.lavalink.client.LavalinkNode
 import dev.arbjerg.lavalink.client.player.LavalinkPlayer
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -79,7 +81,7 @@ class AudioMessageManager(
     }
 
     fun updateMessage(request: TrackRequest) {
-        val channel = request.channel ?: run {
+        val channel = request.channel() ?: run {
             cancelUpdate(request)
             return
         }
@@ -351,6 +353,199 @@ class AudioMessageManager(
 
         return "$baseText $loadText"
     }
+
+    /**
+     * Specifies which member to resolve from a track request.
+     */
+    private sealed interface MemberType {
+        data object Requester : MemberType
+        data object Ender : MemberType
+    }
+
+    private fun getMemberName(request: TrackRequest, type: MemberType): String {
+        val userId = when (type) {
+            MemberType.Requester -> request.memberId
+            MemberType.Ender -> request.endMemberId ?: return ""
+        }
+
+        return resolveMemberName(request.guildId, userId)
+    }
+
+    private fun resolveMemberName(guildId: Long, userId: Long): String {
+        val shardManager = discordService.shardManager
+        val guild = shardManager.getGuildById(guildId)
+        val user = shardManager.getUserById(userId)
+
+        return when {
+            user != null && guild != null -> {
+                guild.getMember(user)?.effectiveName ?: user.name
+            }
+
+            user != null -> user.name
+            else -> userId.toString()
+        }
+    }
+
+    // Convenience overloads for cleaner call sites
+    private fun getRequesterName(request: TrackRequest): String =
+        getMemberName(request, MemberType.Requester)
+
+    private fun getEnderName(request: TrackRequest): String =
+        getMemberName(request, MemberType.Ender)
+
+    private fun getTextProgress(
+        instance: PlaybackInstance,
+        track: AudioTrack,
+        showLiveProgress: Boolean
+    ): String = buildString {
+        val info = track.info
+        val isStream = info.isStream
+        val duration = track.duration
+        val hasValidDuration = !isStream && duration >= 0
+
+        when {
+            showLiveProgress && instance.player.playingTrack != null -> {
+                appendLiveProgress(instance, track, hasValidDuration)
+            }
+
+            hasValidDuration -> {
+                append(CommonUtils.formatDuration(duration))
+            }
+        }
+
+        if (isStream) {
+            appendStreamIndicator(showLiveProgress)
+        }
+    }
+
+    private fun StringBuilder.appendLiveProgress(
+        instance: PlaybackInstance,
+        track: AudioTrack,
+        hasValidDuration: Boolean
+    ) {
+        val position = instance.position
+        val duration = track.duration
+
+        if (hasValidDuration) {
+            val progressPercent = calculateProgressPercent(position, duration)
+            append(AudioUtils.getProgressString(progressPercent))
+            append(" ")
+        }
+
+        append(TIMESTAMP_START)
+        append(CommonUtils.formatDuration(position))
+
+        if (hasValidDuration) {
+            append(" / ")
+            append(CommonUtils.formatDuration(duration))
+        }
+
+        append(TIMESTAMP_END)
+    }
+
+    private fun calculateProgressPercent(position: Long, duration: Long): Int {
+        if (duration <= 0) return 0
+        return ((position.toDouble() / duration.toDouble()) * 100).toInt()
+    }
+
+    private fun StringBuilder.appendStreamIndicator(showLiveProgress: Boolean) {
+        val streamText = messageService.getMessage("discord.command.audio.panel.stream")
+        if (showLiveProgress) {
+            append(" ($streamText)")
+        } else {
+            append(streamText)
+        }
+    }
+
+    // endregion
+
+    // region Queue Display
+
+    private fun EmbedBuilder.addQueue(
+        instance: PlaybackInstance,
+        requests: List<TrackRequest>,
+        startIndex: Int,
+        showNextHint: Boolean
+    ) {
+        if (requests.isEmpty()) return
+
+        requests.forEachIndexed { index, request ->
+            val queueEntry = buildQueueEntry(
+                request = request,
+                instance = instance,
+                position = startIndex + index,
+                isNextTrack = showNextHint && index == 0,
+                showPlayingIcon = !showNextHint
+            )
+
+            addField(queueEntry.title, queueEntry.description, false)
+        }
+    }
+
+    private fun buildQueueEntry(
+        request: TrackRequest,
+        instance: PlaybackInstance,
+        position: Int,
+        isNextTrack: Boolean,
+        showPlayingIcon: Boolean
+    ): QueueEntry {
+
+        val title = when {
+            isNextTrack -> messageService.getMessage("discord.command.audio.queue.next")
+            else -> ZERO_WIDTH_SPACE
+        }
+
+        val description = formatQueueEntryDescription(
+            info = info,
+            track = track,
+            position = position,
+            isAboutToPlay = showPlayingIcon && isNextInQueue(position, instance),
+            requesterName = getRequesterName(request)
+        )
+
+        return QueueEntry(title, description)
+    }
+
+    private fun formatQueueEntryDescription(
+        info: AudioTrackInfo,
+        track: AudioTrack,
+        position: Int,
+        isAboutToPlay: Boolean,
+        requesterName: String
+    ): String {
+        val duration = formatQueueDuration(info, track)
+        val icon = selectQueueIcon(info, isAboutToPlay)
+
+        return messageService.getMessage(
+            "discord.command.audio.queue.list.entry",
+            position,
+            duration,
+            icon,
+            requesterName
+        )
+    }
+
+    private fun formatQueueDuration(info: AudioTrackInfo, track: AudioTrack): String {
+        if (info.isStream) return ""
+        return "$TIMESTAMP_START${CommonUtils.formatDuration(track.duration)}$TIMESTAMP_END"
+    }
+
+    private fun selectQueueIcon(info: AudioTrackInfo, isAboutToPlay: Boolean): String {
+        return when {
+            info.isStream -> ICON_STREAM
+            isAboutToPlay -> ICON_PLAYING
+            else -> ""
+        }
+    }
+
+    private fun isNextInQueue(position: Int, instance: PlaybackInstance): Boolean {
+        return position - instance.cursor == 1
+    }
+
+    private data class QueueEntry(
+        val title: String,
+        val description: String
+    )
 
     // Extension function for cleaner embed building
     private inline fun buildEmbed(
