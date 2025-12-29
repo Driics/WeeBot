@@ -1,15 +1,18 @@
 package ru.sablebot.module.audio.service.impl
 
+import dev.arbjerg.lavalink.protocol.v4.Message
 import jakarta.transaction.Transactional
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor
 import org.springframework.stereotype.Service
 import ru.sablebot.common.service.MusicConfigService
 import ru.sablebot.common.worker.configuration.WorkerProperties
 import ru.sablebot.common.worker.event.service.ContextService
 import ru.sablebot.common.worker.feature.service.FeatureSetService
 import ru.sablebot.common.worker.shared.service.DiscordService
+import ru.sablebot.module.audio.model.EndReason
 import ru.sablebot.module.audio.model.PlaybackInstance
 import ru.sablebot.module.audio.service.IAudioSearchProvider
 import ru.sablebot.module.audio.service.ILavalinkV4AudioService
@@ -31,6 +34,7 @@ class PlayerServiceImpl(
     private val featureSetService: FeatureSetService,
     private val workerProperties: WorkerProperties,
     private val searchProviders: List<IAudioSearchProvider>,
+    private val taskExecutor: ThreadPoolTaskExecutor,
 ) : PlayerServiceV4,
     PlayerListenerAdapter(lavaAudioService.lavalink, CoroutineScope(SupervisorJob() + Dispatchers.Default)) {
     private val instances = ConcurrentHashMap<Long, PlaybackInstance>()
@@ -41,7 +45,7 @@ class PlayerServiceImpl(
     @Transactional
     override fun get(guildId: Long, create: Boolean): PlaybackInstance? {
         if (!create)
-            instances.get(guildId)
+            return instances[guildId]
 
         return instances.computeIfAbsent(guildId) { e ->
             val config = musicConfigService.getOrCreate(guildId)
@@ -63,6 +67,41 @@ class PlayerServiceImpl(
 
         contextService.withContext(instance.guildId) {
             messageManager.onTrackStart(instance.currentOrNull())
+        }
+    }
+
+    override suspend fun onTrackEnd(
+        instance: PlaybackInstance,
+        endReason: Message.EmittedEvent.TrackEndEvent.AudioTrackEndReason
+    ) {
+        notifyCurrentEnd(instance, endReason)
+        if (endReason.mayStartNext /* TODO: add featureSet */) {
+            if (instance.playNext()) {
+                return
+            }
+            instance.currentOrNull()?.let { current ->
+                contextService.withContext(current.guildId) {
+                    messageManager.onQueueEnd(current)
+                }
+            }
+        }
+
+        if (endReason != Message.EmittedEvent.TrackEndEvent.AudioTrackEndReason.REPLACED) {
+            taskExecutor.execute {
+                clearInstance(instance, false)
+            }
+        }
+    }
+
+    private fun notifyCurrentEnd(instance: PlaybackInstance, endReason: Message.EmittedEvent.TrackEndEvent) {
+        instance.currentOrNull()?.let { current ->
+            if (current.endReason == null) {
+                current.endReason = EndReason.getForLavaPlayer(endReason)
+            }
+
+            contextService.withContext(current.guildId) {
+                messageManager.onTrackEnd(current)
+            }
         }
     }
 }

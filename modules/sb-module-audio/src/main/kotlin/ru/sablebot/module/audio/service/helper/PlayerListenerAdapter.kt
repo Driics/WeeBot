@@ -6,7 +6,7 @@ import dev.arbjerg.lavalink.client.event.TrackExceptionEvent
 import dev.arbjerg.lavalink.client.event.TrackStartEvent
 import dev.arbjerg.lavalink.client.event.TrackStuckEvent
 import dev.arbjerg.lavalink.client.player.TrackException
-import dev.arbjerg.lavalink.protocol.v4.Message.EmittedEvent.TrackEndEvent.AudioTrackEndReason
+import dev.arbjerg.lavalink.protocol.v4.Message
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -28,7 +28,7 @@ abstract class PlayerListenerAdapter(
 
     protected abstract suspend fun onTrackEnd(
         instance: PlaybackInstance,
-        endReason: AudioTrackEndReason
+        endReason: Message.EmittedEvent.TrackEndEvent.AudioTrackEndReason
     )
 
     protected abstract suspend fun onTrackStart(instance: PlaybackInstance)
@@ -91,7 +91,7 @@ abstract class PlayerListenerAdapter(
     }
 
     protected fun unregisterInstance(instance: PlaybackInstance) {
-        instancesByGuild.remove(instance.guildId)
+        instancesByGuild.remove(instance.guildId, instance)
     }
 
     protected fun getInstance(guildId: Long): PlaybackInstance? {
