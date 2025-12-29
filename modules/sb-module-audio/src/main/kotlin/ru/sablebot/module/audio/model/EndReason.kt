@@ -1,11 +1,23 @@
 package ru.sablebot.module.audio.model
 
-import com.sedmelluq.discord.lavaplayer.track.AudioTrackEndReason
+/**
+ * Reasons why a track ended playback.
+ * In Lavalink v4, these are managed internally and mapped from TrackEndEvent reasons.
+ */
+enum class EndReason {
+    /** Track finished playing normally */
+    LISTENED,
 
-enum class EndReason(vararg val reasons: AudioTrackEndReason) {
-    LISTENED(AudioTrackEndReason.FINISHED),
+    /** Track was skipped by user */
     SKIPPED,
-    STOPPED(AudioTrackEndReason.STOPPED),
+
+    /** Track was stopped */
+    STOPPED,
+
+    /** Bot is shutting down */
     SHUTDOWN,
-    ERROR(AudioTrackEndReason.LOAD_FAILED, AudioTrackEndReason.CLEANUP);
+
+    /** Track failed to load or encountered an error */
+    ERROR
 }
+

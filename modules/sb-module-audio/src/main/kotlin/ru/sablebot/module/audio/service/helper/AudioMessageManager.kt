@@ -1,7 +1,5 @@
 package ru.sablebot.module.audio.service.helper
 
-import com.sedmelluq.discord.lavaplayer.track.AudioTrack
-import com.sedmelluq.discord.lavaplayer.track.AudioTrackInfo
 import dev.arbjerg.lavalink.client.LavalinkNode
 import dev.arbjerg.lavalink.client.player.LavalinkPlayer
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -15,7 +13,6 @@ import org.springframework.scheduling.TaskScheduler
 import ru.sablebot.common.configuration.CommonConfiguration
 import ru.sablebot.common.configuration.CommonProperties
 import ru.sablebot.common.service.MusicConfigService
-import ru.sablebot.common.utils.CommonUtils
 import ru.sablebot.common.worker.configuration.WorkerProperties
 import ru.sablebot.common.worker.event.service.ContextService
 import ru.sablebot.common.worker.feature.service.FeatureSetService
@@ -52,6 +49,16 @@ class AudioMessageManager(
         private const val MIN_LOAD_PERCENT = 0
         private const val MAX_LOAD_PERCENT = 100
         private const val PAUSE_EMOJI = "⏸"
+
+        // Discord formatting constants
+        private const val TIMESTAMP_START = "`"
+        private const val TIMESTAMP_END = "`"
+        private const val ZERO_WIDTH_SPACE = "\u200B"
+        private const val EMPTY_SYMBOL = ""
+
+        // Icons for queue display
+        private const val ICON_STREAM = "🔴"
+        private const val ICON_PLAYING = "▶️"
     }
 
     private val updaterTasks = ConcurrentHashMap<Long, ScheduledFuture<*>>()
@@ -88,7 +95,7 @@ class AudioMessageManager(
 
         try {
             if (request.resetMessage) {
-                sendResetMessage(request, channel)
+                sendResetMessage(request)
                 return
             }
 
@@ -110,6 +117,11 @@ class AudioMessageManager(
         } catch (e: ErrorResponseException) {
             handleUpdateError(request, e)
         }
+    }
+
+    private fun sendResetMessage(request: TrackRequest) {
+        // TODO: Implement reset message logic
+        cancelUpdate(request)
     }
 
     private fun handleUpdateError(
@@ -163,7 +175,11 @@ class AudioMessageManager(
     }
 
     private fun getPlayMessage(request: TrackRequest): EmbedBuilder {
-        val instance = TrackData.get(request.track).instance
+        // Get player instance from audio service
+        val player = audioService.player(request.guildId)
+        val instance = player?.let { PlaybackInstance(request.guildId, it) }
+            ?: return getBasicMessage(request)
+
         val context = PlayMessageContext(
             request = request,
             instance = instance,
@@ -209,7 +225,7 @@ class AudioMessageManager(
         val nextTracks = queue.subList(1, minOf(queue.size, MAX_SHORT_QUEUE + 1))
         val startIndex = context.instance.cursor + 2
 
-        addQueue(this, context.instance, nextTracks, startIndex, compact = true)
+        addQueue(context.instance, nextTracks, startIndex, showNextHint = true)
     }
 
     // endregion
@@ -218,22 +234,28 @@ class AudioMessageManager(
         return if (context.isEnded) {
             buildEndedDurationText(context)
         } else {
-            getTextProgress(context.instance, context.request.track, context.isRefreshable)
+            getTextProgress(context.instance, context.request, context.isRefreshable)
         }
     }
 
     private fun buildEndedDurationText(context: PlayMessageContext): String = buildString {
-        val info = context.request.track.info
-        val hasDuration = !info.isStream && info.length > 0
+        val request = context.request
+        val isStream = request.isStream
+        val lengthMs = request.lengthMs ?: 0
+        val hasDuration = !isStream && lengthMs > 0
 
         if (hasDuration) {
-            append(CommonUtils.formatDuration(context.request.track.duration))
+            append(formatDuration(lengthMs))
             append(" (")
         }
 
-        append(messageService.getEnumTitle(context.request.endReason))
+        val endReason = context.request.endReason ?: return@buildString
+        val endReasonText = messageService.getMessage(
+            "discord.command.audio.endReason.${endReason.name.lowercase()}"
+        )
+        append(endReasonText)
 
-        val endMember = getMemberName(context.request, forEndReason = true)
+        val endMember = getMemberName(context.request, MemberType.Ender)
         if (endMember.isNotBlank()) {
             append(" - **")
             append(endMember)
@@ -244,14 +266,14 @@ class AudioMessageManager(
             append(")")
         }
 
-        append(CommonUtils.EMPTY_SYMBOL)
+        append(EMPTY_SYMBOL)
     }
 
     // region Track Info Fields
 
     private fun EmbedBuilder.withTrackInfoFields(context: PlayMessageContext) {
         val durationText = buildDurationText(context)
-        val requestedBy = getMemberName(context.request, forEndReason = false)
+        val requestedBy = getMemberName(context.request, MemberType.Requester)
         val isCompactLayout = !context.request.isStream && context.isRefreshable
 
         if (isCompactLayout) {
@@ -395,21 +417,20 @@ class AudioMessageManager(
 
     private fun getTextProgress(
         instance: PlaybackInstance,
-        track: AudioTrack,
+        request: TrackRequest,
         showLiveProgress: Boolean
     ): String = buildString {
-        val info = track.info
-        val isStream = info.isStream
-        val duration = track.duration
+        val isStream = request.isStream
+        val duration = request.lengthMs ?: 0
         val hasValidDuration = !isStream && duration >= 0
 
         when {
-            showLiveProgress && instance.player.playingTrack != null -> {
-                appendLiveProgress(instance, track, hasValidDuration)
+            showLiveProgress && instance.player.track != null -> {
+                appendLiveProgress(instance, request, hasValidDuration)
             }
 
             hasValidDuration -> {
-                append(CommonUtils.formatDuration(duration))
+                append(formatDuration(duration))
             }
         }
 
@@ -420,24 +441,24 @@ class AudioMessageManager(
 
     private fun StringBuilder.appendLiveProgress(
         instance: PlaybackInstance,
-        track: AudioTrack,
+        request: TrackRequest,
         hasValidDuration: Boolean
     ) {
-        val position = instance.position
-        val duration = track.duration
+        val position = instance.lastKnownPositionMs
+        val duration = request.lengthMs ?: 0
 
         if (hasValidDuration) {
             val progressPercent = calculateProgressPercent(position, duration)
-            append(AudioUtils.getProgressString(progressPercent))
+            append(getProgressString(progressPercent))
             append(" ")
         }
 
         append(TIMESTAMP_START)
-        append(CommonUtils.formatDuration(position))
+        append(formatDuration(position))
 
         if (hasValidDuration) {
             append(" / ")
-            append(CommonUtils.formatDuration(duration))
+            append(formatDuration(duration))
         }
 
         append(TIMESTAMP_END)
@@ -496,8 +517,7 @@ class AudioMessageManager(
         }
 
         val description = formatQueueEntryDescription(
-            info = info,
-            track = track,
+            request = request,
             position = position,
             isAboutToPlay = showPlayingIcon && isNextInQueue(position, instance),
             requesterName = getRequesterName(request)
@@ -507,14 +527,13 @@ class AudioMessageManager(
     }
 
     private fun formatQueueEntryDescription(
-        info: AudioTrackInfo,
-        track: AudioTrack,
+        request: TrackRequest,
         position: Int,
         isAboutToPlay: Boolean,
         requesterName: String
     ): String {
-        val duration = formatQueueDuration(info, track)
-        val icon = selectQueueIcon(info, isAboutToPlay)
+        val duration = formatQueueDuration(request)
+        val icon = selectQueueIcon(request, isAboutToPlay)
 
         return messageService.getMessage(
             "discord.command.audio.queue.list.entry",
@@ -525,14 +544,15 @@ class AudioMessageManager(
         )
     }
 
-    private fun formatQueueDuration(info: AudioTrackInfo, track: AudioTrack): String {
-        if (info.isStream) return ""
-        return "$TIMESTAMP_START${CommonUtils.formatDuration(track.duration)}$TIMESTAMP_END"
+    private fun formatQueueDuration(request: TrackRequest): String {
+        if (request.isStream) return ""
+        val lengthMs = request.lengthMs ?: return ""
+        return "$TIMESTAMP_START${formatDuration(lengthMs)}$TIMESTAMP_END"
     }
 
-    private fun selectQueueIcon(info: AudioTrackInfo, isAboutToPlay: Boolean): String {
+    private fun selectQueueIcon(request: TrackRequest, isAboutToPlay: Boolean): String {
         return when {
-            info.isStream -> ICON_STREAM
+            request.isStream -> ICON_STREAM
             isAboutToPlay -> ICON_PLAYING
             else -> ""
         }
@@ -559,4 +579,30 @@ class AudioMessageManager(
         val isRefreshable: Boolean,
         val isEnded: Boolean
     )
+
+    // Utility methods
+    private fun formatDuration(milliseconds: Long): String {
+        val seconds = milliseconds / 1000
+        val hours = seconds / 3600
+        val minutes = (seconds % 3600) / 60
+        val secs = seconds % 60
+
+        return if (hours > 0) {
+            String.format("%d:%02d:%02d", hours, minutes, secs)
+        } else {
+            String.format("%d:%02d", minutes, secs)
+        }
+    }
+
+    private fun getProgressString(percent: Int): String {
+        val totalBlocks = 15
+        val filledBlocks = (percent * totalBlocks / 100).coerceIn(0, totalBlocks)
+        val emptyBlocks = totalBlocks - filledBlocks
+
+        return buildString {
+            append("▬".repeat(filledBlocks))
+            append("🔘")
+            append("▬".repeat(emptyBlocks.coerceAtLeast(0)))
+        }
+    }
 }
