@@ -6,6 +6,8 @@ import dev.arbjerg.lavalink.client.NodeOptions
 import dev.arbjerg.lavalink.client.player.LavalinkPlayer
 import dev.arbjerg.lavalink.libraries.jda.JDAVoiceUpdateListener
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.micrometer.core.instrument.Gauge
+import io.micrometer.core.instrument.MeterRegistry
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.entities.Guild
 import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel
@@ -25,7 +27,8 @@ import java.util.concurrent.ConcurrentHashMap
 class DefaultAudioServiceImpl(
     private val discoveryClient: DiscoveryClient,
     @param:Qualifier(CommonConfiguration.SCHEDULER) private val scheduler: TaskScheduler,
-    private val workerProperties: WorkerProperties
+    private val workerProperties: WorkerProperties,
+    private val meterRegistry: MeterRegistry
 ) : ILavalinkV4AudioService {
     private val log = KotlinLogging.logger {}
 
@@ -87,6 +90,12 @@ class DefaultAudioServiceImpl(
 
         lavalink = LavalinkClient(userId)
 
+        Gauge.builder("sablebot.lavalink.nodes.available", lavalink) {
+            it.nodes.count { n -> n.available }.toDouble()
+        }
+            .description("Number of available Lavalink nodes")
+            .register(meterRegistry)
+
         cfg.nodes.forEach { nodeCfg ->
             runCatching {
                 val uri = URI(nodeCfg.url)
@@ -97,6 +106,7 @@ class DefaultAudioServiceImpl(
                     secure = uri.scheme.equals("wss", ignoreCase = true)
                 )
             }.onFailure { e ->
+                meterRegistry.counter("sablebot.lavalink.node.failures").increment()
                 log.warn("Could not add node ${nodeCfg.name} (${nodeCfg.url})", e)
             }
         }
@@ -128,7 +138,10 @@ class DefaultAudioServiceImpl(
                         addOrReplaceNode(instanceName, uri, discovery.password, secure = false)
                         log.info { "Discovered Lavalink node $instanceName at $uri" }
                     }
-                }.onFailure { e -> log.warn(e) { "Could not add node $instance" } }
+                }.onFailure { e ->
+                    meterRegistry.counter("sablebot.lavalink.node.failures").increment()
+                    log.warn(e) { "Could not add node $instance" }
+                }
             }
 
             val deadUris = registeredNodeUris.subtract(liveUris)

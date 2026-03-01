@@ -1,5 +1,6 @@
 package ru.sablebot.common.configuration
 
+import io.micrometer.core.instrument.MeterRegistry
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.domain.EntityScan
@@ -79,7 +80,9 @@ class CommonConfiguration @Autowired constructor(
     @Bean("sbCacheManager")
     @Primary
     @ConditionalOnMissingBean(SbCacheManager::class)
-    fun sbCacheManager(): SbCacheManager = SbCacheManagerImpl()
+    fun sbCacheManager(
+        @Autowired(required = false) meterRegistry: MeterRegistry? = null
+    ): SbCacheManager = SbCacheManagerImpl(meterRegistry)
 
     @Bean
     fun messageSource(messageSources: List<ModuleMessageSource>): MessageSource = SbMessageSource(messageSources)

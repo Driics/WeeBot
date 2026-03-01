@@ -1,12 +1,17 @@
 package ru.sablebot.module.audio.service.impl
 
 import dev.arbjerg.lavalink.protocol.v4.Message
+import io.micrometer.core.instrument.MeterRegistry
 import jakarta.transaction.Transactional
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import net.dv8tion.jda.api.entities.Member
+import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor
 import org.springframework.stereotype.Service
+import ru.sablebot.common.model.exception.DiscordException
 import ru.sablebot.common.service.MusicConfigService
 import ru.sablebot.common.worker.configuration.WorkerProperties
 import ru.sablebot.common.worker.event.service.ContextService
@@ -14,6 +19,7 @@ import ru.sablebot.common.worker.feature.service.FeatureSetService
 import ru.sablebot.common.worker.shared.service.DiscordService
 import ru.sablebot.module.audio.model.EndReason
 import ru.sablebot.module.audio.model.PlaybackInstance
+import ru.sablebot.module.audio.model.TrackRequest
 import ru.sablebot.module.audio.service.IAudioSearchProvider
 import ru.sablebot.module.audio.service.ILavalinkV4AudioService
 import ru.sablebot.module.audio.service.PlayerServiceV4
@@ -21,7 +27,6 @@ import ru.sablebot.module.audio.service.helper.AudioMessageManager
 import ru.sablebot.module.audio.service.helper.PlayerListenerAdapter
 import ru.sablebot.module.audio.service.helper.ValidationService
 import java.util.*
-import java.util.concurrent.ConcurrentHashMap
 
 @Service
 class PlayerServiceImpl(
@@ -35,19 +40,24 @@ class PlayerServiceImpl(
     private val workerProperties: WorkerProperties,
     private val searchProviders: List<IAudioSearchProvider>,
     private val taskExecutor: ThreadPoolTaskExecutor,
+    private val meterRegistry: MeterRegistry,
 ) : PlayerServiceV4,
-    PlayerListenerAdapter(lavaAudioService.lavalink, CoroutineScope(SupervisorJob() + Dispatchers.Default)) {
-    private val instances = ConcurrentHashMap<Long, PlaybackInstance>()
+    PlayerListenerAdapter(
+        lavaAudioService.lavalink,
+        CoroutineScope(SupervisorJob() + Dispatchers.Default),
+        meterRegistry
+    ) {
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     override fun instances(): Map<Long, PlaybackInstance> =
-        Collections.unmodifiableMap(instances)
+        Collections.unmodifiableMap(instancesByGuild)
 
     @Transactional
     override fun get(guildId: Long, create: Boolean): PlaybackInstance? {
         if (!create)
-            return instances[guildId]
+            return instancesByGuild[guildId]
 
-        return instances.computeIfAbsent(guildId) { e ->
+        return instancesByGuild.computeIfAbsent(guildId) { e ->
             val config = musicConfigService.getOrCreate(guildId)
             val player = lavaAudioService.player(guildId)
 
@@ -87,13 +97,32 @@ class PlayerServiceImpl(
         }
 
         if (endReason != Message.EmittedEvent.TrackEndEvent.AudioTrackEndReason.REPLACED) {
-            taskExecutor.execute {
+            scope.launch(Dispatchers.IO) {
                 clearInstance(instance, false)
             }
         }
     }
 
-    private fun notifyCurrentEnd(instance: PlaybackInstance, endReason: Message.EmittedEvent.TrackEndEvent) {
+    private fun clearInstance(instance: PlaybackInstance, notify: Boolean) {
+        if (!instance.stop())
+            return
+
+        if (notify)
+            notifyCurrentEnd(instance, Message.EmittedEvent.TrackEndEvent.AudioTrackEndReason.STOPPED)
+
+        discordService.shardManager.getGuildById(instance.guildId)?.let {
+            lavaAudioService.disconnect(it)
+        }
+
+        messageManager.clear(instance.guildId)
+        instancesByGuild.remove(instance.guildId)
+        unregisterInstance(instance)
+    }
+
+    private fun notifyCurrentEnd(
+        instance: PlaybackInstance,
+        endReason: Message.EmittedEvent.TrackEndEvent.AudioTrackEndReason
+    ) {
         instance.currentOrNull()?.let { current ->
             if (current.endReason == null) {
                 current.endReason = EndReason.getForLavaPlayer(endReason)
@@ -103,5 +132,31 @@ class PlayerServiceImpl(
                 messageManager.onTrackEnd(current)
             }
         }
+    }
+
+    @Throws(DiscordException::class)
+    override suspend fun play(request: TrackRequest) {
+        val guild = discordService.shardManager.getGuildById(request.guildId)
+            ?: return
+
+        val instance = getOrCreate(guild)
+        play(request, instance)
+    }
+
+    @Throws(DiscordException::class)
+    private fun play(request: TrackRequest, instance: PlaybackInstance) {
+        contextService.withContext(instance.guildId) {
+            messageManager.onTrackAdd(request, instance)
+        }
+
+        val member = request.member()
+        if (member != null) {
+            connectToChannel(instance, member)
+            instance.play(request)
+        }
+    }
+
+    override fun connectToChannel(instance: PlaybackInstance, member: Member): VoiceChannel {
+        TODO()
     }
 }

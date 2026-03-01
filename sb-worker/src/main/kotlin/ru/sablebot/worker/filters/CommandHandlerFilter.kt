@@ -18,17 +18,22 @@ class CommandHandlerFilter @Autowired constructor(
     private val log = LoggerFactory.getLogger(CommandHandlerFilter::class.java)
 
     override fun doInternal(event: SlashCommandInteractionEvent, chain: FilterChain<SlashCommandInteractionEvent>) {
-        log.info("${event.name}: ${event.user.name}")
+        log.info("{}: {}", event.name, event.user.name)
 
+        var handled = false
         for (handler in handlers) {
             try {
                 if (handler.handleSlashCommand(event)) {
+                    handled = true
                     break
                 }
             } catch (t: Throwable) {
                 log.warn("Could not handle command", t)
             }
         }
-        chain.doFilter(event)
+
+        if (!handled) {
+            chain.doFilter(event)
+        }
     }
 }

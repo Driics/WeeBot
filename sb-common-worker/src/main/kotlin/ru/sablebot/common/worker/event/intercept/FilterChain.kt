@@ -19,9 +19,4 @@ interface FilterChain<T: Event> {
      * @param event the event to pass along the chain.
      */
     fun doFilter(event: T)
-
-    /**
-     * Resets chain to be ready to handle next request
-     */
-    fun reset()
 }

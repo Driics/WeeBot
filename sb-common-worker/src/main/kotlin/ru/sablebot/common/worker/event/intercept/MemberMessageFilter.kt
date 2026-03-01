@@ -12,8 +12,8 @@ abstract class MemberMessageFilter: Filter<SlashCommandInteractionEvent> {
                 doInternal(event, chain)
                 return
             }
-        } catch (throwable: Throwable) {
-            log.warn("Unexpected filter exception", throwable)
+        } catch (e: Exception) {
+            log.warn("Unexpected filter exception", e)
         }
         chain.doFilter(event)
     }

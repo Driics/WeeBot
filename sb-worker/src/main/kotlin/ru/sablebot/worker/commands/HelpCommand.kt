@@ -20,6 +20,9 @@ class HelpCommand : AbstractCommand() {
         context: ApplicationCommandContext,
         args: SlashCommandArguments
     ) {
+        // Defer reply first since retrieveCommands() is a blocking REST call
+        event.deferReply(true).complete()
+
         // Retrieve all registered commands from Discord
         val registeredCommands = event.jda.retrieveCommands().complete()
 

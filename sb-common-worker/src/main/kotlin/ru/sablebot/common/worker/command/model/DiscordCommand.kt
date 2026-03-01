@@ -9,6 +9,10 @@ import java.lang.annotation.Inherited
 @Inherited
 @Target(AnnotationTarget.TYPE, AnnotationTarget.CLASS)
 @Retention(AnnotationRetention.RUNTIME)
+@Deprecated(
+    "Use SlashCommandExecutor with SlashCommandDeclarationWrapper DSL instead",
+    level = DeprecationLevel.WARNING
+)
 annotation class DiscordCommand(
     val key: String,
     val description: String,

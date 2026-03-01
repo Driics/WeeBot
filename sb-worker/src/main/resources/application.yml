@@ -44,13 +44,26 @@ spring:
         batch.size: 16384
 
 management:
+  server:
+    port: 9090
   endpoints:
     web:
       exposure:
         include: health,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
   metrics:
     tags:
       application: sablebot
+    distribution:
+      percentiles-histogram:
+        sablebot.commands.duration: true
+        sablebot.events.duration: true
+        sablebot.coroutine.job.duration: true
+      slo:
+        sablebot.commands.duration: 100ms,500ms,1s,5s
+        sablebot.events.duration: 10ms,50ms,100ms,500ms
   prometheus:
     metrics:
       export:

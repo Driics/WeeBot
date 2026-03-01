@@ -7,8 +7,5 @@ dependencies {
 
 
     api "io.micrometer:micrometer-core"
-    api "io.micrometer:micrometer-registry-jmx"
     api "io.micrometer:micrometer-registry-prometheus"
-    api "io.prometheus:prometheus-metrics-core:1.4.1"
-    api 'io.prometheus:prometheus-metrics-model:1.4.1'
 }

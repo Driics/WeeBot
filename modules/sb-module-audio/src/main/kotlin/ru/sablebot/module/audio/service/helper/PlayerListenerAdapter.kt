@@ -7,6 +7,8 @@ import dev.arbjerg.lavalink.client.event.TrackStartEvent
 import dev.arbjerg.lavalink.client.event.TrackStuckEvent
 import dev.arbjerg.lavalink.client.player.TrackException
 import dev.arbjerg.lavalink.protocol.v4.Message
+import io.micrometer.core.instrument.Gauge
+import io.micrometer.core.instrument.MeterRegistry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -16,11 +18,25 @@ import java.util.concurrent.ConcurrentHashMap
 
 abstract class PlayerListenerAdapter(
     protected val lavalink: LavalinkClient,
-    private val scope: CoroutineScope
+    private val scope: CoroutineScope,
+    protected val meterRegistry: MeterRegistry? = null
 ) {
-    private val instancesByGuild = ConcurrentHashMap<Long, PlaybackInstance>()
+    protected val instancesByGuild = ConcurrentHashMap<Long, PlaybackInstance>()
+
+    companion object {
+        const val AUDIO_ACTIVE_SESSIONS = "sablebot.audio.active.sessions"
+        const val AUDIO_TRACKS_STARTED = "sablebot.audio.tracks.started"
+        const val AUDIO_TRACKS_ENDED = "sablebot.audio.tracks.ended"
+        const val AUDIO_TRACKS_EXCEPTIONS = "sablebot.audio.tracks.exceptions"
+        const val AUDIO_TRACKS_STUCK = "sablebot.audio.tracks.stuck"
+    }
 
     init {
+        meterRegistry?.let { registry ->
+            Gauge.builder(AUDIO_ACTIVE_SESSIONS, instancesByGuild) { it.size.toDouble() }
+                .description("Number of active audio playback sessions")
+                .register(registry)
+        }
         setupEventListeners()
     }
 
@@ -49,6 +65,7 @@ abstract class PlayerListenerAdapter(
         lavalink.on<TrackStartEvent>()
             .asFlow()
             .onEach { event ->
+                meterRegistry?.counter(AUDIO_TRACKS_STARTED)?.increment()
                 instancesByGuild[event.guildId]?.let { instance ->
                     onTrackStart(instance)
                 }
@@ -58,6 +75,7 @@ abstract class PlayerListenerAdapter(
         lavalink.on<TrackEndEvent>()
             .asFlow()
             .onEach { event ->
+                meterRegistry?.counter(AUDIO_TRACKS_ENDED, "reason", event.endReason.name)?.increment()
                 instancesByGuild[event.guildId]?.let { instance ->
                     onTrackEnd(instance, event.endReason)
                 }
@@ -67,6 +85,8 @@ abstract class PlayerListenerAdapter(
         lavalink.on<TrackExceptionEvent>()
             .asFlow()
             .onEach { event ->
+                meterRegistry?.counter(AUDIO_TRACKS_EXCEPTIONS, "severity", event.exception.severity?.name ?: "UNKNOWN")
+                    ?.increment()
                 instancesByGuild[event.guildId]?.let { instance ->
                     onTrackException(instance, event.exception)
                 }
@@ -76,6 +96,7 @@ abstract class PlayerListenerAdapter(
         lavalink.on<TrackStuckEvent>()
             .asFlow()
             .onEach { event ->
+                meterRegistry?.counter(AUDIO_TRACKS_STUCK)?.increment()
                 instancesByGuild[event.guildId]?.let { instance ->
                     onTrackStuck(instance, event.thresholdMs)
                 }

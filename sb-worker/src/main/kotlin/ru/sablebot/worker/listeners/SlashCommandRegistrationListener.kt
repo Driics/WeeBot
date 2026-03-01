@@ -51,8 +51,8 @@ class SlashCommandRegistrationListener @Autowired constructor(
                 .addCommands(allCommands)
                 .queue(
                     {
-                        logger.info { "✓ Глобальные команды успешно обновлены: ${allCommands.size} команд(ы)" }
-                        logger.info { "✓ Global command registration complete" }
+                        logger.info { "[OK] Глобальные команды успешно обновлены: ${allCommands.size} команд(ы)" }
+                        logger.info { "Successfully completed global command registration" }
                     },
                     { error -> logger.error(error) { "Ошибка при обновлении глобальных команд" } }
                 )

@@ -12,12 +12,12 @@ class DiscordMetricsRegistry(
     private val discordService: DiscordService
 ) {
     companion object {
-        const val GAUGE_GUILDS: String = "discord.guilds"
-        const val GAUGE_USERS: String = "discord.users"
-        const val GAUGE_CHANNELS: String = "discord.channels"
-        const val GAUGE_TEXT_CHANNELS: String = "discord.textChannels"
-        const val GAUGE_VOICE_CHANNELS: String = "discord.voiceChannels"
-        const val GAUGE_PING: String = "discord.average.ping"
+        const val GAUGE_GUILDS: String = "sablebot.discord.guilds"
+        const val GAUGE_USERS: String = "sablebot.discord.users"
+        const val GAUGE_CHANNELS: String = "sablebot.discord.channels"
+        const val GAUGE_TEXT_CHANNELS: String = "sablebot.discord.text.channels"
+        const val GAUGE_VOICE_CHANNELS: String = "sablebot.discord.voice.channels"
+        const val GAUGE_PING: String = "sablebot.discord.average.ping"
     }
 
     private fun gauge(

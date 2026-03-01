@@ -30,6 +30,8 @@ dependencies {
 
     api "com.github.ben-manes.caffeine:caffeine:3.2.2"
 
+    compileOnly "io.micrometer:micrometer-core"
+
     implementation 'com.google.guava:guava:33.5.0-jre'
 
     implementation "org.hibernate.validator:hibernate-validator"

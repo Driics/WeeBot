@@ -1,6 +1,7 @@
 package ru.sablebot.worker.listeners
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.micrometer.core.instrument.MeterRegistry
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
@@ -23,12 +24,14 @@ import ru.sablebot.common.worker.message.model.styled
 class InteractionEventsListener(
     val interactivityManager: InteractivityManager,
     val coroutineLauncher: CoroutineLauncher,
+    private val meterRegistry: MeterRegistry,
 ) : DiscordEventListener() {
     companion object {
         private val logger = KotlinLogging.logger { }
     }
 
     override fun onButtonInteraction(event: ButtonInteractionEvent) {
+        meterRegistry.counter("sablebot.interactions.total", "type", "button").increment()
         coroutineLauncher.launchMessageJob(event) {
             val componentId = try {
                 UnleashedComponentId(event.componentId)
@@ -41,6 +44,7 @@ class InteractionEventsListener(
             val context = ComponentContext(event, interactivityManager)
 
             if (callbackData == null) {
+                meterRegistry.counter("sablebot.interactions.callback.not.found", "type", "button").increment()
                 context.reply(true) {
                     styled("I don't know what to handle interaction event: $event", ":face_with_monocle:")
                 }
@@ -58,6 +62,7 @@ class InteractionEventsListener(
     }
 
     override fun onEntitySelectInteraction(event: EntitySelectInteractionEvent) {
+        meterRegistry.counter("sablebot.interactions.total", "type", "entity_select").increment()
         coroutineLauncher.launchMessageJob(event) {
             val componentId = try {
                 UnleashedComponentId(event.componentId)
@@ -71,6 +76,7 @@ class InteractionEventsListener(
             val context = ComponentContext(event, interactivityManager)
 
             if (callbackData == null) {
+                meterRegistry.counter("sablebot.interactions.callback.not.found", "type", "entity_select").increment()
                 context.reply(true) {
                     styled("I don't know what to handle interaction event: $event", ":face_with_monocle:")
                 }
@@ -88,6 +94,7 @@ class InteractionEventsListener(
     }
 
     override fun onStringSelectInteraction(event: StringSelectInteractionEvent) {
+        meterRegistry.counter("sablebot.interactions.total", "type", "string_select").increment()
         coroutineLauncher.launchMessageJob(event) {
             val componentId = try {
                 UnleashedComponentId(event.componentId)
@@ -100,6 +107,7 @@ class InteractionEventsListener(
             val context = ComponentContext(event, interactivityManager)
 
             if (callbackData == null) {
+                meterRegistry.counter("sablebot.interactions.callback.not.found", "type", "string_select").increment()
                 context.reply(true) {
                     styled("I don't know what to handle interaction event: $event", ":face_with_monocle:")
                 }
@@ -117,6 +125,7 @@ class InteractionEventsListener(
     }
 
     override fun onModalInteraction(event: ModalInteractionEvent) {
+        meterRegistry.counter("sablebot.interactions.total", "type", "modal").increment()
         GlobalScope.launch {
             val modalId = try {
                 UnleashedComponentId(event.modalId)
@@ -129,6 +138,7 @@ class InteractionEventsListener(
             val context = ModalContext(event)
 
             if (callbackData == null) {
+                meterRegistry.counter("sablebot.interactions.callback.not.found", "type", "modal").increment()
                 context.reply(true) {
                     styled("I don't know what to handle interaction event: $event", ":face_with_monocle:")
                 }

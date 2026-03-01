@@ -23,11 +23,11 @@ class StatusKafkaListener(
         val shardManager = discordService.shardManager
 
         return StatusDto(
-            guildCount = getMetricGauge("discord.guilds"),
-            userCount = getMetricGauge("discord.users"),
-            textChannelCount = getMetricGauge("discord.text.channels"),
-            voiceChannelCount = getMetricGauge("discord.voice.channels"),
-            executedCommands = getMetricCounter("commands.executions"),
+            guildCount = getMetricGauge("sablebot.discord.guilds"),
+            userCount = getMetricGauge("sablebot.discord.users"),
+            textChannelCount = getMetricGauge("sablebot.discord.text.channels"),
+            voiceChannelCount = getMetricGauge("sablebot.discord.voice.channels"),
+            executedCommands = getMetricCounter("sablebot.commands.executed"),
             uptimeDuration = getMetricGauge("process.uptime"),
             shards = shardManager.shards.map { shard ->
                 ShardDto(

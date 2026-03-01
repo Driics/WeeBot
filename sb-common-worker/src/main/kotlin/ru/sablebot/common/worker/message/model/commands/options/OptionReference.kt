@@ -4,6 +4,7 @@ import dev.minn.jda.ktx.interactions.commands.Option
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.User
 import net.dv8tion.jda.api.interactions.commands.OptionMapping
+import net.dv8tion.jda.api.interactions.commands.OptionType
 import net.dv8tion.jda.api.interactions.commands.build.OptionData
 import ru.sablebot.common.worker.message.model.commands.autocomplete.AutocompleteExecutor
 
@@ -54,6 +55,10 @@ class BooleanDiscordOptionReference<T>(
     override fun get(option: OptionMapping): T {
         return option.asBoolean as T
     }
+
+    override fun toOptionData(): List<OptionData> = listOf(
+        OptionData(OptionType.BOOLEAN, name, description, required)
+    )
 }
 
 class ChannelDiscordOptionReference<T>(
@@ -62,6 +67,10 @@ class ChannelDiscordOptionReference<T>(
     required: Boolean
 ) : DiscordOptionReference<T>(name, description, required) {
     override fun get(option: OptionMapping): T = option.asChannel as T
+
+    override fun toOptionData(): List<OptionData> = listOf(
+        OptionData(OptionType.CHANNEL, name, description, required)
+    )
 }
 
 class RoleDiscordOptionReference<T>(
@@ -70,6 +79,10 @@ class RoleDiscordOptionReference<T>(
     required: Boolean
 ) : DiscordOptionReference<T>(name, description, required) {
     override fun get(option: OptionMapping): T = option.asRole as T
+
+    override fun toOptionData(): List<OptionData> = listOf(
+        OptionData(OptionType.ROLE, name, description, required)
+    )
 }
 
 class UserDiscordOptionReference<T>(
@@ -83,6 +96,10 @@ class UserDiscordOptionReference<T>(
 
         return UserAndMember(user, member) as T
     }
+
+    override fun toOptionData(): List<OptionData> = listOf(
+        OptionData(OptionType.USER, name, description, required)
+    )
 }
 
 data class UserAndMember(

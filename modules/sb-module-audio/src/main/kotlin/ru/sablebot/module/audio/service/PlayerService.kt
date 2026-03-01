@@ -24,7 +24,7 @@ interface PlayerServiceV4 {
     suspend fun loadAndPlay(channel: TextChannel, requestedBy: Member, identifier: String)
 
     /** Проиграть один запрос (обычно уже содержит encoded или identifier). */
-    suspend fun play(request: TrackRequest): Boolean
+    suspend fun play(request: TrackRequest)
 
     /** Проиграть пачку запросов. */
     suspend fun playAll(requests: List<TrackRequest>): Int

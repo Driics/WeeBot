@@ -14,6 +14,10 @@ import ru.sablebot.common.worker.shared.service.DiscordEntityAccessor
 import ru.sablebot.common.worker.shared.service.DiscordService
 
 
+@Deprecated(
+    "Use SlashCommandExecutor with SlashCommandDeclarationWrapper DSL instead",
+    level = DeprecationLevel.WARNING
+)
 abstract class AbstractCommand : Command {
 
     @Autowired

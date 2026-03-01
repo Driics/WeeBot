@@ -8,9 +8,9 @@ import java.util.*
 
 interface CommandsHolderService {
 
-    var commands: Map<String, Command>
+    val commands: Map<String, Command>
 
-    var publicCommands: Map<String, Command>
+    val publicCommands: Map<String, Command>
 
     val descriptors: Map<CommandCategory, List<DiscordCommand>>
 
