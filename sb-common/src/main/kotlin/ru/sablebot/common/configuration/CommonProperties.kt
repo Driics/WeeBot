@@ -63,6 +63,7 @@ class CommonProperties {
 
     class DomainCache {
         var auditConfig: Boolean = true
+        var autoModConfig: Boolean = true
         var guildConfig: Boolean = true
         var moderationConfig: Boolean = true
         var musicConfig: Boolean = true
