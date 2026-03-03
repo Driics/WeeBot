@@ -1,0 +1,11 @@
+plugins {
+    id "org.jetbrains.kotlin.plugin.spring"
+}
+dependencies {
+    implementation project(":sb-common-worker")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:1.10.2")
+    implementation "org.jetbrains.kotlin:kotlin-stdlib"
+}
+repositories {
+    mavenCentral()
+}

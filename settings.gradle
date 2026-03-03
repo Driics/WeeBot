@@ -8,4 +8,5 @@ include ':sb-worker'
 include ':sb-common'
 include ':modules'
 include ':modules:sb-module-audio'
+include ':modules:sb-module-moderation'
 

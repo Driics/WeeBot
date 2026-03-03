@@ -17,6 +17,7 @@ dependencies {
     implementation "org.springframework.boot:spring-boot-starter-web"
 
     implementation project(':sb-common-worker')
+    implementation project(':modules:sb-module-moderation')
 
     implementation "org.codehaus.groovy:groovy:3.0.22"
 }
