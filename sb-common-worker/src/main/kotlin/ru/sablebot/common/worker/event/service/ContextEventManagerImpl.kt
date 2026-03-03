@@ -10,6 +10,7 @@ import net.dv8tion.jda.api.events.GenericEvent
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.hooks.EventListener
 import org.slf4j.LoggerFactory
+import org.slf4j.MDC
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.core.task.TaskRejectedException
 import org.springframework.jmx.export.MBeanExportOperations
@@ -21,6 +22,7 @@ import ru.sablebot.common.worker.configuration.WorkerProperties
 import ru.sablebot.common.worker.event.DiscordEvent
 import ru.sablebot.common.worker.event.intercept.EventFilterFactory
 import ru.sablebot.common.worker.event.listeners.DiscordEventListener
+import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
 
@@ -62,6 +64,8 @@ class ContextEventManagerImpl @Autowired constructor(
 
     private fun handleEvent(event: GenericEvent, eventType: String) {
         val sample = Timer.start(meterRegistry)
+        MDC.put("traceId", UUID.randomUUID().toString().replace("-", ""))
+        MDC.put("eventType", event.javaClass.simpleName)
         try {
             loopListeners(event)
             meterRegistry.counter(EVENTS_PROCESSED, "event_type", eventType).increment()
@@ -76,6 +80,7 @@ class ContextEventManagerImpl @Autowired constructor(
             ).increment()
         } finally {
             sample.stop(meterRegistry.timer(EVENTS_DURATION, "event_type", eventType))
+            MDC.clear()
             contextService.resetContext()
         }
     }
