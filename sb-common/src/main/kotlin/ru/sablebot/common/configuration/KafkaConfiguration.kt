@@ -3,6 +3,9 @@ package ru.sablebot.common.configuration
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.apache.kafka.clients.admin.AdminClientConfig
+import org.apache.kafka.clients.producer.ProducerInterceptor
+import org.apache.kafka.clients.producer.ProducerRecord
+import org.apache.kafka.clients.producer.RecordMetadata
 import org.apache.kafka.clients.admin.NewTopic
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -11,6 +14,7 @@ import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.kafka.common.serialization.StringSerializer
 import org.slf4j.LoggerFactory
+import org.slf4j.MDC
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -69,6 +73,12 @@ class KafkaConfiguration(
             this.consumerFactory = consumerFactory
             setReplyTemplate(kafkaTemplate)
             setCommonErrorHandler(buildErrorHandler(kafkaTemplate))
+            setRecordInterceptor { record, _ ->
+                record.headers().lastHeader("x-trace-id")?.let { header ->
+                    MDC.put("traceId", String(header.value(), Charsets.UTF_8))
+                }
+                record
+            }
         }
 
     @Bean
@@ -102,6 +112,7 @@ class KafkaConfiguration(
         ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG to JsonSerializer::class.java,
         ProducerConfig.ACKS_CONFIG to kafkaProperties.producer.acks,
         ProducerConfig.RETRIES_CONFIG to kafkaProperties.producer.retries,
+        ProducerConfig.INTERCEPTOR_CLASSES_CONFIG to listOf(TraceIdProducerInterceptor::class.java.name),
         JsonSerializer.ADD_TYPE_INFO_HEADERS to true
     )
 
@@ -188,4 +199,17 @@ class KafkaConfiguration(
             }
         }
     }
+}
+
+class TraceIdProducerInterceptor : ProducerInterceptor<String, Any> {
+    override fun onSend(record: ProducerRecord<String, Any>): ProducerRecord<String, Any> {
+        MDC.get("traceId")?.let { traceId ->
+            record.headers().add("x-trace-id", traceId.toByteArray(Charsets.UTF_8))
+        }
+        return record
+    }
+
+    override fun onAcknowledgement(metadata: RecordMetadata?, exception: Exception?) {}
+    override fun close() {}
+    override fun configure(configs: MutableMap<String, *>?) {}
 }
