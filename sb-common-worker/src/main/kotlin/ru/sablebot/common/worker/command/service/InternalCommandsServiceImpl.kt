@@ -2,6 +2,7 @@ package ru.sablebot.common.worker.command.service
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.micrometer.core.instrument.MeterRegistry
+import org.slf4j.MDC
 import io.micrometer.core.instrument.Timer
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.User
@@ -101,6 +102,10 @@ class InternalCommandsServiceImpl @Autowired constructor(
             log.info { "Invoke DSL command [${dslCommand.name}]: ${event.options}" }
         }
 
+        MDC.put("commandName", event.fullCommandName)
+        MDC.put("guildId", event.guild?.id ?: "DM")
+        MDC.put("userId", event.user.id)
+
         coroutineLauncher.launchMessageJob(event) {
             val sample = Timer.start(meterRegistry)
             try {
@@ -187,6 +192,10 @@ class InternalCommandsServiceImpl @Autowired constructor(
         if (workerProperties.commands.invokeLogging) {
             log.info { "Invoke command [${command::class.simpleName}]: ${event.options}" }
         }
+
+        MDC.put("commandName", command.key)
+        MDC.put("guildId", event.guild?.id ?: "DM")
+        MDC.put("userId", event.user.id)
 
         coroutineLauncher.launchMessageJob(event) {
             val sample = Timer.start(meterRegistry)
