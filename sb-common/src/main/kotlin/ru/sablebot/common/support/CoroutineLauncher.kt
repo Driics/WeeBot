@@ -8,6 +8,7 @@ import io.micrometer.core.instrument.Timer
 import jakarta.annotation.PreDestroy
 import kotlinx.coroutines.*
 import net.dv8tion.jda.api.events.Event
+import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent
 import net.dv8tion.jda.api.events.interaction.command.MessageContextInteractionEvent
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
@@ -76,6 +77,7 @@ class CoroutineLauncher(
             is UserContextInteractionEvent -> "UserCmd"
             is MessageContextInteractionEvent -> "MsgCmd"
             is CommandAutoCompleteInteractionEvent -> "Autocomplete"
+            is ModalInteractionEvent -> "Modal"
             else -> "Unknown"
         }
 
@@ -88,6 +90,7 @@ class CoroutineLauncher(
             is UserContextInteractionEvent -> "UserCmd ${event.fullCommandName} userId=${event.user.id} channelId=${event.channel?.id} guildId=${event.guild?.id}"
             is MessageContextInteractionEvent -> "MsgCmd ${event.fullCommandName} userId=${event.user.id} channelId=${event.channel?.id} guildId=${event.guild?.id}"
             is CommandAutoCompleteInteractionEvent -> "Autocomplete ${event.fullCommandName} userId=${event.user.id} channelId=${event.channel.id} guildId=${event.guild?.id}"
+            is ModalInteractionEvent -> "Modal id=${event.modalId} userId=${event.user.id} channelId=${event.channel.id} guildId=${event.guild?.id}"
             else -> "Unknown ${event::class.simpleName} userId=unknown"
         }
 
@@ -97,7 +100,9 @@ class CoroutineLauncher(
         val job = messageScope.launch(CoroutineName(coroutineName), block = block)
 
         job.invokeOnCompletion {
-            sample?.stop(meterRegistry!!.timer("sablebot.coroutine.job.duration", "event_type", eventType))
+            meterRegistry?.let { registry ->
+                sample?.stop(registry.timer("sablebot.coroutine.job.duration", "event_type", eventType))
+            }
             val diff = System.currentTimeMillis() - start
             if (diff >= 60_000) {
                 logger.warn { "Message Coroutine $job took too long to process! ${diff}ms" }

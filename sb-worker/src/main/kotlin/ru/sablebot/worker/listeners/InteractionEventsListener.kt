@@ -2,9 +2,6 @@ package ru.sablebot.worker.listeners
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.micrometer.core.instrument.MeterRegistry
-import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.EntitySelectInteractionEvent
@@ -20,7 +17,6 @@ import ru.sablebot.common.worker.message.model.modals.ModalContext
 import ru.sablebot.common.worker.message.model.styled
 
 @DiscordEvent
-@OptIn(DelicateCoroutinesApi::class)
 class InteractionEventsListener(
     val interactivityManager: InteractivityManager,
     val coroutineLauncher: CoroutineLauncher,
@@ -126,12 +122,12 @@ class InteractionEventsListener(
 
     override fun onModalInteraction(event: ModalInteractionEvent) {
         meterRegistry.counter("sablebot.interactions.total", "type", "modal").increment()
-        GlobalScope.launch {
+        coroutineLauncher.launchMessageJob(event) {
             val modalId = try {
                 UnleashedComponentId(event.modalId)
             } catch (e: IllegalArgumentException) {
                 logger.debug(e) { "Invalid modalId: ${event.modalId}" }
-                return@launch
+                return@launchMessageJob
             }
 
             val callbackData = interactivityManager.modalCallbacks[modalId.uniqueId]
@@ -142,7 +138,7 @@ class InteractionEventsListener(
                 context.reply(true) {
                     styled("I don't know what to handle interaction event: $event", ":face_with_monocle:")
                 }
-                return@launch
+                return@launchMessageJob
             }
 
             context.alwaysEphemeral = callbackData.alwaysEphemeral // Inherit alwaysEphemeral from the callback data

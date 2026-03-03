@@ -10,7 +10,7 @@ class Playlist(
     @OneToMany(
         mappedBy = "playlist",
         cascade = [CascadeType.ALL],
-        fetch = FetchType.EAGER
+        fetch = FetchType.LAZY
     )
     @OrderColumn(name = "index")
     val items: MutableList<PlaylistItem> = mutableListOf(),
