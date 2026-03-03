@@ -30,7 +30,8 @@ class InternalCommandsServiceImpl @Autowired constructor(
     messageService: MessageService,
     discordEntityAccessor: DiscordEntityAccessor,
     private val coroutineLauncher: ru.sablebot.common.support.CoroutineLauncher,
-    private val meterRegistry: MeterRegistry
+    private val meterRegistry: MeterRegistry,
+    private val coolDownManager: CommandCoolDownManager
 ) : BaseCommandService(workerProperties, holderService, messageService, discordEntityAccessor),
     InternalCommandsService {
 
@@ -97,6 +98,13 @@ class InternalCommandsServiceImpl @Autowired constructor(
         }
 
         if (!checkBotPermissions(event, dslCommand.botPermissions, guild, channel)) return true
+
+        val userId = event.user.idLong
+        if (coolDownManager.isOnCooldown(userId, dslCommand.name)) {
+            event.reply("Please wait before using this command again.").setEphemeral(true).queue()
+            return true
+        }
+        coolDownManager.recordUsage(userId, dslCommand.name)
 
         if (workerProperties.commands.invokeLogging) {
             log.info { "Invoke DSL command [${dslCommand.name}]: ${event.options}" }
@@ -175,6 +183,13 @@ class InternalCommandsServiceImpl @Autowired constructor(
             return true
 
         if (!checkBotPermissions(event, command.permissions.toList(), guild, channel)) return true
+
+        val userId = event.user.idLong
+        if (coolDownManager.isOnCooldown(userId, command.key)) {
+            event.reply("Please wait before using this command again.").setEphemeral(true).queue()
+            return true
+        }
+        coolDownManager.recordUsage(userId, command.key)
 
         // Check member permissions
         val memberPerms = command.annotation.memberRequiredPermissions

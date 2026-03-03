@@ -9,6 +9,7 @@ import io.micrometer.core.instrument.MeterRegistry
 import jakarta.annotation.PreDestroy
 import jakarta.transaction.Transactional
 import kotlinx.coroutines.*
+import kotlinx.coroutines.reactor.awaitSingle
 import net.dv8tion.jda.api.entities.Guild
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
@@ -125,7 +126,7 @@ class PlayerServiceImpl(
         val guildId = channel.guild.idLong
         val link = lavaAudioService.lavalink.getOrCreateLink(guildId)
 
-        val result = link.loadItem(resolvedIdentifier).block()
+        val result = link.loadItem(resolvedIdentifier).awaitSingle()
             ?: throw DiscordException("discord.command.audio.error.loadFailed")
 
         val jda = channel.jda
@@ -245,15 +246,15 @@ class PlayerServiceImpl(
         return filtered.size
     }
 
-    private fun startTrack(instance: PlaybackInstance, request: TrackRequest) {
+    private suspend fun startTrack(instance: PlaybackInstance, request: TrackRequest) {
         val link = lavaAudioService.lavalink.getOrCreateLink(instance.guildId)
         link.createOrUpdatePlayer()
             .updateTrack(PlayerUpdateTrack(encoded = Omissible.of(request.encodedTrack)))
             .setVolume(instance.volume)
-            .block()
+            .awaitSingle()
     }
 
-    private fun playNext(instance: PlaybackInstance): Boolean {
+    private suspend fun playNext(instance: PlaybackInstance): Boolean {
         val next = instance.nextToPlay() ?: return false
         startTrack(instance, next)
         return true
@@ -267,15 +268,19 @@ class PlayerServiceImpl(
             current.endMemberId = member.idLong
         }
 
-        if (!playNext(instance)) {
-            clearInstance(instance, notify = true)
+        scope.launch {
+            if (!playNext(instance)) {
+                clearInstance(instance, notify = true)
+            }
         }
     }
 
     override fun skipTo(guild: Guild, index: Int): TrackRequest? {
         val instance = get(guild) ?: return null
         val track = instance.skipTo(index) ?: return null
-        startTrack(instance, track)
+        scope.launch {
+            startTrack(instance, track)
+        }
         return track
     }
 
@@ -301,7 +306,7 @@ class PlayerServiceImpl(
         val link = lavaAudioService.lavalink.getOrCreateLink(guild.idLong)
         link.createOrUpdatePlayer()
             .setPaused(true)
-            .block()
+            .awaitSingle()
         return true
     }
 
@@ -316,14 +321,14 @@ class PlayerServiceImpl(
                 link.createOrUpdatePlayer()
                     .updateTrack(PlayerUpdateTrack(encoded = Omissible.of(current.encodedTrack)))
                     .setPaused(false)
-                    .block()
+                    .awaitSingle()
                 return true
             }
         }
 
         link.createOrUpdatePlayer()
             .setPaused(false)
-            .block()
+            .awaitSingle()
         return true
     }
 
@@ -335,7 +340,7 @@ class PlayerServiceImpl(
         val link = lavaAudioService.lavalink.getOrCreateLink(guild.idLong)
         link.createOrUpdatePlayer()
             .setPosition(positionMs)
-            .block()
+            .awaitSingle()
         return true
     }
 
@@ -346,7 +351,7 @@ class PlayerServiceImpl(
         val link = lavaAudioService.lavalink.getOrCreateLink(guild.idLong)
         link.createOrUpdatePlayer()
             .setVolume(clamped)
-            .block()
+            .awaitSingle()
         instance.volume = clamped
         return true
     }
@@ -412,7 +417,7 @@ class PlayerServiceImpl(
                 val link = lavaAudioService.lavalink.getOrCreateLink(instance.guildId)
                 link.createOrUpdatePlayer()
                     .setPosition(request.timeCode)
-                    .block()
+                    .awaitSingle()
             }
         }
 

@@ -93,11 +93,34 @@ class AutoModServiceImpl(
         return null
     }
 
+    private fun safeRegexMatch(pattern: String, input: String, timeoutMs: Long = 1000L): Boolean {
+        val regex = runCatching { Regex(pattern, RegexOption.IGNORE_CASE) }.getOrNull() ?: return false
+        val thread = Thread.currentThread()
+        val timer = java.util.Timer(true)
+        var timedOut = false
+        timer.schedule(object : java.util.TimerTask() {
+            override fun run() {
+                timedOut = true
+                thread.interrupt()
+            }
+        }, timeoutMs)
+        return try {
+            val result = regex.containsMatchIn(input)
+            timer.cancel()
+            result
+        } catch (e: Exception) {
+            timer.cancel()
+            if (timedOut) {
+                log.warn { "Regex pattern timed out after ${timeoutMs}ms: $pattern" }
+            }
+            false
+        }
+    }
+
     private fun checkWordFilter(message: Message, config: AutoModConfig): AutoModResult? {
         val content = message.contentRaw
         for (pattern in config.wordFilterPatterns) {
-            val regex = runCatching { Regex(pattern, RegexOption.IGNORE_CASE) }.getOrNull() ?: continue
-            if (regex.containsMatchIn(content)) {
+            if (safeRegexMatch(pattern, content)) {
                 recordTrigger("word")
                 return AutoModResult(
                     trigger = "word_filter",
