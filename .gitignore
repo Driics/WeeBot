@@ -38,3 +38,15 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+# Docker volumes (never commit)
+postgres_data/
+kafka_data/
+prometheus_data/
+loki_data/
+tempo_data/
+grafana_data/
+
+# Environment files (secrets)
+.env
+!.env.example
