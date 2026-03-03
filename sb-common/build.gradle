@@ -17,6 +17,8 @@ dependencies {
 
     api 'org.slf4j:slf4j-api:2.0.9'
 
+    api "net.logstash.logback:logstash-logback-encoder:8.0"
+
     api ("net.dv8tion:JDA:5.0.2") {
         exclude group: 'club.minnced', module: 'opus-java'
     }
