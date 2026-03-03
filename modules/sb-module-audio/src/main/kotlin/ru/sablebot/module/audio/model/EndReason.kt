@@ -1,6 +1,6 @@
 package ru.sablebot.module.audio.model
 
-import com.sedmelluq.discord.lavaplayer.track.AudioTrackEndReason
+import dev.arbjerg.lavalink.protocol.v4.Message.EmittedEvent.TrackEndEvent.AudioTrackEndReason
 
 enum class EndReason(vararg val reasons: AudioTrackEndReason) {
     LISTENED(AudioTrackEndReason.FINISHED),
@@ -16,7 +16,6 @@ enum class EndReason(vararg val reasons: AudioTrackEndReason) {
                     return reason
                 }
             }
-
             return null
         }
     }

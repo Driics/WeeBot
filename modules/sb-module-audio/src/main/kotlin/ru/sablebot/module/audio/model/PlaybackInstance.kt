@@ -2,7 +2,6 @@ package ru.sablebot.module.audio.model
 
 import dev.arbjerg.lavalink.client.player.LavalinkPlayer
 import net.dv8tion.jda.api.entities.Member
-import net.dv8tion.jda.api.managers.AudioManager
 import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -12,11 +11,14 @@ class PlaybackInstance(
 ) {
     private val playlist = Collections.synchronizedList(mutableListOf<TrackRequest>())
 
-    var audioManager: AudioManager? = null // можно вообще удалить в v4, если используешь DirectAudioController
     var mode: RepeatMode = RepeatMode.NONE
 
     var cursor: Int = -1
         private set
+
+    var volume: Int = 100
+    var activeFilter: FilterPreset? = null
+    var twentyFourSeven: Boolean = false
 
     var playlistId: Long? = null
     var playlistUuid: String? = null
@@ -25,7 +27,6 @@ class PlaybackInstance(
 
     private val stopped = AtomicBoolean(false)
 
-    // позицию корректнее вести через websocket playerUpdate(state.position).[web:48]
     @Volatile
     var lastKnownPositionMs: Long = 0
         private set
@@ -36,9 +37,8 @@ class PlaybackInstance(
         playlist.clear()
         cursor = -1
         stopped.set(false)
+        activeFilter = null
         tick()
-        // stop -> Update Player Endpoint track=null[web:44]
-        // Реальный вызов сделай снаружи (suspend), чтобы не мешать sync/locks.
     }
 
     @Synchronized
@@ -47,15 +47,15 @@ class PlaybackInstance(
     }
 
     /**
-     * Добавить в очередь и, если сейчас ничего не играет, вернуть трек который надо стартовать.
-     * Сетевой вызов (player.play/update) делай в сервисе, чтобы не держать lock во время I/O.
+     * Enqueue a track. Returns the track to start if the queue was empty.
+     * Network calls (player.play) should be done outside this synchronized block.
      */
     @Synchronized
     fun enqueue(request: TrackRequest): TrackRequest? {
         tick()
-        offer(request)
+        playlist.add(request)
 
-        val shouldStart = (cursor == -1 || cursor >= playlist.size) // пусто до этого
+        val shouldStart = (cursor == -1 || cursor >= playlist.size)
         if (shouldStart) {
             mode = RepeatMode.NONE
             cursor = 0
@@ -65,7 +65,7 @@ class PlaybackInstance(
     }
 
     /**
-     * Вычисляет следующий трек, который надо проиграть, согласно repeat mode.
+     * Calculates next track to play based on repeat mode.
      */
     @Synchronized
     fun nextToPlay(): TrackRequest? {
@@ -91,7 +91,7 @@ class PlaybackInstance(
     }
 
     @Synchronized
-    fun stopFlag(): Boolean = stopped.compareAndSet(false, true)
+    fun stop(): Boolean = stopped.compareAndSet(false, true)
 
     @Synchronized
     fun removeByIndex(index: Int): TrackRequest? {
@@ -109,15 +109,76 @@ class PlaybackInstance(
     @Synchronized
     fun shuffleUpcoming(): Boolean {
         if (playlist.isEmpty()) return false
-        val upcoming = onGoingMutable()
-        if (upcoming.isEmpty()) return false
-        upcoming.shuffle()
+        val start = cursor + 1
+        if (start >= playlist.size) return false
+
+        val upcoming = playlist.subList(start, playlist.size)
+        val shuffled = upcoming.toMutableList()
+        shuffled.shuffle()
+        for (i in shuffled.indices) {
+            upcoming[i] = shuffled[i]
+        }
         return true
+    }
+
+    /**
+     * Move a track from one position to another in the queue.
+     * Positions are relative to the full playlist (0-indexed).
+     */
+    @Synchronized
+    fun moveTo(from: Int, to: Int): Boolean {
+        if (from !in playlist.indices || to !in playlist.indices) return false
+        if (from == cursor || to == cursor) return false
+        if (from == to) return false
+
+        val track = playlist.removeAt(from)
+        playlist.add(to, track)
+
+        // Adjust cursor if it was between the moved positions
+        cursor = when {
+            from < cursor && to >= cursor -> cursor - 1
+            from > cursor && to <= cursor -> cursor + 1
+            else -> cursor
+        }
+        return true
+    }
+
+    /**
+     * Jump to a specific track index. Returns the track to play or null if invalid.
+     */
+    @Synchronized
+    fun skipTo(index: Int): TrackRequest? {
+        if (index !in playlist.indices) return null
+        cursor = index
+        val track = playlist[cursor]
+        track.reset()
+        return track
+    }
+
+    /**
+     * Clear the queue but keep the currently playing track.
+     * Returns the number of removed tracks.
+     */
+    @Synchronized
+    fun clear(): Int {
+        if (playlist.isEmpty()) return 0
+        val current = currentOrNull()
+        val removedCount = playlist.size - (if (current != null) 1 else 0)
+
+        if (current != null) {
+            playlist.clear()
+            playlist.add(current)
+            cursor = 0
+        } else {
+            playlist.clear()
+            cursor = -1
+        }
+        return removedCount
     }
 
     @Synchronized
     fun currentOrNull(): TrackRequest? =
-        if (cursor < 0 || playlist.isEmpty()) null else playlist[cursor]
+        if (cursor < 0 || cursor >= playlist.size || playlist.isEmpty()) null else playlist[cursor]
 
     @Synchronized
     fun queueSnapshot(): List<TrackRequest> {
@@ -134,20 +195,20 @@ class PlaybackInstance(
         return queueSnapshot().filter { it.memberId == memberId }
     }
 
-    fun updatePositionFromLavalink(positionMs: Long) {
-        // дергай из websocket listener’а playerUpdate(state.position)[web:48]
-        lastKnownPositionMs = positionMs.coerceAtLeast(0)
+    @Synchronized
+    fun queueSize(): Int = playlist.size
+
+    @Synchronized
+    fun upcomingCount(): Int {
+        if (cursor < 0 || playlist.isEmpty()) return 0
+        return (playlist.size - cursor - 1).coerceAtLeast(0)
     }
 
-    private fun offer(request: TrackRequest) {
-        playlist.add(request)
+    fun updatePositionFromLavalink(positionMs: Long) {
+        lastKnownPositionMs = positionMs.coerceAtLeast(0)
     }
 
     private fun onGoing(): List<TrackRequest> =
         if (cursor < 0 || playlist.isEmpty() || cursor == playlist.lastIndex) emptyList()
         else playlist.subList(cursor + 1, playlist.size).toList()
-
-    private fun onGoingMutable(): MutableList<TrackRequest> =
-        if (cursor < 0 || playlist.isEmpty() || cursor == playlist.lastIndex) mutableListOf()
-        else playlist.subList(cursor + 1, playlist.size)
 }

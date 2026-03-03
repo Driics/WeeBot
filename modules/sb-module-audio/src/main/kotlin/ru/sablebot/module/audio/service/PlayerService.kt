@@ -5,6 +5,7 @@ import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
 import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel
 import ru.sablebot.common.model.exception.DiscordException
+import ru.sablebot.module.audio.model.FilterPreset
 import ru.sablebot.module.audio.model.PlaybackInstance
 import ru.sablebot.module.audio.model.TrackRequest
 
@@ -20,13 +21,10 @@ interface PlayerServiceV4 {
     fun get(guild: Guild): PlaybackInstance?
     fun get(guildId: Long, create: Boolean = false): PlaybackInstance?
 
-    /** Загружает трек/плейлист через Lavalink /v4/loadtracks и ставит в очередь/сразу играет. */
     suspend fun loadAndPlay(channel: TextChannel, requestedBy: Member, identifier: String)
 
-    /** Проиграть один запрос (обычно уже содержит encoded или identifier). */
     suspend fun play(request: TrackRequest)
 
-    /** Проиграть пачку запросов. */
     suspend fun playAll(requests: List<TrackRequest>): Int
 
     fun skipTrack(member: Member, guild: Guild)
@@ -40,7 +38,6 @@ interface PlayerServiceV4 {
 
     fun memberChannel(member: Member): VoiceChannel?
 
-    /** Подключает бота к каналу через LavalinkV4AudioService.connect(). */
     @Throws(DiscordException::class)
     fun connectToChannel(instance: PlaybackInstance, member: Member): VoiceChannel
 
@@ -58,4 +55,13 @@ interface PlayerServiceV4 {
 
     fun isActive(guild: Guild): Boolean
     fun isActive(instance: PlaybackInstance): Boolean
+
+    // New methods for full music module
+    suspend fun seek(guild: Guild, positionMs: Long): Boolean
+    suspend fun setVolume(guild: Guild, volume: Int): Boolean
+    suspend fun applyFilter(guild: Guild, preset: FilterPreset): Boolean
+    fun moveTo(guild: Guild, from: Int, to: Int): Boolean
+    fun skipTo(guild: Guild, index: Int): TrackRequest?
+    fun clearQueue(guild: Guild): Int
+    fun set247(guild: Guild, enabled: Boolean)
 }

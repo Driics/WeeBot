@@ -1,78 +1,198 @@
 package ru.sablebot.module.audio.service.helper
 
-import dev.arbjerg.lavalink.client.LavalinkNode
-import dev.arbjerg.lavalink.client.player.LavalinkPlayer
 import io.github.oshai.kotlinlogging.KotlinLogging
 import net.dv8tion.jda.api.EmbedBuilder
+import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.exceptions.ErrorResponseException
 import net.dv8tion.jda.api.exceptions.PermissionException
+import net.dv8tion.jda.api.interactions.components.ActionRow
+import net.dv8tion.jda.api.interactions.components.buttons.Button
 import net.dv8tion.jda.api.requests.ErrorResponse
-import net.dv8tion.jda.api.utils.messages.MessageEditData
+import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder
+import net.dv8tion.jda.api.utils.messages.MessageEditBuilder
 import org.springframework.beans.factory.annotation.Qualifier
+import org.springframework.context.annotation.Lazy
 import org.springframework.scheduling.TaskScheduler
 import org.springframework.stereotype.Service
 import ru.sablebot.common.configuration.CommonConfiguration
-import ru.sablebot.common.configuration.CommonProperties
 import ru.sablebot.common.service.MusicConfigService
 import ru.sablebot.common.worker.configuration.WorkerProperties
 import ru.sablebot.common.worker.event.service.ContextService
-import ru.sablebot.common.worker.feature.service.FeatureSetService
 import ru.sablebot.common.worker.message.service.MessageService
 import ru.sablebot.common.worker.shared.service.DiscordService
+import ru.sablebot.module.audio.model.FilterPreset
 import ru.sablebot.module.audio.model.PlaybackInstance
 import ru.sablebot.module.audio.model.RepeatMode
 import ru.sablebot.module.audio.model.TrackRequest
-import ru.sablebot.module.audio.service.ILavalinkV4AudioService
-import ru.sablebot.module.audio.utils.MessageController
+import ru.sablebot.module.audio.service.PlayerServiceV4
+import java.awt.Color
 import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ScheduledFuture
-import java.util.concurrent.locks.ReentrantLock
-import kotlin.math.roundToInt
 
 @Service
 class AudioMessageManager(
     @param:Qualifier(CommonConfiguration.SCHEDULER)
     private val scheduler: TaskScheduler,
     private val contextService: ContextService,
-    private val audioService: ILavalinkV4AudioService,
+    @Lazy private val playerService: PlayerServiceV4,
     private val messageService: MessageService,
     private val discordService: DiscordService,
-    private val featureSetService: FeatureSetService,
     private val musicConfigService: MusicConfigService,
-    private val commonProperties: CommonProperties,
     private val workerProperties: WorkerProperties
 ) {
     companion object {
         private val logger = KotlinLogging.logger {}
 
-        private const val MAX_SHORT_QUEUE = 5
-        private const val DEFAULT_VOLUME = 100
-        private const val MIN_LOAD_PERCENT = 0
-        private const val MAX_LOAD_PERCENT = 100
-        private const val PAUSE_EMOJI = "⏸"
+        private const val PROGRESS_BAR_WIDTH = 20
+        private const val EMBED_COLOR = 0x5865F2
+        private const val ENDED_COLOR = 0x99AAB5
 
-        // Discord formatting constants
-        private const val TIMESTAMP_START = "`"
-        private const val TIMESTAMP_END = "`"
-        private const val ZERO_WIDTH_SPACE = "\u200B"
-        private const val EMPTY_SYMBOL = ""
-
-        // Icons for queue display
-        private const val ICON_STREAM = "🔴"
-        private const val ICON_PLAYING = "▶️"
+        // Button custom IDs
+        const val BTN_PAUSE = "audio:pause"
+        const val BTN_RESUME = "audio:resume"
+        const val BTN_SKIP = "audio:skip"
+        const val BTN_STOP = "audio:stop"
+        const val BTN_REPEAT = "audio:repeat"
+        const val BTN_SHUFFLE = "audio:shuffle"
     }
 
+    /** guildId -> panel messageId */
+    private val panelMessages = ConcurrentHashMap<Long, Long>()
+
+    /** guildId -> scheduled refresh task */
     private val updaterTasks = ConcurrentHashMap<Long, ScheduledFuture<*>>()
-    private val controllers = ConcurrentHashMap<Long, MessageController>()
-    private val guildLocks = ConcurrentHashMap<Long, ReentrantLock>()
+
+    // ==================== Public API (called by PlayerServiceImpl) ====================
+
+    fun onTrackStart(request: TrackRequest?) {
+        if (request == null) return
+
+        val instance = playerService.get(request.guildId) ?: return
+        val channel = request.channel() ?: return
+
+        cancelUpdate(request.guildId)
+
+        try {
+            val existingMessageId = panelMessages[request.guildId]
+            val embed = buildNowPlayingEmbed(request, instance)
+            val buttons = buildControlButtons(instance)
+            val actionRow = ActionRow.of(buttons)
+
+            if (existingMessageId != null) {
+                val editData = MessageEditBuilder()
+                    .setEmbeds(embed)
+                    .setComponents(actionRow)
+                    .build()
+
+                channel.editMessageById(existingMessageId, editData).queue(
+                    { scheduleRefresh(request, instance) },
+                    { error ->
+                        if (error is ErrorResponseException &&
+                            (error.errorResponse == ErrorResponse.UNKNOWN_MESSAGE ||
+                                    error.errorResponse == ErrorResponse.MISSING_ACCESS)
+                        ) {
+                            panelMessages.remove(request.guildId)
+                            sendNewPanel(request, instance)
+                        } else {
+                            logger.warn(error) { "Failed to edit panel for guild ${request.guildId}" }
+                        }
+                    }
+                )
+            } else {
+                sendNewPanel(request, instance)
+            }
+        } catch (e: PermissionException) {
+            logger.warn(e) { "No permission to send/edit panel in guild ${request.guildId}" }
+        }
+    }
+
+    fun onTrackEnd(request: TrackRequest) {
+        cancelUpdate(request.guildId)
+
+        val channel = request.channel() ?: return
+        val messageId = panelMessages[request.guildId] ?: return
+
+        try {
+            val embed = buildTrackEndedEmbed(request)
+            val editData = MessageEditBuilder()
+                .setEmbeds(embed)
+                .setComponents() // remove buttons
+                .build()
+
+            channel.editMessageById(messageId, editData).queue(
+                { /* success */ },
+                { error -> handleEditError(request.guildId, error) }
+            )
+        } catch (e: PermissionException) {
+            logger.warn(e) { "No permission to update ended panel for guild ${request.guildId}" }
+        }
+    }
+
+    fun onTrackAdd(request: TrackRequest, instance: PlaybackInstance) {
+        val channel = request.channel() ?: return
+        val memberName = resolveMemberName(request.guildId, request.memberId)
+        val queuePosition = instance.queueSize()
+
+        val embed = EmbedBuilder()
+            .setDescription(
+                buildString {
+                    append("**")
+                    append(request.title ?: "Unknown Track")
+                    append("**")
+                    append(" by ")
+                    append(request.author ?: "Unknown")
+                    append("\n\nAdded to queue at position **#$queuePosition**")
+                    append("\nRequested by: **$memberName**")
+                }
+            )
+            .setColor(Color(EMBED_COLOR))
+            .build()
+
+        val message = MessageCreateBuilder()
+            .setEmbeds(embed)
+            .build()
+
+        channel.sendMessage(message).queue(
+            { msg ->
+                // Auto-delete after 10 seconds
+                msg.delete().queueAfter(10, java.util.concurrent.TimeUnit.SECONDS, null) {}
+            },
+            { error -> logger.debug(error) { "Failed to send track-add notification" } }
+        )
+    }
+
+    fun onQueueEnd(request: TrackRequest) {
+        cancelUpdate(request.guildId)
+
+        val channel = request.channel() ?: return
+        val messageId = panelMessages[request.guildId] ?: return
+
+        try {
+            val embed = EmbedBuilder()
+                .setTitle("\uD83C\uDFB5 Queue Ended")
+                .setDescription("All tracks have been played.")
+                .setColor(Color(ENDED_COLOR))
+                .build()
+
+            val editData = MessageEditBuilder()
+                .setEmbeds(embed)
+                .setComponents()
+                .build()
+
+            channel.editMessageById(messageId, editData).queue(
+                { panelMessages.remove(request.guildId) },
+                { error -> handleEditError(request.guildId, error) }
+            )
+        } catch (e: PermissionException) {
+            logger.warn(e) { "No permission to update queue-end panel for guild ${request.guildId}" }
+        }
+    }
 
     fun clear(guildId: Long) {
         cancelUpdate(guildId)
-        controllers.remove(guildId)
+        panelMessages.remove(guildId)
     }
-
-    fun cancelUpdate(request: TrackRequest) = cancelUpdate(request.guildId)
 
     fun cancelUpdate(guildId: Long) {
         updaterTasks.computeIfPresent(guildId) { _, task ->
@@ -82,318 +202,247 @@ class AudioMessageManager(
     }
 
     fun monitor(alive: Set<Long>) {
-        val dead = updaterTasks.keys - alive
+        val dead = panelMessages.keys - alive
         dead.forEach { guildId ->
             runCatching { clear(guildId) }
                 .onFailure { logger.warn(it) { "Could not clear dead updater for guild $guildId" } }
         }
     }
 
-    fun updateMessage(request: TrackRequest) {
-        val channel = request.channel() ?: run {
-            cancelUpdate(request)
-            return
-        }
+    /**
+     * Force-refresh the panel for a guild (e.g., after repeat mode or shuffle change from button).
+     */
+    fun refreshPanel(guildId: Long) {
+        val instance = playerService.get(guildId) ?: return
+        val request = instance.currentOrNull() ?: return
+        val channel = request.channel() ?: return
+        val messageId = panelMessages[guildId] ?: return
 
         try {
-            if (request.resetMessage) {
-                sendResetMessage(request)
-                return
-            }
+            val embed = buildNowPlayingEmbed(request, instance)
+            val buttons = buildControlButtons(instance)
+            val editData = MessageEditBuilder()
+                .setEmbeds(embed)
+                .setComponents(ActionRow.of(buttons))
+                .build()
 
-            controllers[request.guildId]?.executeForMessage(
-                { message ->
-                    message.editMessage(MessageEditData.fromEmbeds(getPlayMessage(request).build())).queue(
-                        { },
-                        { throwable ->
-                            if (throwable is ErrorResponseException) {
-                                handleUpdateError(request, throwable)
-                            }
-                        }
-                    )
-                }
+            channel.editMessageById(messageId, editData).queue(
+                { /* success */ },
+                { error -> handleEditError(guildId, error) }
             )
         } catch (e: PermissionException) {
-            logger.warn(e) { "No permission to update" }
-            cancelUpdate(request)
-        } catch (e: ErrorResponseException) {
-            handleUpdateError(request, e)
+            logger.warn(e) { "No permission to refresh panel for guild $guildId" }
         }
     }
 
-    private fun sendResetMessage(request: TrackRequest) {
-        // TODO: Implement reset message logic
-        cancelUpdate(request)
+    // ==================== Panel Sending ====================
+
+    private fun sendNewPanel(request: TrackRequest, instance: PlaybackInstance) {
+        val channel = request.channel() ?: return
+        val embed = buildNowPlayingEmbed(request, instance)
+        val buttons = buildControlButtons(instance)
+
+        val message = MessageCreateBuilder()
+            .setEmbeds(embed)
+            .setComponents(ActionRow.of(buttons))
+            .build()
+
+        channel.sendMessage(message).queue(
+            { msg ->
+                panelMessages[request.guildId] = msg.idLong
+                scheduleRefresh(request, instance)
+            },
+            { error -> logger.warn(error) { "Failed to send panel for guild ${request.guildId}" } }
+        )
     }
 
-    private fun handleUpdateError(
-        request: TrackRequest,
-        e: ErrorResponseException
-    ) {
-        when (e.errorResponse) {
-            ErrorResponse.UNKNOWN_MESSAGE, ErrorResponse.MISSING_ACCESS -> cancelUpdate(request)
-            else -> {
-                logger.error(e) { "Update error" }
+    // ==================== Scheduled Refresh ====================
+
+    private fun scheduleRefresh(request: TrackRequest, instance: PlaybackInstance) {
+        if (request.isStream) return
+
+        val config = musicConfigService.getByGuildId(request.guildId)
+        if (config?.autoRefresh != true) return
+
+        val intervalMs = workerProperties.audio.panelRefreshInterval.toLong()
+        val task = scheduler.scheduleWithFixedDelay({
+            contextService.withContext(request.guildId) {
+                refreshPanelQuietly(request.guildId)
+            }
+        }, Duration.ofMillis(intervalMs))
+
+        updaterTasks.put(request.guildId, task)?.cancel(false)
+    }
+
+    private fun refreshPanelQuietly(guildId: Long) {
+        try {
+            val instance = playerService.get(guildId) ?: run {
+                cancelUpdate(guildId)
                 return
             }
-        }
-    }
-
-    private fun runUpdater(request: TrackRequest) {
-        syncByGuild(request) {
-            val task = scheduler.scheduleWithFixedDelay({
-                contextService.withContext(request.guildId) {
-                    updateMessage(request)
-                }
-            }, Duration.ofMillis(workerProperties.audio.panelRefreshInterval.toLong()))
-
-            updaterTasks.put(request.guildId, task)?.cancel(true)
-        }
-    }
-
-    private fun isRefreshable(guildId: Long): Boolean {
-        val config = musicConfigService.getByGuildId(guildId) ?: return false
-        return config.autoRefresh /* TODO: add featureSetService */
-    }
-
-    private fun syncByGuild(request: TrackRequest, action: () -> Unit) {
-        val lock = guildLocks.computeIfAbsent(request.guildId) { ReentrantLock() }
-        lock.lock()
-        try {
-            contextService.withContext(request.guildId, action)
-        } finally {
-            lock.unlock()
-
-            synchronized(guildLocks) {
-                if (!lock.hasQueuedThreads()) {
-                    guildLocks.remove(request.guildId, lock)
-                }
+            val request = instance.currentOrNull() ?: run {
+                cancelUpdate(guildId)
+                return
             }
-        }
-    }
-
-    private fun getBasicMessage(request: TrackRequest): EmbedBuilder {
-        return EmbedBuilder()
-    }
-
-    private fun getPlayMessage(request: TrackRequest): EmbedBuilder {
-        // Get player instance from audio service
-        val player = audioService.player(request.guildId)
-        val instance = player?.let { PlaybackInstance(request.guildId, it) }
-            ?: return getBasicMessage(request)
-
-        val context = PlayMessageContext(
-            request = request,
-            instance = instance,
-            isRefreshable = isRefreshable(instance.guildId),
-            isEnded = request.endReason != null
-        )
-
-        return buildEmbed(getBasicMessage(request)) {
-            setDescription(null)
-
-            withPlaylistLink(context)
-            withQueuePreview(context)
-            withTrackInfoFields(context)
-
-            if (!context.isEnded) {
-                withPlaybackStatusFields(context)
-                withNodeFooter(context)
+            val channel = request.channel() ?: run {
+                cancelUpdate(guildId)
+                return
             }
-        }
-    }
+            val messageId = panelMessages[guildId] ?: run {
+                cancelUpdate(guildId)
+                return
+            }
 
-    private fun EmbedBuilder.withPlaylistLink(context: PlayMessageContext) {
-        val playlistUuid = context.instance.playlistUuid ?: return
+            val embed = buildNowPlayingEmbed(request, instance)
+            val buttons = buildControlButtons(instance)
+            val editData = MessageEditBuilder()
+                .setEmbeds(embed)
+                .setComponents(ActionRow.of(buttons))
+                .build()
 
-        setDescription(
-            messageService.getMessage(
-                "discord.command.audio.panel.playlist",
-                commonProperties.branding.websiteUrl,
-                playlistUuid
+            channel.editMessageById(messageId, editData).queue(
+                { /* success */ },
+                { error ->
+                    if (error is ErrorResponseException) {
+                        when (error.errorResponse) {
+                            ErrorResponse.UNKNOWN_MESSAGE, ErrorResponse.MISSING_ACCESS -> {
+                                panelMessages.remove(guildId)
+                                cancelUpdate(guildId)
+                            }
+
+                            else -> logger.debug(error) { "Refresh error for guild $guildId" }
+                        }
+                    }
+                }
             )
-        )
+        } catch (e: Exception) {
+            logger.debug(e) { "Error during panel refresh for guild $guildId" }
+        }
     }
 
-    private fun EmbedBuilder.withQueuePreview(context: PlayMessageContext) {
-        if (context.isEnded) return
+    // ==================== Embed Builders ====================
 
-        val queue = context.instance.queueSnapshot()
-        if (queue.size <= 1) return
+    private fun buildNowPlayingEmbed(
+        request: TrackRequest,
+        instance: PlaybackInstance
+    ): net.dv8tion.jda.api.entities.MessageEmbed {
+        val title = request.title ?: "Unknown Track"
+        val author = request.author ?: "Unknown"
+        val memberName = resolveMemberName(request.guildId, request.memberId)
+        val progressLine = buildProgressLine(request, instance)
 
-        val config = musicConfigService.getByGuildId(context.instance.guildId)
-        if (config?.showQueue != true) return
+        val description = buildString {
+            append("**").append(title).append("**\n")
+            append("by ").append(author).append("\n\n")
+            append(progressLine).append("\n\n")
+            append("Requested by: **").append(memberName).append("**")
+        }
 
-        val nextTracks = queue.subList(1, minOf(queue.size, MAX_SHORT_QUEUE + 1))
-        val startIndex = context.instance.cursor + 2
+        val footerText = buildFooterText(instance)
 
-        addQueue(context.instance, nextTracks, startIndex, showNextHint = true)
+        return EmbedBuilder()
+            .setTitle("\uD83C\uDFB5 Now Playing")
+            .setDescription(description)
+            .apply { request.artworkUrl?.let { setThumbnail(it) } }
+            .setColor(Color(EMBED_COLOR))
+            .setFooter(footerText)
+            .build()
     }
 
-    // endregion
+    private fun buildTrackEndedEmbed(request: TrackRequest): net.dv8tion.jda.api.entities.MessageEmbed {
+        val title = request.title ?: "Unknown Track"
+        val author = request.author ?: "Unknown"
+        val endReasonText = request.endReason?.let {
+            messageService.getMessage("discord.command.audio.endReason.${it.name.lowercase()}")
+        } ?: "Ended"
 
-    private fun buildDurationText(context: PlayMessageContext): String {
-        return if (context.isEnded) {
-            buildEndedDurationText(context)
+        val description = buildString {
+            append("**").append(title).append("**\n")
+            append("by ").append(author).append("\n\n")
+            if (!request.isStream && (request.lengthMs) > 0) {
+                append(formatDuration(request.lengthMs)).append(" - ")
+            }
+            append(endReasonText)
+        }
+
+        return EmbedBuilder()
+            .setTitle("\uD83C\uDFB5 Track Ended")
+            .setDescription(description)
+            .apply { request.artworkUrl?.let { setThumbnail(it) } }
+            .setColor(Color(ENDED_COLOR))
+            .build()
+    }
+
+    // ==================== Progress Bar ====================
+
+    private fun buildProgressLine(request: TrackRequest, instance: PlaybackInstance): String {
+        if (request.isStream) {
+            return "\uD83D\uDD34 LIVE"
+        }
+
+        val duration = request.lengthMs
+        if (duration <= 0) return ""
+
+        val position = instance.lastKnownPositionMs
+        val progressPercent = if (duration > 0) {
+            ((position.toDouble() / duration.toDouble()) * 100).toInt().coerceIn(0, 100)
+        } else 0
+
+        val filledBlocks = (progressPercent * PROGRESS_BAR_WIDTH / 100).coerceIn(0, PROGRESS_BAR_WIDTH)
+        val emptyBlocks = (PROGRESS_BAR_WIDTH - filledBlocks).coerceAtLeast(0)
+
+        val bar = "\u2593".repeat(filledBlocks) + "\u2591".repeat(emptyBlocks)
+        return "$bar ${formatDuration(position)} / ${formatDuration(duration)}"
+    }
+
+    // ==================== Footer ====================
+
+    private fun buildFooterText(instance: PlaybackInstance): String {
+        val parts = mutableListOf<String>()
+
+        parts.add("Volume: ${instance.volume}%")
+
+        val repeatText = when (instance.mode) {
+            RepeatMode.NONE -> "Off"
+            RepeatMode.CURRENT -> "Track"
+            RepeatMode.ALL -> "Queue"
+        }
+        parts.add("Repeat: $repeatText")
+
+        parts.add("Queue: ${instance.upcomingCount()} tracks")
+
+        val filterName = instance.activeFilter?.let {
+            if (it == FilterPreset.NONE) null else it.displayName
+        }
+        parts.add("Filter: ${filterName ?: "None"}")
+
+        return parts.joinToString(" | ")
+    }
+
+    // ==================== Control Buttons ====================
+
+    private fun buildControlButtons(instance: PlaybackInstance): List<Button> {
+        val isPaused = instance.player.paused
+
+        val pauseResumeButton = if (isPaused) {
+            Button.primary(BTN_RESUME, "Resume").withEmoji(Emoji.fromUnicode("\u23EF"))
         } else {
-            getTextProgress(context.instance, context.request, context.isRefreshable)
-        }
-    }
-
-    private fun buildEndedDurationText(context: PlayMessageContext): String = buildString {
-        val request = context.request
-        val isStream = request.isStream
-        val lengthMs = request.lengthMs ?: 0
-        val hasDuration = !isStream && lengthMs > 0
-
-        if (hasDuration) {
-            append(formatDuration(lengthMs))
-            append(" (")
+            Button.primary(BTN_PAUSE, "Pause").withEmoji(Emoji.fromUnicode("\u23EF"))
         }
 
-        val endReason = context.request.endReason ?: return@buildString
-        val endReasonText = messageService.getMessage(
-            "discord.command.audio.endReason.${endReason.name.lowercase()}"
-        )
-        append(endReasonText)
+        val skipButton = Button.secondary(BTN_SKIP, "Skip")
+            .withEmoji(Emoji.fromUnicode("\u23ED"))
+        val stopButton = Button.danger(BTN_STOP, "Stop")
+            .withEmoji(Emoji.fromUnicode("\u23F9"))
+        val repeatButton = Button.secondary(BTN_REPEAT, "Repeat")
+            .withEmoji(Emoji.fromUnicode("\uD83D\uDD01"))
+        val shuffleButton = Button.secondary(BTN_SHUFFLE, "Shuffle")
+            .withEmoji(Emoji.fromUnicode("\uD83D\uDD00"))
 
-        val endMember = getMemberName(context.request, MemberType.Ender)
-        if (endMember.isNotBlank()) {
-            append(" - **")
-            append(endMember)
-            append("**")
-        }
-
-        if (hasDuration) {
-            append(")")
-        }
-
-        append(EMPTY_SYMBOL)
+        return listOf(pauseResumeButton, skipButton, stopButton, repeatButton, shuffleButton)
     }
 
-    // region Track Info Fields
-
-    private fun EmbedBuilder.withTrackInfoFields(context: PlayMessageContext) {
-        val durationText = buildDurationText(context)
-        val requestedBy = getMemberName(context.request, MemberType.Requester)
-        val isCompactLayout = !context.request.isStream && context.isRefreshable
-
-        if (isCompactLayout) {
-            withCompactTrackField(requestedBy, durationText)
-        } else {
-            withExpandedTrackFields(durationText, requestedBy)
-        }
-    }
-
-    private fun EmbedBuilder.withCompactTrackField(requestedBy: String, durationText: String) {
-        val label = buildString {
-            append(messageService.getMessage("discord.command.audio.panel.requestedBy"))
-            append(": ")
-            append(requestedBy)
-        }
-        addField(label, durationText, true)
-    }
-
-    private fun EmbedBuilder.withExpandedTrackFields(durationText: String, requestedBy: String) {
-        addField(
-            messageService.getMessage("discord.command.audio.panel.duration"),
-            durationText,
-            true
-        )
-        addField(
-            messageService.getMessage("discord.command.audio.panel.requestedBy"),
-            requestedBy,
-            true
-        )
-    }
-
-    private fun EmbedBuilder.withPlaybackStatusFields(context: PlayMessageContext) {
-        val player = context.instance.player
-
-        withVolumeField(player)
-        withRepeatModeField(context.instance)
-        withPausedField(player)
-    }
-
-    private fun EmbedBuilder.withVolumeField(player: LavalinkPlayer) {
-        val volume = player.volume
-        if (volume == DEFAULT_VOLUME) return
-
-        addField(
-            messageService.getMessage("discord.command.audio.panel.volume"),
-            "$volume% TODO icon",
-            true
-        )
-    }
-
-    private fun EmbedBuilder.withRepeatModeField(instance: PlaybackInstance) {
-        val mode = instance.mode
-        if (mode == RepeatMode.NONE) return
-
-        addField(
-            messageService.getMessage("discord.command.audio.panel.repeatMode"),
-            mode.emoji.formatted,
-            true
-        )
-    }
-
-    private fun EmbedBuilder.withPausedField(player: LavalinkPlayer) {
-        if (!player.paused) return
-
-        addField(
-            messageService.getMessage("discord.command.audio.panel.paused"),
-            PAUSE_EMOJI,
-            true
-        )
-    }
-
-    private fun EmbedBuilder.withNodeFooter(context: PlayMessageContext) {
-        val node = audioService.lavalink.nodes
-            .firstOrNull { it.getPlayer(context.instance.guildId).block() == context.instance.player }
-            ?: return
-
-        val footerText = buildNodeFooterText(node, context.isRefreshable)
-        setFooter(footerText, null)
-    }
-
-    private fun buildNodeFooterText(node: LavalinkNode, isRefreshable: Boolean): String {
-        val baseText = messageService.getMessage(
-            "discord.command.audio.panel.poweredBy",
-            node.name
-        )
-
-        if (!isRefreshable) return baseText
-
-        val stats = node.stats ?: return baseText
-
-        val loadPercentage = (stats.cpu.systemLoad * 100)
-            .roundToInt()
-            .coerceIn(MIN_LOAD_PERCENT, MAX_LOAD_PERCENT)
-
-        val loadText = messageService.getMessage(
-            "discord.command.audio.panel.load",
-            loadPercentage
-        )
-
-        return "$baseText $loadText"
-    }
-
-    /**
-     * Specifies which member to resolve from a track request.
-     */
-    private sealed interface MemberType {
-        data object Requester : MemberType
-        data object Ender : MemberType
-    }
-
-    private fun getMemberName(request: TrackRequest, type: MemberType): String {
-        val userId = when (type) {
-            MemberType.Requester -> request.memberId
-            MemberType.Ender -> request.endMemberId ?: return ""
-        }
-
-        return resolveMemberName(request.guildId, userId)
-    }
+    // ==================== Utility ====================
 
     private fun resolveMemberName(guildId: Long, userId: Long): String {
         val shardManager = discordService.shardManager
@@ -401,210 +450,36 @@ class AudioMessageManager(
         val user = shardManager.getUserById(userId)
 
         return when {
-            user != null && guild != null -> {
-                guild.getMember(user)?.effectiveName ?: user.name
-            }
-
+            user != null && guild != null -> guild.getMember(user)?.effectiveName ?: user.name
             user != null -> user.name
             else -> userId.toString()
         }
     }
 
-    // Convenience overloads for cleaner call sites
-    private fun getRequesterName(request: TrackRequest): String =
-        getMemberName(request, MemberType.Requester)
-
-    private fun getEnderName(request: TrackRequest): String =
-        getMemberName(request, MemberType.Ender)
-
-    private fun getTextProgress(
-        instance: PlaybackInstance,
-        request: TrackRequest,
-        showLiveProgress: Boolean
-    ): String = buildString {
-        val isStream = request.isStream
-        val duration = request.lengthMs ?: 0
-        val hasValidDuration = !isStream && duration >= 0
-
-        when {
-            showLiveProgress && instance.player.track != null -> {
-                appendLiveProgress(instance, request, hasValidDuration)
-            }
-
-            hasValidDuration -> {
-                append(formatDuration(duration))
-            }
-        }
-
-        if (isStream) {
-            appendStreamIndicator(showLiveProgress)
-        }
-    }
-
-    private fun StringBuilder.appendLiveProgress(
-        instance: PlaybackInstance,
-        request: TrackRequest,
-        hasValidDuration: Boolean
-    ) {
-        val position = instance.lastKnownPositionMs
-        val duration = request.lengthMs ?: 0
-
-        if (hasValidDuration) {
-            val progressPercent = calculateProgressPercent(position, duration)
-            append(getProgressString(progressPercent))
-            append(" ")
-        }
-
-        append(TIMESTAMP_START)
-        append(formatDuration(position))
-
-        if (hasValidDuration) {
-            append(" / ")
-            append(formatDuration(duration))
-        }
-
-        append(TIMESTAMP_END)
-    }
-
-    private fun calculateProgressPercent(position: Long, duration: Long): Int {
-        if (duration <= 0) return 0
-        return ((position.toDouble() / duration.toDouble()) * 100).toInt()
-    }
-
-    private fun StringBuilder.appendStreamIndicator(showLiveProgress: Boolean) {
-        val streamText = messageService.getMessage("discord.command.audio.panel.stream")
-        if (showLiveProgress) {
-            append(" ($streamText)")
-        } else {
-            append(streamText)
-        }
-    }
-
-    // endregion
-
-    // region Queue Display
-
-    private fun EmbedBuilder.addQueue(
-        instance: PlaybackInstance,
-        requests: List<TrackRequest>,
-        startIndex: Int,
-        showNextHint: Boolean
-    ) {
-        if (requests.isEmpty()) return
-
-        requests.forEachIndexed { index, request ->
-            val queueEntry = buildQueueEntry(
-                request = request,
-                instance = instance,
-                position = startIndex + index,
-                isNextTrack = showNextHint && index == 0,
-                showPlayingIcon = !showNextHint
-            )
-
-            addField(queueEntry.title, queueEntry.description, false)
-        }
-    }
-
-    private fun buildQueueEntry(
-        request: TrackRequest,
-        instance: PlaybackInstance,
-        position: Int,
-        isNextTrack: Boolean,
-        showPlayingIcon: Boolean
-    ): QueueEntry {
-
-        val title = when {
-            isNextTrack -> messageService.getMessage("discord.command.audio.queue.next")
-            else -> ZERO_WIDTH_SPACE
-        }
-
-        val description = formatQueueEntryDescription(
-            request = request,
-            position = position,
-            isAboutToPlay = showPlayingIcon && isNextInQueue(position, instance),
-            requesterName = getRequesterName(request)
-        )
-
-        return QueueEntry(title, description)
-    }
-
-    private fun formatQueueEntryDescription(
-        request: TrackRequest,
-        position: Int,
-        isAboutToPlay: Boolean,
-        requesterName: String
-    ): String {
-        val duration = formatQueueDuration(request)
-        val icon = selectQueueIcon(request, isAboutToPlay)
-
-        return messageService.getMessage(
-            "discord.command.audio.queue.list.entry",
-            position,
-            duration,
-            icon,
-            requesterName
-        )
-    }
-
-    private fun formatQueueDuration(request: TrackRequest): String {
-        if (request.isStream) return ""
-        val lengthMs = request.lengthMs ?: return ""
-        return "$TIMESTAMP_START${formatDuration(lengthMs)}$TIMESTAMP_END"
-    }
-
-    private fun selectQueueIcon(request: TrackRequest, isAboutToPlay: Boolean): String {
-        return when {
-            request.isStream -> ICON_STREAM
-            isAboutToPlay -> ICON_PLAYING
-            else -> ""
-        }
-    }
-
-    private fun isNextInQueue(position: Int, instance: PlaybackInstance): Boolean {
-        return position - instance.cursor == 1
-    }
-
-    private data class QueueEntry(
-        val title: String,
-        val description: String
-    )
-
-    // Extension function for cleaner embed building
-    private inline fun buildEmbed(
-        base: EmbedBuilder,
-        block: EmbedBuilder.() -> Unit
-    ): EmbedBuilder = base.apply(block)
-
-    private data class PlayMessageContext(
-        val request: TrackRequest,
-        val instance: PlaybackInstance,
-        val isRefreshable: Boolean,
-        val isEnded: Boolean
-    )
-
-    // Utility methods
     private fun formatDuration(milliseconds: Long): String {
-        val seconds = milliseconds / 1000
-        val hours = seconds / 3600
-        val minutes = (seconds % 3600) / 60
-        val secs = seconds % 60
+        val totalSeconds = milliseconds / 1000
+        val hours = totalSeconds / 3600
+        val minutes = (totalSeconds % 3600) / 60
+        val seconds = totalSeconds % 60
 
         return if (hours > 0) {
-            String.format("%d:%02d:%02d", hours, minutes, secs)
+            String.format("%d:%02d:%02d", hours, minutes, seconds)
         } else {
-            String.format("%d:%02d", minutes, secs)
+            String.format("%d:%02d", minutes, seconds)
         }
     }
 
-    private fun getProgressString(percent: Int): String {
-        val totalBlocks = 15
-        val filledBlocks = (percent * totalBlocks / 100).coerceIn(0, totalBlocks)
-        val emptyBlocks = totalBlocks - filledBlocks
+    private fun handleEditError(guildId: Long, error: Throwable) {
+        if (error is ErrorResponseException) {
+            when (error.errorResponse) {
+                ErrorResponse.UNKNOWN_MESSAGE -> panelMessages.remove(guildId)
+                ErrorResponse.MISSING_ACCESS -> {
+                    panelMessages.remove(guildId)
+                    cancelUpdate(guildId)
+                }
 
-        return buildString {
-            append("▬".repeat(filledBlocks))
-            append("🔘")
-            append("▬".repeat(emptyBlocks.coerceAtLeast(0)))
+                else -> logger.debug(error) { "Edit error for guild $guildId" }
+            }
         }
     }
 }
