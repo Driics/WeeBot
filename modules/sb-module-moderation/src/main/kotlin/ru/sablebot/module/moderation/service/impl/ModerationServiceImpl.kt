@@ -2,6 +2,7 @@ package ru.sablebot.module.moderation.service.impl
 
 import dev.minn.jda.ktx.coroutines.await
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.micrometer.core.instrument.MeterRegistry
 import net.dv8tion.jda.api.EmbedBuilder
 import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.entities.Guild
@@ -37,7 +38,8 @@ open class ModerationServiceImpl(
     private val configService: ModerationConfigService,
     private val auditService: AuditService,
     private val muteService: MuteService,
-    private val schedulerFactoryBean: SchedulerFactoryBean
+    private val schedulerFactoryBean: SchedulerFactoryBean,
+    private val meterRegistry: MeterRegistry
 ) : IModerationService {
 
     companion object {
@@ -50,6 +52,10 @@ open class ModerationServiceImpl(
         private val COLOR_TIMEOUT = Color.decode("#FFCA59")
     }
 
+    private fun recordAction(type: String) {
+        meterRegistry.counter("sablebot.moderation.actions", "type", type).increment()
+    }
+
     override suspend fun ban(
         guild: Guild,
         target: Member,
@@ -58,6 +64,7 @@ open class ModerationServiceImpl(
         duration: Long?,
         deleteDays: Int?
     ): ModerationCase {
+        recordAction("ban")
         dmTarget(target.user, guild, "banned", reason, duration)
 
         guild.ban(target, deleteDays ?: 0, TimeUnit.DAYS)
@@ -95,6 +102,7 @@ open class ModerationServiceImpl(
         moderator: Member,
         reason: String?
     ): ModerationCase {
+        recordAction("unban")
         guild.unban(targetUser)
             .reason(reason)
             .await()
@@ -126,6 +134,7 @@ open class ModerationServiceImpl(
         moderator: Member,
         reason: String?
     ): ModerationCase {
+        recordAction("kick")
         dmTarget(target.user, guild, "kicked", reason, null)
 
         guild.kick(target)
@@ -157,6 +166,7 @@ open class ModerationServiceImpl(
         moderator: Member,
         reason: String
     ): ModerationCase {
+        recordAction("warn")
         dmTarget(target.user, guild, "warned", reason, null)
 
         val case = createCase(
@@ -187,6 +197,7 @@ open class ModerationServiceImpl(
         duration: Long,
         reason: String?
     ): ModerationCase {
+        recordAction("timeout")
         dmTarget(target.user, guild, "timed out", reason, duration)
 
         target.timeoutFor(Duration.ofMillis(duration))
@@ -220,6 +231,7 @@ open class ModerationServiceImpl(
         moderator: Member,
         reason: String?
     ): ModerationCase {
+        recordAction("untimeout")
         target.removeTimeout()
             .reason(reason)
             .await()
@@ -244,6 +256,7 @@ open class ModerationServiceImpl(
     }
 
     override suspend fun purgeMessages(channel: TextChannel, count: Int, filterUser: User?): Int {
+        recordAction("purge")
         val messages = channel.iterableHistory.takeAsync(count).await()
 
         val filtered = if (filterUser != null) {

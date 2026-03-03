@@ -2,6 +2,7 @@ package ru.sablebot.module.moderation.service.impl
 
 import com.github.benmanes.caffeine.cache.Caffeine
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.micrometer.core.instrument.MeterRegistry
 import net.dv8tion.jda.api.entities.Message
 import org.springframework.stereotype.Service
 import ru.sablebot.common.model.AutoModActionType
@@ -21,12 +22,17 @@ import java.util.concurrent.TimeUnit
 class AutoModServiceImpl(
     private val autoModConfigService: IAutoModConfigService,
     private val moderationService: IModerationService,
-    private val muteService: MuteService
+    private val muteService: MuteService,
+    private val meterRegistry: MeterRegistry
 ) : IAutoModService {
 
     companion object {
         private val log = KotlinLogging.logger {}
         private val URL_PATTERN = Regex("https?://[\\S]+")
+    }
+
+    private fun recordTrigger(type: String) {
+        meterRegistry.counter("sablebot.moderation.automod.triggers", "type", type).increment()
     }
 
     private val spamCache = Caffeine.newBuilder()
@@ -72,6 +78,7 @@ class AutoModServiceImpl(
 
             if (timestamps.size >= config.antiSpamMaxMessages) {
                 timestamps.clear()
+                recordTrigger("spam")
                 return AutoModResult(
                     trigger = "spam",
                     action = config.antiSpamAction,
@@ -91,6 +98,7 @@ class AutoModServiceImpl(
         for (pattern in config.wordFilterPatterns) {
             val regex = runCatching { Regex(pattern, RegexOption.IGNORE_CASE) }.getOrNull() ?: continue
             if (regex.containsMatchIn(content)) {
+                recordTrigger("word")
                 return AutoModResult(
                     trigger = "word_filter",
                     action = config.wordFilterAction,
@@ -126,6 +134,7 @@ class AutoModServiceImpl(
         }
 
         if (matched) {
+            recordTrigger("link")
             return AutoModResult(
                 trigger = "link_filter",
                 action = config.linkFilterAction,
@@ -141,6 +150,7 @@ class AutoModServiceImpl(
     private fun checkMentionSpam(message: Message, config: AutoModConfig): AutoModResult? {
         val mentionCount = message.mentions.users.size
         if (mentionCount >= config.mentionSpamThreshold) {
+            recordTrigger("mention")
             return AutoModResult(
                 trigger = "mention_spam",
                 action = config.mentionSpamAction,
