@@ -110,55 +110,8 @@ class InternalCommandsServiceImpl @Autowired constructor(
             log.info { "Invoke DSL command [${dslCommand.name}]: ${event.options}" }
         }
 
-        MDC.put("commandName", event.fullCommandName)
-        MDC.put("guildId", event.guild?.id ?: "DM")
-        MDC.put("userId", event.user.id)
-
-        coroutineLauncher.launchMessageJob(event) {
-            val sample = Timer.start(meterRegistry)
-            try {
-                executor.execute(
-                    ApplicationCommandContext(
-                        event,
-                        entityAccessor.getOrCreate(guild),
-                        entityAccessor.getOrCreate(event.user)
-                    ),
-                    SlashCommandArguments(SlashCommandArgumentsSource.SlashCommandArgumentsEventSource(event))
-                )
-                meterRegistry.counter(
-                    InternalCommandsService.COMMANDS_EXECUTED_COUNTER,
-                    "command", dslCommand.name, "type", "dsl", "outcome", "success"
-                ).increment()
-            } catch (e: DiscordException) {
-                safeReplyError(event)
-                log.error(e) { "DSL Command [${dslCommand.name}] execution error" }
-                meterRegistry.counter(
-                    InternalCommandsService.COMMANDS_ERRORS_COUNTER,
-                    "command", dslCommand.name, "type", "dsl", "error_type", "discord"
-                ).increment()
-                meterRegistry.counter(
-                    InternalCommandsService.COMMANDS_EXECUTED_COUNTER,
-                    "command", dslCommand.name, "type", "dsl", "outcome", "error"
-                ).increment()
-            } catch (e: Exception) {
-                safeReplyError(event)
-                log.error(e) { "Unexpected error executing DSL command [${dslCommand.name}]" }
-                meterRegistry.counter(
-                    InternalCommandsService.COMMANDS_ERRORS_COUNTER,
-                    "command", dslCommand.name, "type", "dsl", "error_type", "unexpected"
-                ).increment()
-                meterRegistry.counter(
-                    InternalCommandsService.COMMANDS_EXECUTED_COUNTER,
-                    "command", dslCommand.name, "type", "dsl", "outcome", "error"
-                ).increment()
-            } finally {
-                sample.stop(
-                    meterRegistry.timer(
-                        InternalCommandsService.COMMANDS_DURATION_TIMER,
-                        "command", dslCommand.name, "type", "dsl"
-                    )
-                )
-            }
+        executeWithMetrics(event, dslCommand.name, "dsl", guild) { context, args ->
+            executor.execute(context, args)
         }
 
         return true
@@ -171,7 +124,7 @@ class InternalCommandsServiceImpl @Autowired constructor(
      * @param command Объект legacy-команды для выполнения.
      * @param guild Сервер (Guild), в контексте которого выполняется команда.
      * @param channel Текстовый канал, где была вызвана команда.
-     * @return `true` если событие было обработано и не требует дальнейшей передачи. 
+     * @return `true` если событие было обработано и не требует дальнейшей передачи.
      */
     private fun executeLegacyCommand(
         event: SlashCommandInteractionEvent,
@@ -208,59 +161,69 @@ class InternalCommandsServiceImpl @Autowired constructor(
             log.info { "Invoke command [${command::class.simpleName}]: ${event.options}" }
         }
 
-        MDC.put("commandName", command.key)
+        executeWithMetrics(event, command.key, "legacy", guild) { context, args ->
+            command.execute(event, context, args)
+        }
+
+        return true
+    }
+
+    private fun executeWithMetrics(
+        event: SlashCommandInteractionEvent,
+        commandName: String,
+        commandType: String,
+        guild: net.dv8tion.jda.api.entities.Guild,
+        block: suspend (ApplicationCommandContext, SlashCommandArguments) -> Unit
+    ) {
+        MDC.put("commandName", commandName)
         MDC.put("guildId", event.guild?.id ?: "DM")
         MDC.put("userId", event.user.id)
 
         coroutineLauncher.launchMessageJob(event) {
             val sample = Timer.start(meterRegistry)
             try {
-                command.execute(
+                val context = ApplicationCommandContext(
                     event,
-                    ApplicationCommandContext(
-                        event,
-                        entityAccessor.getOrCreate(guild),
-                        entityAccessor.getOrCreate(event.user)
-                    ),
-                    SlashCommandArguments(SlashCommandArgumentsSource.SlashCommandArgumentsEventSource(event))
+                    entityAccessor.getOrCreate(guild),
+                    entityAccessor.getOrCreate(event.user)
                 )
+                val args = SlashCommandArguments(SlashCommandArgumentsSource.SlashCommandArgumentsEventSource(event))
+                block(context, args)
                 meterRegistry.counter(
                     InternalCommandsService.COMMANDS_EXECUTED_COUNTER,
-                    "command", command.key, "type", "legacy", "outcome", "success"
+                    "command", commandName, "type", commandType, "outcome", "success"
                 ).increment()
             } catch (e: DiscordException) {
                 safeReplyError(event)
-                log.error(e) { "Command [${command.key}] execution error" }
+                log.error(e) { "Command [$commandName] execution error" }
                 meterRegistry.counter(
                     InternalCommandsService.COMMANDS_ERRORS_COUNTER,
-                    "command", command.key, "type", "legacy", "error_type", "discord"
+                    "command", commandName, "type", commandType, "error_type", "discord"
                 ).increment()
                 meterRegistry.counter(
                     InternalCommandsService.COMMANDS_EXECUTED_COUNTER,
-                    "command", command.key, "type", "legacy", "outcome", "error"
+                    "command", commandName, "type", commandType, "outcome", "error"
                 ).increment()
             } catch (e: Exception) {
                 safeReplyError(event)
-                log.error(e) { "Unexpected error executing command [${command.key}]" }
+                log.error(e) { "Unexpected error executing command [$commandName]" }
                 meterRegistry.counter(
                     InternalCommandsService.COMMANDS_ERRORS_COUNTER,
-                    "command", command.key, "type", "legacy", "error_type", "unexpected"
+                    "command", commandName, "type", commandType, "error_type", "unexpected"
                 ).increment()
                 meterRegistry.counter(
                     InternalCommandsService.COMMANDS_EXECUTED_COUNTER,
-                    "command", command.key, "type", "legacy", "outcome", "error"
+                    "command", commandName, "type", commandType, "outcome", "error"
                 ).increment()
             } finally {
                 sample.stop(
                     meterRegistry.timer(
                         InternalCommandsService.COMMANDS_DURATION_TIMER,
-                        "command", command.key, "type", "legacy"
+                        "command", commandName, "type", commandType
                     )
                 )
             }
         }
-
-        return true
     }
 
     private fun safeReplyError(event: SlashCommandInteractionEvent) {

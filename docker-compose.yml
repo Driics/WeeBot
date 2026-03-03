@@ -32,7 +32,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sablebot}"]
       interval: 5s
@@ -57,7 +57,7 @@ services:
     volumes:
       - kafka_data:/var/lib/kafka/data
     ports:
-      - "9092:9092"
+      - "127.0.0.1:9092:9092"
     healthcheck:
       test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 > /dev/null 2>&1"]
       interval: 10s
@@ -73,7 +73,7 @@ services:
       - ./infra/prometheus/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
       - prometheus_data:/prometheus
     ports:
-      - "9091:9090"
+      - "127.0.0.1:9091:9090"
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.retention.time=30d"
@@ -87,7 +87,7 @@ services:
       - ./infra/loki/loki.yml:/etc/loki/local-config.yaml:ro
       - loki_data:/loki
     ports:
-      - "3100:3100"
+      - "127.0.0.1:3100:3100"
     command: -config.file=/etc/loki/local-config.yaml
 
   promtail:
@@ -109,8 +109,8 @@ services:
       - ./infra/tempo/tempo.yml:/etc/tempo/tempo.yml:ro
       - tempo_data:/var/tempo
     ports:
-      - "3200:3200"
-      - "9411:9411"
+      - "127.0.0.1:3200:3200"
+      - "127.0.0.1:9411:9411"
     command: -config.file=/etc/tempo/tempo.yml
 
   grafana:

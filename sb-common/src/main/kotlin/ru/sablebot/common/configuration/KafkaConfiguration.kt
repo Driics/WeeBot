@@ -13,7 +13,7 @@ import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.kafka.common.serialization.StringSerializer
-import org.slf4j.LoggerFactory
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.slf4j.MDC
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
@@ -38,7 +38,9 @@ import org.springframework.kafka.support.serializer.JsonSerializer
 class KafkaConfiguration(
     private val kafkaProperties: KafkaProperties
 ) {
-    private val logger = LoggerFactory.getLogger(KafkaConfiguration::class.java)
+    companion object {
+        private val logger = KotlinLogging.logger {}
+    }
 
     @Bean
     fun objectMapper(): ObjectMapper = jacksonObjectMapper()

@@ -1,7 +1,7 @@
 package ru.sablebot.worker.filters
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
-import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.core.annotation.Order
 import org.springframework.stereotype.Component
@@ -15,7 +15,9 @@ import ru.sablebot.common.worker.event.intercept.MemberMessageFilter
 class CommandHandlerFilter @Autowired constructor(
     private val handlers: List<CommandHandler>
 ): MemberMessageFilter() {
-    private val log = LoggerFactory.getLogger(CommandHandlerFilter::class.java)
+    companion object {
+        private val log = KotlinLogging.logger {}
+    }
 
     override fun doInternal(event: SlashCommandInteractionEvent, chain: FilterChain<SlashCommandInteractionEvent>) {
         log.info("{}: {}", event.name, event.user.name)

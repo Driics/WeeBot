@@ -28,6 +28,9 @@ WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
 
+RUN addgroup --system app && adduser --system --ingroup app app
+USER app
+
 COPY --from=builder /app/sb-worker/build/libs/SableBot-Worker.jar app.jar
 
 EXPOSE 8080 9090

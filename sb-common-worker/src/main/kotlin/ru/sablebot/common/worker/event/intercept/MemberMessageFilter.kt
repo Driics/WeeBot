@@ -1,10 +1,12 @@
 package ru.sablebot.common.worker.event.intercept
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
-import org.slf4j.LoggerFactory
 
 abstract class MemberMessageFilter: Filter<SlashCommandInteractionEvent> {
-    private val log = LoggerFactory.getLogger(MemberMessageFilter::class.java)
+    companion object {
+        private val log = KotlinLogging.logger {}
+    }
 
     override fun doFilter(event: SlashCommandInteractionEvent, chain: FilterChain<SlashCommandInteractionEvent>) {
         try {

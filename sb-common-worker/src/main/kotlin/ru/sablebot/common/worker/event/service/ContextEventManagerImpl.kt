@@ -8,8 +8,8 @@ import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.events.Event
 import net.dv8tion.jda.api.events.GenericEvent
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
+import io.github.oshai.kotlinlogging.KotlinLogging
 import net.dv8tion.jda.api.hooks.EventListener
-import org.slf4j.LoggerFactory
 import org.slf4j.MDC
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.core.task.TaskRejectedException
@@ -33,9 +33,9 @@ class ContextEventManagerImpl @Autowired constructor(
     private val contextService: ContextService,
     private val meterRegistry: MeterRegistry
 ) : SbEventManager {
-    private val log = LoggerFactory.getLogger(ContextEventManagerImpl::class.java)
 
     companion object {
+        private val log = KotlinLogging.logger {}
         private const val EVENTS_PROCESSED = "sablebot.events.processed"
         private const val EVENTS_REJECTED = "sablebot.events.rejected"
         private const val EVENTS_DURATION = "sablebot.events.duration"

@@ -15,6 +15,7 @@ import ru.sablebot.common.service.ConfigService
 import ru.sablebot.common.service.MemberService
 import ru.sablebot.common.service.UserService
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 
 @Service
 open class DiscordEntityAccessor(
@@ -24,10 +25,11 @@ open class DiscordEntityAccessor(
     protected val memberService: MemberService,
     protected val memberRepository: LocalMemberRepository,
 ) {
-    // TODO: in future migrate from userLock and memberLock to Striped/ConcurrentHashMap<key, lock>
-    private val userLock = Any()
+    private val userLocks = ConcurrentHashMap<String, Any>()
+    private val memberLocks = ConcurrentHashMap<String, Any>()
 
-    private val memberLock = Any()
+    private fun userLockFor(userId: String): Any = userLocks.computeIfAbsent(userId) { Any() }
+    private fun memberLockFor(guildId: Long, userId: String): Any = memberLocks.computeIfAbsent("$guildId:$userId") { Any() }
 
     @Transactional
     open fun getOrCreate(guild: Guild): GuildConfig {
@@ -42,7 +44,7 @@ open class DiscordEntityAccessor(
 
         var localUser = userService.get(user)
         if (localUser == null) {
-            synchronized(userLock) {
+            synchronized(userLockFor(user.id)) {
                 localUser = userService.get(user)
                 if (localUser == null) {
                     localUser = LocalUser().apply {
@@ -65,7 +67,7 @@ open class DiscordEntityAccessor(
 
         var localMember = memberService.get(member)
         if (localMember == null) {
-            synchronized(memberLock) {
+            synchronized(memberLockFor(member.guild.idLong, member.user.id)) {
                 localMember = memberService.get(member)
                 if (localMember == null) {
                     localMember = LocalMember(
