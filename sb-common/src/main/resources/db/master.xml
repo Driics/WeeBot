@@ -66,6 +66,7 @@
     <include file="db/changelog-7.3-13092019.xml"/>
     <include file="db/changelog-7.4-28102019.xml"/>
     <include file="db/changelog-7.5-16112019.xml"/>
+    <include file="db/changelog-8.0-03032026.xml"/>
 
     <includeAll path="db/external/"/>
 
