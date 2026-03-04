@@ -22,42 +22,12 @@
    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.4.xsd">
 
     <changeSet id="8.1-04032026-1" author="driics">
-        <createIndex indexName="idx_guild_config_guild_id" tableName="guild_config">
-            <column name="guild_id" type="BIGINT"/>
-        </createIndex>
-    </changeSet>
-
-    <changeSet id="8.1-04032026-2" author="driics">
-        <createIndex indexName="idx_mod_config_guild_id" tableName="mod_config">
-            <column name="guild_id" type="BIGINT"/>
-        </createIndex>
-    </changeSet>
-
-    <changeSet id="8.1-04032026-3" author="driics">
-        <createIndex indexName="idx_audit_config_guild_id" tableName="audit_config">
-            <column name="guild_id" type="BIGINT"/>
-        </createIndex>
-    </changeSet>
-
-    <changeSet id="8.1-04032026-4" author="driics">
-        <createIndex indexName="idx_music_config_guild_id" tableName="music_config">
-            <column name="guild_id" type="BIGINT"/>
-        </createIndex>
-    </changeSet>
-
-    <changeSet id="8.1-04032026-5" author="driics">
         <createIndex indexName="idx_automod_config_guild_id" tableName="automod_config">
             <column name="guild_id" type="BIGINT"/>
         </createIndex>
     </changeSet>
 
-    <changeSet id="8.1-04032026-6" author="driics">
-        <createIndex indexName="idx_member_guild_id" tableName="member">
-            <column name="guild_id" type="BIGINT"/>
-        </createIndex>
-    </changeSet>
-
-    <changeSet id="8.1-04032026-7" author="driics">
+    <changeSet id="8.1-04032026-2" author="driics">
         <createIndex indexName="idx_user_user_id" tableName="user">
             <column name="user_id" type="BIGINT"/>
         </createIndex>

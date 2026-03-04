@@ -1,6 +1,5 @@
 package ru.sablebot.module.audio.service.helper
 
-import dev.arbjerg.lavalink.client.LavalinkClient
 import dev.arbjerg.lavalink.client.event.TrackEndEvent
 import dev.arbjerg.lavalink.client.event.TrackExceptionEvent
 import dev.arbjerg.lavalink.client.event.TrackStartEvent
@@ -14,14 +13,17 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.reactive.asFlow
 import ru.sablebot.module.audio.model.PlaybackInstance
+import ru.sablebot.module.audio.service.ILavalinkV4AudioService
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicBoolean
 
 abstract class PlayerListenerAdapter(
-    protected val lavalink: LavalinkClient,
+    protected val audioService: ILavalinkV4AudioService,
     private val scope: CoroutineScope,
     protected val meterRegistry: MeterRegistry? = null
 ) {
     protected val instancesByGuild = ConcurrentHashMap<Long, PlaybackInstance>()
+    private val listenersInitialized = AtomicBoolean(false)
 
     companion object {
         const val AUDIO_ACTIVE_SESSIONS = "sablebot.audio.active.sessions"
@@ -37,6 +39,10 @@ abstract class PlayerListenerAdapter(
                 .description("Number of active audio playback sessions")
                 .register(registry)
         }
+    }
+
+    fun initializeListeners() {
+        if (!listenersInitialized.compareAndSet(false, true)) return
         setupEventListeners()
     }
 
@@ -62,6 +68,8 @@ abstract class PlayerListenerAdapter(
     // ==================== Event Setup ====================
 
     private fun setupEventListeners() {
+        val lavalink = audioService.lavalink
+
         lavalink.on<TrackStartEvent>()
             .asFlow()
             .onEach { event ->

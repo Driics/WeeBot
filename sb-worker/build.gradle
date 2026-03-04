@@ -8,7 +8,7 @@ ext {
 }
 
 springBoot {
-    mainClass.set("com.example.MainKt")
+    mainClass.set("ru.sablebot.worker.Launcher")
 }
 
 bootJar {
@@ -20,6 +20,7 @@ dependencies {
 
     implementation project(':sb-common-worker')
     implementation project(':modules:sb-module-moderation')
+    implementation project(':modules:sb-module-audio')
 
     implementation "org.codehaus.groovy:groovy:3.0.22"
 }

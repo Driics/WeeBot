@@ -24,6 +24,7 @@ import java.time.Instant
 abstract class LoggingAuditForwardProvider : AuditForwardProvider {
 
     @Autowired
+    @Lazy
     protected lateinit var discordService: DiscordService
 
     @Autowired

@@ -11,7 +11,7 @@ import io.micrometer.core.instrument.MeterRegistry
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.entities.Guild
 import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel
-import net.dv8tion.jda.api.sharding.DefaultShardManagerBuilder
+import net.dv8tion.jda.api.hooks.VoiceDispatchInterceptor
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.cloud.client.discovery.DiscoveryClient
 import org.springframework.scheduling.TaskScheduler
@@ -21,6 +21,7 @@ import ru.sablebot.common.worker.configuration.WorkerProperties
 import ru.sablebot.common.worker.shared.service.DiscordService
 import ru.sablebot.module.audio.service.ILavalinkV4AudioService
 import java.net.URI
+import java.util.Base64
 import java.util.concurrent.ConcurrentHashMap
 
 @Service
@@ -37,26 +38,40 @@ class DefaultAudioServiceImpl(
     private lateinit var jdaProvider: (Int) -> JDA?
 
     private val registeredNodeUris = ConcurrentHashMap.newKeySet<URI>()
+    private val onConfiguredCallbacks = mutableListOf<() -> Unit>()
 
-    override fun configure(discordService: DiscordService, builder: DefaultShardManagerBuilder) {
+    init {
+        val cfg = workerProperties.audio.lavalink
+        if (cfg.enabled) {
+            val userId = extractUserIdFromToken(workerProperties.discord.token)
+            lavalink = LavalinkClient(userId)
+
+            Gauge.builder("sablebot.lavalink.nodes.available", lavalink) {
+                it.nodes.count { n -> n.available }.toDouble()
+            }
+                .description("Number of available Lavalink nodes")
+                .register(meterRegistry)
+        }
+    }
+
+    override fun voiceInterceptor(): VoiceDispatchInterceptor? {
+        if (!::lavalink.isInitialized) return null
+        return JDAVoiceUpdateListener(lavalink)
+    }
+
+    override fun configure(discordService: DiscordService) {
         val cfg = workerProperties.audio.lavalink
         if (!cfg.enabled) return
 
         this.jdaProvider = { shardId -> discordService.getShardById(shardId) }
 
-        val availableShards = (0 until workerProperties.discord.shardsTotal)
-            .mapNotNull { shardId ->
-                discordService.getShardById(shardId)?.let { shardId to it }
-            }
-            .toMap()
+        addNodes()
+    }
 
-        configureInternal(
-            userId = discordService.selfUser.idLong,
-            shardsTotal = workerProperties.discord.shardsTotal,
-            shardById = { shardId -> shardId to availableShards[shardId]!! }
-        )
-
-        builder.setVoiceDispatchInterceptor(JDAVoiceUpdateListener(lavalink))
+    private fun extractUserIdFromToken(token: String): Long {
+        val encoded = token.split(".").firstOrNull() ?: error("Invalid Discord token format")
+        val decoded = String(Base64.getDecoder().decode(encoded))
+        return decoded.toLong()
     }
 
     override fun player(guildId: Long): LavalinkPlayer {
@@ -73,6 +88,19 @@ class DefaultAudioServiceImpl(
 
     override fun isConnected(guild: Guild): Boolean = guild.audioManager.isConnected
 
+    override fun addOnConfiguredCallback(callback: () -> Unit) {
+        onConfiguredCallbacks.add(callback)
+    }
+
+    override fun onConfigured() {
+        if (!::lavalink.isInitialized) return
+        onConfiguredCallbacks.forEach { callback ->
+            runCatching { callback() }.onFailure { e ->
+                log.error(e) { "Error in onConfigured callback" }
+            }
+        }
+    }
+
     override fun shutdown() {
         runCatching {
             lavalink.close()
@@ -82,19 +110,8 @@ class DefaultAudioServiceImpl(
         }
     }
 
-    private fun configureInternal(
-        userId: Long, shardsTotal: Int, shardById: (Int) -> Pair<Int, JDA>
-    ) {
+    private fun addNodes() {
         val cfg = workerProperties.audio.lavalink
-        if (!cfg.enabled) return
-
-        lavalink = LavalinkClient(userId)
-
-        Gauge.builder("sablebot.lavalink.nodes.available", lavalink) {
-            it.nodes.count { n -> n.available }.toDouble()
-        }
-            .description("Number of available Lavalink nodes")
-            .register(meterRegistry)
 
         cfg.nodes.forEach { nodeCfg ->
             runCatching {

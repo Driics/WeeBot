@@ -1,5 +1,7 @@
 package ru.sablebot.common.persistence.repository
 
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.Query
 import org.springframework.stereotype.Repository
 import ru.sablebot.common.model.ModerationCaseType
@@ -29,4 +31,10 @@ interface ModerationCaseRepository : GuildRepository<ModerationCase> {
         actionType: ModerationCaseType,
         active: Boolean
     ): Int
+
+    fun findByGuildId(guildId: Long, pageable: Pageable): Page<ModerationCase>
+
+    fun findByGuildIdAndActionType(guildId: Long, actionType: ModerationCaseType, pageable: Pageable): Page<ModerationCase>
+
+    fun findAllByGuildId(guildId: Long): List<ModerationCase>
 }

@@ -11,6 +11,8 @@ spring:
     name: "SablebotBot-Worker"
   datasource:
     url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     hikari:
       maximum-pool-size: 20
       minimum-idle: 5
@@ -73,7 +75,7 @@ management:
         sablebot.events.duration: 10ms,50ms,100ms,500ms
   tracing:
     sampling:
-      probability: 0.1
+      probability: 1.0
   prometheus:
     metrics:
       export:
@@ -87,6 +89,8 @@ logging:
     level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]"
 
 sablebot:
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
   common:
     kafka:
       bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
@@ -98,6 +102,18 @@ sablebot:
       shardsTotal: 1
     commands:
       invokeLogging: true
+    audio:
+      resamplingQuality: MEDIUM
+      searchProvider: youTube
+      frameBufferDuration: 2000
+      itemLoaderThreadPoolSize: 500
+      panelRefreshInterval: 5000
+      lavalink:
+        enabled: true
+        nodes:
+          - name: primary
+            url: ws://${LAVALINK_HOST:localhost}:${LAVALINK_PORT:2333}
+            password: ${LAVALINK_PASSWORD:youshallnotpass}
     support:
       guild-id: 763252709833965579
       emergency-channel-id: 924575732989034506

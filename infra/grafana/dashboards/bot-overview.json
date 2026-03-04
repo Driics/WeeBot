@@ -182,7 +182,7 @@
       },
       "targets": [
         {
-          "expr": "sablebot_discord_average_ping",
+          "expr": "sablebot_discord_average_ping_ms",
           "legendFormat": "Ping",
           "refId": "A"
         }

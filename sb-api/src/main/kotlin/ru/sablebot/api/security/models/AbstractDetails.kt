@@ -1,8 +1,5 @@
 package ru.sablebot.api.security.models
 
-import kotlinx.serialization.Serializable
-
-@Serializable
 abstract class AbstractDetails {
     var id: String? = null
         protected set

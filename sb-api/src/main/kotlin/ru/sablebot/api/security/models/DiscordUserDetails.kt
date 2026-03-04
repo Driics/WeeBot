@@ -1,8 +1,5 @@
 package ru.sablebot.api.security.models
 
-import kotlinx.serialization.Serializable
-
-@Serializable
 class DiscordUserDetails : AbstractDetails() {
 
     var userName: String? = null

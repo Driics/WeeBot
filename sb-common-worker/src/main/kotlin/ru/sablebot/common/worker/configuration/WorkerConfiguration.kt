@@ -4,8 +4,9 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Import
 import ru.sablebot.common.configuration.CommonConfiguration
+import ru.sablebot.common.worker.metrics.KafkaMetricsConfiguration
 
 @Configuration
 @EnableDiscoveryClient
-@Import(CommonConfiguration::class, QuartzConfiguration::class)
+@Import(CommonConfiguration::class, QuartzConfiguration::class, KafkaMetricsConfiguration::class)
 open class WorkerConfiguration

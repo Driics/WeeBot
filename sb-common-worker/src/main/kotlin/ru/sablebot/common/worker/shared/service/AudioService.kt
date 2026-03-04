@@ -1,7 +1,11 @@
 package ru.sablebot.common.worker.shared.service
 
-import net.dv8tion.jda.api.sharding.DefaultShardManagerBuilder
+import net.dv8tion.jda.api.hooks.VoiceDispatchInterceptor
 
 interface AudioService {
-    fun configure(discordService: DiscordService, builder: DefaultShardManagerBuilder)
+    fun voiceInterceptor(): VoiceDispatchInterceptor? = null
+
+    fun configure(discordService: DiscordService)
+
+    fun onConfigured() {}
 }

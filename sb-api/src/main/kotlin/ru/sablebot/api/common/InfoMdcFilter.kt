@@ -4,9 +4,9 @@ import jakarta.servlet.Filter
 import jakarta.servlet.FilterChain
 import jakarta.servlet.ServletRequest
 import jakarta.servlet.ServletResponse
-import org.apache.commons.lang3.RandomStringUtils
 import org.slf4j.MDC
 import ru.sablebot.api.security.utils.SecurityUtils
+import java.util.UUID
 
 class InfoMdcFilter : Filter {
     override fun doFilter(
@@ -15,7 +15,7 @@ class InfoMdcFilter : Filter {
         chain: FilterChain
     ) {
         try {
-            MDC.put("requestId", RandomStringUtils.randomAlphabetic(8))
+            MDC.put("requestId", UUID.randomUUID().toString().take(8))
             val details = SecurityUtils.currentUser
             if (details != null) {
                 MDC.put("userId", details.id)

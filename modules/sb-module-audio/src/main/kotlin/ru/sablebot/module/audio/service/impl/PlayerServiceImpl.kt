@@ -36,7 +36,7 @@ import java.util.*
 @Service
 class PlayerServiceImpl(
     @Lazy private val messageManager: AudioMessageManager,
-    private val discordService: DiscordService,
+    @Lazy private val discordService: DiscordService,
     private val musicConfigService: MusicConfigService,
     private val contextService: ContextService,
     private val lavaAudioService: ILavalinkV4AudioService,
@@ -49,13 +49,17 @@ class PlayerServiceImpl(
     @Lazy private val filterService: IFilterService,
 ) : PlayerServiceV4,
     PlayerListenerAdapter(
-        lavaAudioService.lavalink,
+        lavaAudioService,
         CoroutineScope(SupervisorJob() + Dispatchers.Default),
         meterRegistry
     ) {
 
     private val log = KotlinLogging.logger {}
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    init {
+        lavaAudioService.addOnConfiguredCallback { initializeListeners() }
+    }
 
     companion object {
         private const val INACTIVE_TIMEOUT_MS = 5 * 60 * 1000L

@@ -24,6 +24,25 @@ class SbCacheManagerImpl(
         return get(getCacheName(clazz), id, supplier)
     }
 
+    override fun <T : BaseEntity> getOrNull(clazz: Class<T>, id: Long, supplier: (Long) -> T?): T? {
+        val cacheName = getCacheName(clazz)
+        meterRegistry?.counter("sablebot.cache.gets", "cache", cacheName)?.increment()
+        val cache = getCache(cacheName) as CaffeineCache
+        val nativeCache = cache.nativeCache
+        val existing = nativeCache.getIfPresent(id)
+        if (existing != null) {
+            meterRegistry?.counter("sablebot.cache.hits", "cache", cacheName)?.increment()
+            @Suppress("UNCHECKED_CAST")
+            return existing as T
+        }
+        meterRegistry?.counter("sablebot.cache.misses", "cache", cacheName)?.increment()
+        val value = supplier(id)
+        if (value != null) {
+            nativeCache.put(id, value)
+        }
+        return value
+    }
+
     override fun <T : BaseEntity> evict(clazz: Class<T>, id: Long) {
         evict(getCacheName(clazz), id)
     }

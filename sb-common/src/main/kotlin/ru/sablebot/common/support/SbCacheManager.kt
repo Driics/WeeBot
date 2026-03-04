@@ -7,6 +7,8 @@ interface SbCacheManager : CacheManager {
 
     fun <T : BaseEntity> get(clazz: Class<T>, id: Long, supplier: (Long) -> T): T
 
+    fun <T : BaseEntity> getOrNull(clazz: Class<T>, id: Long, supplier: (Long) -> T?): T?
+
     fun <T : BaseEntity> evict(clazz: Class<T>, id: Long)
 
     fun <T, K> get(cacheName: String, key: K, supplier: (K) -> T): T
