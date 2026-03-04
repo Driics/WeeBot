@@ -13,7 +13,7 @@ import ru.sablebot.common.worker.command.model.dsl.SlashCommandExecutor
 import ru.sablebot.common.worker.command.model.dsl.slashCommand
 import ru.sablebot.common.worker.message.model.commands.options.ApplicationCommandOptions
 import ru.sablebot.common.worker.message.model.commands.options.StringDiscordOptionReference
-import ru.sablebot.module.moderation.model.DurationParser
+import ru.sablebot.common.utils.DurationParser
 import ru.sablebot.module.moderation.service.IAutoModConfigService
 import java.util.UUID
 

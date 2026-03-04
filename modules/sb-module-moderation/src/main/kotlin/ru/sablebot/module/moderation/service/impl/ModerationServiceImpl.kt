@@ -24,7 +24,7 @@ import ru.sablebot.common.worker.modules.audit.service.AuditService
 import ru.sablebot.common.worker.modules.moderation.model.ModerationActionRequest
 import ru.sablebot.common.worker.modules.moderation.service.MuteService
 import ru.sablebot.module.moderation.job.UnBanJob
-import ru.sablebot.module.moderation.model.DurationParser
+import ru.sablebot.common.utils.DurationParser
 import ru.sablebot.module.moderation.service.IModerationService
 import java.awt.Color
 import java.time.Duration
