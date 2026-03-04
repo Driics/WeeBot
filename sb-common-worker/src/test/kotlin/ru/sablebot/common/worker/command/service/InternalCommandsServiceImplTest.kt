@@ -9,8 +9,8 @@ import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.entities.Guild
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.User
-import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
 import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel
+import net.dv8tion.jda.api.entities.channel.unions.GuildMessageChannelUnion
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.interactions.commands.OptionMapping
 import org.junit.jupiter.api.BeforeEach
@@ -38,6 +38,7 @@ class InternalCommandsServiceImplTest {
     private lateinit var counter: Counter
     private lateinit var timer: Timer
 
+    private lateinit var coolDownManager: CommandCoolDownManager
     private lateinit var service: InternalCommandsServiceImpl
 
     @BeforeEach
@@ -50,6 +51,7 @@ class InternalCommandsServiceImplTest {
         meterRegistry = mockk(relaxed = true)
         counter = mockk(relaxed = true)
         timer = mockk(relaxed = true)
+        coolDownManager = mockk(relaxed = true)
 
         every { meterRegistry.counter(any(), *anyVararg()) } returns counter
         every { meterRegistry.timer(any(), *anyVararg()) } returns timer
@@ -60,7 +62,8 @@ class InternalCommandsServiceImplTest {
             messageService,
             entityAccessor,
             coroutineLauncher,
-            meterRegistry
+            meterRegistry,
+            coolDownManager
         )
     }
 
@@ -70,7 +73,7 @@ class InternalCommandsServiceImplTest {
         fullCommandName: String = "test"
     ): SlashCommandInteractionEvent {
         val guild = if (hasGuild) mockk<Guild>(relaxed = true) else null
-        val channel = mockk<GuildChannel>(relaxed = true)
+        val channel = mockk<GuildMessageChannelUnion>(relaxed = true)
         val user = mockk<User>(relaxed = true) {
             every { id } returns "123"
         }

@@ -5,7 +5,7 @@ import net.dv8tion.jda.api.JDA
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.messaging.handler.annotation.SendTo
 import org.springframework.stereotype.Component
-import ru.sablebot.common.configuration.KafkaConfiguration
+import ru.sablebot.common.configuration.KafkaTopics
 import ru.sablebot.common.model.status.ShardDto
 import ru.sablebot.common.model.status.StatusDto
 
@@ -15,7 +15,7 @@ class StatusKafkaListener(
 ) : BaseKafkaListener() {
 
     @KafkaListener(
-        topics = [KafkaConfiguration.TOPIC_STATUS_REQUEST],
+        topics = [KafkaTopics.STATUS_REQUEST],
         groupId = "sablebot-status-group"
     )
     @SendTo

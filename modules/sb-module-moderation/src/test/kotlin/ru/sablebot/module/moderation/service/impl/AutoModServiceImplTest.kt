@@ -2,14 +2,13 @@ package ru.sablebot.module.moderation.service.impl
 
 import io.micrometer.core.instrument.Counter
 import io.micrometer.core.instrument.MeterRegistry
-import io.mockk.*
+import io.mockk.coEvery
+import io.mockk.every
 import io.mockk.junit5.MockKExtension
+import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.test.runTest
-import net.dv8tion.jda.api.entities.Guild
-import net.dv8tion.jda.api.entities.Member
-import net.dv8tion.jda.api.entities.Message
-import net.dv8tion.jda.api.entities.Message.MentionType
-import net.dv8tion.jda.api.entities.User
+import net.dv8tion.jda.api.entities.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -19,7 +18,6 @@ import ru.sablebot.common.persistence.entity.AutoModConfig
 import ru.sablebot.common.worker.modules.moderation.service.MuteService
 import ru.sablebot.module.moderation.service.IAutoModConfigService
 import ru.sablebot.module.moderation.service.IModerationService
-import kotlin.test.assertNull
 
 @ExtendWith(MockKExtension::class)
 class AutoModServiceImplTest {
@@ -66,7 +64,7 @@ class AutoModServiceImplTest {
             every { id } returns guildId.toString()
         }
         val member = mockk<Member>(relaxed = true)
-        val mentions = mockk<net.dv8tion.jda.api.entities.MessageMentions>(relaxed = true) {
+        val mentions = mockk<Mentions>(relaxed = true) {
             val userList = (1..mentionCount).map { mockk<User>(relaxed = true) }
             every { users } returns userList
         }
@@ -295,7 +293,7 @@ class AutoModServiceImplTest {
         every { msg.delete() } returns mockk(relaxed = true)
 
         // mock the warn call since action will be WARN
-        coEvery { moderationService.warn(any(), any(), any(), any()) } just runs
+        coEvery { moderationService.warn(any(), any(), any(), any()) } returns mockk(relaxed = true)
 
         service.onMessage(msg)
 

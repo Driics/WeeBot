@@ -27,7 +27,7 @@ class AutoModMessageListener(
 
         // Skip members with moderation permissions
         if (member.hasPermission(Permission.ADMINISTRATOR)) return
-        if (member.hasPermission(Permission.MANAGE_MESSAGES)) return
+        if (member.hasPermission(Permission.MESSAGE_MANAGE)) return
 
         coroutineLauncher.launchMessageJob(event) {
             try {
