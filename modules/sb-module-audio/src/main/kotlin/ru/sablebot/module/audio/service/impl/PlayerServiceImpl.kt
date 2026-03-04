@@ -45,7 +45,7 @@ class PlayerServiceImpl(
     private val workerProperties: WorkerProperties,
     private val searchProviders: List<IAudioSearchProvider>,
     private val taskExecutor: ThreadPoolTaskExecutor,
-    private val meterRegistry: MeterRegistry,
+    meterRegistry: MeterRegistry,
     @Lazy private val filterService: IFilterService,
 ) : PlayerServiceV4,
     PlayerListenerAdapter(
@@ -375,8 +375,9 @@ class PlayerServiceImpl(
 
     // ==================== Status ====================
 
-    override fun isActive(guild: Guild): Boolean =
-        isActive(get(guild) ?: return false)
+    override fun isActive(guild: Guild): Boolean {
+        return isActive(get(guild) ?: return false)
+    }
 
     override fun isActive(instance: PlaybackInstance): Boolean =
         instance.currentOrNull() != null

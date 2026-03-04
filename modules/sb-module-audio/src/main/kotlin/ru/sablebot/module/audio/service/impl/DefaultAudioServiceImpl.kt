@@ -33,7 +33,6 @@ class DefaultAudioServiceImpl(
     private val log = KotlinLogging.logger {}
 
     override lateinit var lavalink: LavalinkClient
-        private set
 
     private lateinit var jdaProvider: (Int) -> JDA?
 
@@ -60,9 +59,10 @@ class DefaultAudioServiceImpl(
         builder.setVoiceDispatchInterceptor(JDAVoiceUpdateListener(lavalink))
     }
 
-    override fun player(guildId: Long): LavalinkPlayer? {
+    override fun player(guildId: Long): LavalinkPlayer {
         val node = optimalNodeOrThrow()
         return node.getPlayer(guildId).block()
+            ?: error("Failed to retrieve player for guild $guildId")
     }
 
     override fun connect(channel: VoiceChannel) {

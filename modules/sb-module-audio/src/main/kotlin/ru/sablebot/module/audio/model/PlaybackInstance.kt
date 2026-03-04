@@ -102,11 +102,6 @@ class PlaybackInstance(
     }
 
     @Synchronized
-    fun setMode(newMode: RepeatMode) {
-        mode = newMode
-    }
-
-    @Synchronized
     fun shuffleUpcoming(): Boolean {
         if (playlist.isEmpty()) return false
         val start = cursor + 1

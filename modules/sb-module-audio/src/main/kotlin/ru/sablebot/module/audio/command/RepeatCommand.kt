@@ -50,7 +50,7 @@ class RepeatCommand(
                     throw DiscordException("Invalid repeat mode. Use: none, track, or queue.")
                 }
 
-                instance.setMode(repeatMode)
+                instance.mode = repeatMode
                 val displayName = when (repeatMode) {
                     RepeatMode.NONE -> "off"
                     RepeatMode.CURRENT -> "track"

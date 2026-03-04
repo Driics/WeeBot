@@ -137,7 +137,7 @@ class PlayerButtonHandler(
             RepeatMode.CURRENT -> RepeatMode.NONE
         }
 
-        instance.setMode(nextMode)
+        instance.mode = nextMode
         messageManager.refreshPanel(guild.idLong)
     }
 
