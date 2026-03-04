@@ -18,9 +18,7 @@ import ru.sablebot.common.worker.event.service.ContextService
 import ru.sablebot.common.worker.message.service.MessageService
 import ru.sablebot.common.worker.modules.audit.service.AuditService
 import ru.sablebot.common.worker.shared.service.DiscordService
-import kotlin.time.Clock
-import kotlin.time.ExperimentalTime
-import kotlin.time.toJavaInstant
+import java.time.Instant
 
 @Component
 abstract class LoggingAuditForwardProvider : AuditForwardProvider {
@@ -41,7 +39,6 @@ abstract class LoggingAuditForwardProvider : AuditForwardProvider {
     @Autowired
     protected lateinit var contextService: ContextService
 
-    @OptIn(ExperimentalTime::class)
     @Transactional
     override fun send(
         config: AuditConfig,
@@ -75,7 +72,7 @@ abstract class LoggingAuditForwardProvider : AuditForwardProvider {
 
             if (!embedBuilder.isEmpty) {
                 embedBuilder.apply {
-                    setTimestamp(Clock.System.now().toJavaInstant())
+                    setTimestamp(Instant.now())
                     action.actionType.color?.let(::setColor)
                 }
 

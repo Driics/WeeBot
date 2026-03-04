@@ -1,6 +1,8 @@
 package ru.sablebot.common.worker.event.service
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.micrometer.core.instrument.MeterRegistry
+import io.micrometer.core.instrument.Tag
 import io.micrometer.core.instrument.Timer
 import io.micrometer.core.instrument.binder.jvm.ExecutorServiceMetrics
 import jakarta.annotation.PreDestroy
@@ -8,7 +10,6 @@ import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.events.Event
 import net.dv8tion.jda.api.events.GenericEvent
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
-import io.github.oshai.kotlinlogging.KotlinLogging
 import net.dv8tion.jda.api.hooks.EventListener
 import org.slf4j.MDC
 import org.springframework.beans.factory.annotation.Autowired
@@ -22,7 +23,7 @@ import ru.sablebot.common.worker.configuration.WorkerProperties
 import ru.sablebot.common.worker.event.DiscordEvent
 import ru.sablebot.common.worker.event.intercept.EventFilterFactory
 import ru.sablebot.common.worker.event.listeners.DiscordEventListener
-import java.util.UUID
+import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
 
@@ -172,7 +173,7 @@ class ContextEventManagerImpl @Autowired constructor(
                     meterRegistry,
                     this.threadPoolExecutor,
                     "sablebot.event.executor",
-                    "shard", shard.shardInfo.shardId.toString()
+                    Tag.of("shard", shard.shardInfo.shardId.toString())
                 )
             }
         }

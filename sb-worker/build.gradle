@@ -7,7 +7,9 @@ ext {
     moduleName = 'SableBot-Worker'
 }
 
-mainClassName = 'ru.sablebot.worker.Launcher'
+springBoot {
+    mainClass.set("com.example.MainKt")
+}
 
 bootJar {
     archiveFileName = "SableBot-Worker.jar"
@@ -25,7 +27,4 @@ dependencies {
 
 test {
     useJUnitPlatform()
-}
-kotlin {
-    jvmToolchain(21)
 }

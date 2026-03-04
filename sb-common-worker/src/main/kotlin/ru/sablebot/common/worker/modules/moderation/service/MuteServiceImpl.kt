@@ -35,9 +35,6 @@ import java.time.Instant
 import java.time.ZoneId
 import java.util.*
 import java.util.concurrent.TimeUnit
-import kotlin.time.Clock
-import kotlin.time.ExperimentalTime
-import kotlin.time.toJavaInstant
 
 @Service
 open class MuteServiceImpl @Autowired constructor(
@@ -137,7 +134,6 @@ open class MuteServiceImpl @Autowired constructor(
         }
     }
 
-    @OptIn(ExperimentalTime::class)
     @Transactional
     override fun isMuted(member: Member, channel: TextChannel): Boolean {
         val mutedRole = getMutedRole(member.guild, updatable = false)
@@ -145,7 +141,7 @@ open class MuteServiceImpl @Autowired constructor(
             return true
         }
 
-        val now = Clock.System.now().toJavaInstant()
+        val now = Instant.now()
         return muteStateRepository
             .findAllByGuildIdAndUserId(member.guild.idLong, member.user.id)
             .any { state ->
@@ -257,7 +253,6 @@ open class MuteServiceImpl @Autowired constructor(
         }
     }
 
-    @OptIn(ExperimentalTime::class)
     private fun storeState(request: ModerationActionRequest) {
         val violator = request.violator
             ?: throw IllegalArgumentException("Violator cannot be null when storing mute state")
