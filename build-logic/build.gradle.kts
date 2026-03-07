@@ -8,7 +8,6 @@ repositories {
 }
 
 dependencies {
-    implementation(libs.spring.boot.bom)
-    implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:${libs.versions.kotlin.get()}")
-    implementation("org.springframework.boot:spring-boot-gradle-plugin:${libs.versions.spring.boot.get()}")
+    implementation(libs.kotlin.gradle.plugin)
+    implementation(libs.spring.boot.gradle.plugin)
 }
