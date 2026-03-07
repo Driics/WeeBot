@@ -1,0 +1,117 @@
+[versions]
+kotlin = "2.1.10"
+spring-boot = "3.5.6"
+spring-cloud = "2025.0.0"
+coroutines = "1.10.2"
+jda = "5.0.2"
+jda-ktx = "0.12.0"
+discord-webhooks = "0.8.4"
+lavalink-client = "3.3.0"
+lavaplayer = "2.2.4"
+jjwt = "0.12.6"
+mockk = "1.13.16"
+caffeine = "3.2.2"
+guava = "33.5.0-jre"
+logstash = "8.0"
+postgresql = "42.7.7"
+mapstruct = "1.6.2"
+groovy = "3.0.22"
+kotlinx-serialization = "1.8.1"
+slf4j = "2.0.9"
+kotlin-logging = "5.1.4"
+
+[libraries]
+# BOMs
+spring-boot-bom = { module = "org.springframework.boot:spring-boot-dependencies", version.ref = "spring-boot" }
+spring-cloud-bom = { module = "org.springframework.cloud:spring-cloud-dependencies", version.ref = "spring-cloud" }
+
+# Kotlin
+kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib", version.ref = "kotlin" }
+kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect" }
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
+kotlinx-coroutines-reactor = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-reactor", version.ref = "coroutines" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
+
+# Spring Boot Starters
+spring-boot-starter = { module = "org.springframework.boot:spring-boot-starter" }
+spring-boot-starter-web = { module = "org.springframework.boot:spring-boot-starter-web" }
+spring-boot-starter-data-jpa = { module = "org.springframework.boot:spring-boot-starter-data-jpa" }
+spring-boot-starter-validation = { module = "org.springframework.boot:spring-boot-starter-validation" }
+spring-boot-starter-quartz = { module = "org.springframework.boot:spring-boot-starter-quartz" }
+spring-boot-starter-security = { module = "org.springframework.boot:spring-boot-starter-security" }
+spring-boot-starter-websocket = { module = "org.springframework.boot:spring-boot-starter-websocket" }
+spring-boot-starter-aop = { module = "org.springframework.boot:spring-boot-starter-aop" }
+spring-boot-starter-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator" }
+spring-boot-starter-oauth2-client = { module = "org.springframework.boot:spring-boot-starter-oauth2-client" }
+spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test" }
+
+# Spring Framework
+spring-web = { module = "org.springframework:spring-web" }
+spring-context-support = { module = "org.springframework:spring-context-support" }
+spring-kafka = { module = "org.springframework.kafka:spring-kafka" }
+spring-security-test = { module = "org.springframework.security:spring-security-test" }
+
+# Spring Cloud
+spring-cloud-consul = { module = "org.springframework.cloud:spring-cloud-starter-consul-discovery" }
+
+# Reactor
+reactor-kafka = { module = "io.projectreactor.kafka:reactor-kafka" }
+
+# Discord
+jda = { module = "net.dv8tion:JDA", version.ref = "jda" }
+jda-ktx = { module = "club.minnced:jda-ktx", version.ref = "jda-ktx" }
+discord-webhooks = { module = "club.minnced:discord-webhooks", version.ref = "discord-webhooks" }
+
+# Audio
+lavalink-client = { module = "dev.arbjerg:lavalink-client", version.ref = "lavalink-client" }
+lavaplayer = { module = "dev.arbjerg:lavaplayer", version.ref = "lavaplayer" }
+
+# Monitoring
+micrometer-core = { module = "io.micrometer:micrometer-core" }
+micrometer-prometheus = { module = "io.micrometer:micrometer-registry-prometheus" }
+micrometer-tracing-brave = { module = "io.micrometer:micrometer-tracing-bridge-brave" }
+zipkin-reporter-brave = { module = "io.zipkin.reporter2:zipkin-reporter-brave" }
+zipkin-sender-urlconnection = { module = "io.zipkin.reporter2:zipkin-sender-urlconnection" }
+
+# JWT
+jjwt-api = { module = "io.jsonwebtoken:jjwt-api", version.ref = "jjwt" }
+jjwt-impl = { module = "io.jsonwebtoken:jjwt-impl", version.ref = "jjwt" }
+jjwt-jackson = { module = "io.jsonwebtoken:jjwt-jackson", version.ref = "jjwt" }
+
+# Logging
+slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
+kotlin-logging = { module = "io.github.oshai:kotlin-logging-jvm", version.ref = "kotlin-logging" }
+logstash-logback = { module = "net.logstash.logback:logstash-logback-encoder", version.ref = "logstash" }
+
+# Data
+caffeine = { module = "com.github.ben-manes.caffeine:caffeine", version.ref = "caffeine" }
+guava = { module = "com.google.guava:guava", version.ref = "guava" }
+postgresql = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
+liquibase-core = { module = "org.liquibase:liquibase-core" }
+hibernate-validator = { module = "org.hibernate.validator:hibernate-validator" }
+jackson-module-kotlin = { module = "com.fasterxml.jackson.module:jackson-module-kotlin" }
+
+# MapStruct
+mapstruct-processor = { module = "org.mapstruct:mapstruct-processor", version.ref = "mapstruct" }
+
+# Groovy
+groovy = { module = "org.codehaus.groovy:groovy", version.ref = "groovy" }
+
+# Testing
+kotlin-test-junit5 = { module = "org.jetbrains.kotlin:kotlin-test-junit5" }
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
+mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
+
+[bundles]
+testing = ["spring-boot-starter-test", "kotlin-test-junit5", "mockk", "kotlinx-coroutines-test", "junit-platform-launcher"]
+discord = ["jda", "jda-ktx", "discord-webhooks"]
+monitoring = ["micrometer-core", "micrometer-prometheus", "micrometer-tracing-brave", "zipkin-reporter-brave", "zipkin-sender-urlconnection"]
+jwt = ["jjwt-api", "jjwt-impl", "jjwt-jackson"]
+
+[plugins]
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-spring = { id = "org.jetbrains.kotlin.plugin.spring", version.ref = "kotlin" }
+kotlin-jpa = { id = "org.jetbrains.kotlin.plugin.jpa", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
