@@ -56,6 +56,75 @@ open class ModerationServiceImpl(
         meterRegistry.counter("sablebot.moderation.actions", "type", type).increment()
     }
 
+    /**
+     * Template method that encapsulates the common moderation action pipeline:
+     * 1. Record metrics
+     * 2. Execute pre-action hooks (e.g., DM target)
+     * 3. Execute Discord API action
+     * 4. Create moderation case
+     * 5. Execute post-action hooks (e.g., scheduling)
+     * 6. Log to audit service
+     * 7. Send modlog embed
+     * 8. Execute final hooks (e.g., escalation check)
+     * 9. Return case
+     */
+    private suspend fun executeModerationAction(
+        guild: Guild,
+        moderator: Member,
+        target: User,
+        caseType: ModerationCaseType,
+        auditActionType: AuditActionType,
+        reason: String?,
+        duration: Long? = null,
+        metricType: String,
+        preAction: (suspend () -> Unit)? = null,
+        discordAction: suspend () -> Unit,
+        postAction: (suspend (ModerationCase) -> Unit)? = null,
+        finalHook: (suspend (ModerationCase) -> Unit)? = null
+    ): ModerationCase {
+        // Record metrics
+        recordAction(metricType)
+
+        // Pre-action hooks (e.g., DM target)
+        preAction?.invoke()
+
+        // Execute Discord action
+        discordAction()
+
+        // Create case
+        val case = createCase(
+            guildId = guild.idLong,
+            actionType = caseType,
+            moderator = moderator,
+            target = target,
+            reason = reason,
+            duration = duration
+        )
+
+        // Post-action hooks (e.g., scheduling)
+        postAction?.invoke(case)
+
+        // Audit log
+        val auditBuilder = auditService.log(guild, auditActionType)
+            .withUser(moderator)
+            .withTargetUser(target)
+            .withAttribute("reason", reason)
+
+        if (duration != null) {
+            auditBuilder.withAttribute("duration", duration)
+        }
+
+        auditBuilder.save()
+
+        // Send modlog embed
+        sendModlogEmbed(guild, case)
+
+        // Final hooks (e.g., escalation check)
+        finalHook?.invoke(case)
+
+        return case
+    }
+
     override suspend fun ban(
         guild: Guild,
         target: Member,
