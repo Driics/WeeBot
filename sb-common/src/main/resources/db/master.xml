@@ -69,6 +69,7 @@
     <include file="db/changelog-8.0-03032026.xml"/>
     <include file="db/changelog-8.1-04032026.xml"/>
     <include file="db/changelog-8.2-04032026.xml"/>
+    <include file="db/changelog-feeds.xml"/>
 
     <includeAll path="db/external/"/>
 

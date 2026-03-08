@@ -8,11 +8,15 @@ import type {
   CommandUsage,
   CreateApiKeyRequest,
   CreateApiKeyResponse,
+  CreateFeedRequest,
+  FeedListResponse,
+  FeedResponse,
   GuildChannel,
   GuildConfig,
   GuildRole,
   MemberGrowth,
   StatsOverview,
+  UpdateFeedRequest,
   UserInfo,
 } from "@/types";
 
@@ -145,6 +149,37 @@ class ApiClient {
   revokeApiKey(guildId: string, keyId: string): Promise<void> {
     return this.request(`/api/guilds/${guildId}/api-keys/${keyId}`, {
       method: "DELETE",
+    });
+  }
+
+  // Feeds
+  getFeeds(guildId: string): Promise<FeedListResponse> {
+    return this.request(`/api/guilds/${guildId}/feeds`);
+  }
+
+  createFeed(guildId: string, data: CreateFeedRequest): Promise<FeedResponse> {
+    return this.request(`/api/guilds/${guildId}/feeds`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  updateFeed(guildId: string, feedId: number, data: UpdateFeedRequest): Promise<FeedResponse> {
+    return this.request(`/api/guilds/${guildId}/feeds/${feedId}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+  }
+
+  deleteFeed(guildId: string, feedId: number): Promise<void> {
+    return this.request(`/api/guilds/${guildId}/feeds/${feedId}`, {
+      method: "DELETE",
+    });
+  }
+
+  testFeed(guildId: string, feedId: number): Promise<Record<string, unknown>> {
+    return this.request(`/api/guilds/${guildId}/feeds/${feedId}/test`, {
+      method: "POST",
     });
   }
 }
