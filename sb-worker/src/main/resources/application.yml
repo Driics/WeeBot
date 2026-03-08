@@ -117,6 +117,30 @@ sablebot:
     support:
       guild-id: 763252709833965579
       emergency-channel-id: 924575732989034506
+  feeds:
+    limits:
+      max-feeds-per-guild: 10
+      max-notification-history-days: 30
+    polling:
+      default-interval-seconds: 900
+      reddit-interval-seconds: 300
+      twitch-interval-seconds: 120
+      youtube-interval-seconds: 600
+      core-pool-size: 2
+      max-pool-size: 4
+    reddit:
+      enabled: true
+      user-agent: "SableBot/1.0 Discord Bot"
+      rate-limit-requests-per-minute: 60
+    twitch:
+      enabled: true
+      client-id: ${TWITCH_CLIENT_ID:}
+      client-secret: ${TWITCH_CLIENT_SECRET:}
+      rate-limit-requests-per-minute: 800
+    youtube:
+      enabled: true
+      api-key: ${YOUTUBE_API_KEY:}
+      rate-limit-quota-per-day: 10000
 
 server:
   servlet:
