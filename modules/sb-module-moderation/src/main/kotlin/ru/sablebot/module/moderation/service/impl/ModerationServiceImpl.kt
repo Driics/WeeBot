@@ -189,30 +189,23 @@ open class ModerationServiceImpl(
         moderator: Member,
         reason: String?
     ): ModerationCase {
-        recordAction("kick")
-        dmTarget(target.user, guild, "kicked", reason, null)
-
-        guild.kick(target)
-            .reason(reason)
-            .await()
-
-        val case = createCase(
-            guildId = guild.idLong,
-            actionType = ModerationCaseType.KICK,
+        return executeModerationAction(
+            guild = guild,
             moderator = moderator,
             target = target.user,
-            reason = reason
+            caseType = ModerationCaseType.KICK,
+            auditActionType = AuditActionType.MEMBER_KICK,
+            reason = reason,
+            metricType = "kick",
+            preAction = {
+                dmTarget(target.user, guild, "kicked", reason, null)
+            },
+            discordAction = {
+                guild.kick(target)
+                    .reason(reason)
+                    .await()
+            }
         )
-
-        auditService.log(guild, AuditActionType.MEMBER_KICK)
-            .withUser(moderator)
-            .withTargetUser(target)
-            .withAttribute("reason", reason)
-            .save()
-
-        sendModlogEmbed(guild, case)
-
-        return case
     }
 
     override suspend fun warn(
