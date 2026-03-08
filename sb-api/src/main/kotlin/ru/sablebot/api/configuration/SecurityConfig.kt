@@ -18,14 +18,14 @@ import ru.sablebot.api.security.filter.JwtAuthenticationFilter
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
-class SecurityConfig(
+open class SecurityConfig(
     private val jwtAuthenticationFilter: JwtAuthenticationFilter,
     private val apiKeyAuthenticationFilter: ApiKeyAuthenticationFilter,
     private val corsProperties: CorsProperties
 ) {
 
     @Bean
-    fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
+    open fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
         http
             .cors { it.configurationSource(corsConfigurationSource()) }
             .csrf { it.disable() }
@@ -48,7 +48,7 @@ class SecurityConfig(
     }
 
     @Bean
-    fun corsConfigurationSource(): CorsConfigurationSource {
+    open fun corsConfigurationSource(): CorsConfigurationSource {
         val origins = corsProperties.allowedOrigins.split(",").map { it.trim() }
         val config = CorsConfiguration().apply {
             allowedOrigins = origins

@@ -10,7 +10,7 @@ import ru.sablebot.api.security.config.CorsProperties
 
 @Configuration
 @EnableWebSocketMessageBroker
-class WebSocketConfig(
+open class WebSocketConfig(
     private val webSocketAuthInterceptor: WebSocketAuthInterceptor,
     private val webSocketSubscriptionInterceptor: WebSocketSubscriptionInterceptor,
     private val corsProperties: CorsProperties

@@ -7,10 +7,10 @@ import ru.sablebot.api.common.ApiRequestLoggingFilter
 import ru.sablebot.api.common.InfoMdcFilter
 
 @Configuration
-class FilterConfig {
+open class FilterConfig {
 
     @Bean
-    fun infoMdcFilter(): FilterRegistrationBean<InfoMdcFilter> {
+    open fun infoMdcFilter(): FilterRegistrationBean<InfoMdcFilter> {
         return FilterRegistrationBean<InfoMdcFilter>().apply {
             filter = InfoMdcFilter()
             order = 1
@@ -19,7 +19,7 @@ class FilterConfig {
     }
 
     @Bean
-    fun apiRequestLoggingFilter(): FilterRegistrationBean<ApiRequestLoggingFilter> {
+    open fun apiRequestLoggingFilter(): FilterRegistrationBean<ApiRequestLoggingFilter> {
         return FilterRegistrationBean<ApiRequestLoggingFilter>().apply {
             filter = ApiRequestLoggingFilter().apply {
                 setIncludeQueryString(true)
