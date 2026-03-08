@@ -164,30 +164,23 @@ open class ModerationServiceImpl(
         moderator: Member,
         reason: String?
     ): ModerationCase {
-        recordAction("unban")
-        guild.unban(targetUser)
-            .reason(reason)
-            .await()
-
-        removeUnBanSchedule(guild.id, targetUser.id)
-
-        val case = createCase(
-            guildId = guild.idLong,
-            actionType = ModerationCaseType.UNBAN,
+        return executeModerationAction(
+            guild = guild,
             moderator = moderator,
             target = targetUser,
-            reason = reason
+            caseType = ModerationCaseType.UNBAN,
+            auditActionType = AuditActionType.MEMBER_UNBAN,
+            reason = reason,
+            metricType = "unban",
+            discordAction = {
+                guild.unban(targetUser)
+                    .reason(reason)
+                    .await()
+            },
+            postAction = {
+                removeUnBanSchedule(guild.id, targetUser.id)
+            }
         )
-
-        auditService.log(guild, AuditActionType.MEMBER_UNBAN)
-            .withUser(moderator)
-            .withTargetUser(targetUser)
-            .withAttribute("reason", reason)
-            .save()
-
-        sendModlogEmbed(guild, case)
-
-        return case
     }
 
     override suspend fun kick(
