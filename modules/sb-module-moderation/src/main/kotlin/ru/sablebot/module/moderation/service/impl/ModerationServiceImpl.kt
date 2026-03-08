@@ -214,28 +214,24 @@ open class ModerationServiceImpl(
         moderator: Member,
         reason: String
     ): ModerationCase {
-        recordAction("warn")
-        dmTarget(target.user, guild, "warned", reason, null)
-
-        val case = createCase(
-            guildId = guild.idLong,
-            actionType = ModerationCaseType.WARN,
+        return executeModerationAction(
+            guild = guild,
             moderator = moderator,
             target = target.user,
-            reason = reason
+            caseType = ModerationCaseType.WARN,
+            auditActionType = AuditActionType.MEMBER_WARN,
+            reason = reason,
+            metricType = "warn",
+            preAction = {
+                dmTarget(target.user, guild, "warned", reason, null)
+            },
+            discordAction = {
+                // Warnings are database-only, no Discord API action needed
+            },
+            finalHook = {
+                checkEscalation(guild, target, moderator)
+            }
         )
-
-        auditService.log(guild, AuditActionType.MEMBER_WARN)
-            .withUser(moderator)
-            .withTargetUser(target)
-            .withAttribute("reason", reason)
-            .save()
-
-        sendModlogEmbed(guild, case)
-
-        checkEscalation(guild, target, moderator)
-
-        return case
     }
 
     override suspend fun timeout(
