@@ -133,36 +133,29 @@ open class ModerationServiceImpl(
         duration: Long?,
         deleteDays: Int?
     ): ModerationCase {
-        recordAction("ban")
-        dmTarget(target.user, guild, "banned", reason, duration)
-
-        guild.ban(target, deleteDays ?: 0, TimeUnit.DAYS)
-            .reason(reason)
-            .await()
-
-        val case = createCase(
-            guildId = guild.idLong,
-            actionType = ModerationCaseType.BAN,
+        return executeModerationAction(
+            guild = guild,
             moderator = moderator,
             target = target.user,
+            caseType = ModerationCaseType.BAN,
+            auditActionType = AuditActionType.MEMBER_BAN,
             reason = reason,
-            duration = duration
+            duration = duration,
+            metricType = "ban",
+            preAction = {
+                dmTarget(target.user, guild, "banned", reason, duration)
+            },
+            discordAction = {
+                guild.ban(target, deleteDays ?: 0, TimeUnit.DAYS)
+                    .reason(reason)
+                    .await()
+            },
+            postAction = { case ->
+                if (duration != null) {
+                    scheduleUnBan(guild.id, target.user.id, duration)
+                }
+            }
         )
-
-        if (duration != null) {
-            scheduleUnBan(guild.id, target.user.id, duration)
-        }
-
-        auditService.log(guild, AuditActionType.MEMBER_BAN)
-            .withUser(moderator)
-            .withTargetUser(target)
-            .withAttribute("reason", reason)
-            .withAttribute("duration", duration)
-            .save()
-
-        sendModlogEmbed(guild, case)
-
-        return case
     }
 
     override suspend fun unban(
