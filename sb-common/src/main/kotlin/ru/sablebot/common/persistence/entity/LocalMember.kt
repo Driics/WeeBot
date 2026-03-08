@@ -13,11 +13,11 @@ class LocalMember(
     var user: LocalUser? = null,
 
     @Column(name = "effective_name")
-    var effectiveName: String? = null,
+    var effectiveName: String = "",
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "last_known_roles")
-    var lastKnownRoles: List<Long>? = null
+    var lastKnownRoles: List<Long> = emptyList(),
 ) : GuildEntity() {
 
     val asMention: String

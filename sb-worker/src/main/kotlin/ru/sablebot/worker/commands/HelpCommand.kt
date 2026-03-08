@@ -20,6 +20,9 @@ class HelpCommand : AbstractCommand() {
         context: ApplicationCommandContext,
         args: SlashCommandArguments
     ) {
+        // Defer reply first since retrieveCommands() is a blocking REST call
+        event.deferReply(true).complete()
+
         // Retrieve all registered commands from Discord
         val registeredCommands = event.jda.retrieveCommands().complete()
 
@@ -82,13 +85,30 @@ class HelpCommand : AbstractCommand() {
                         }
                     }
 
-                    // Add field for this category if it has commands
+                    // Add field(s) for this category, splitting if value exceeds 1024 chars
                     if (commandsList.isNotEmpty()) {
                         val categoryEmoji = category.emoji?.formatted ?: ""
-                        field {
-                            name = "$categoryEmoji ${category.title}"
-                            value = commandsList.joinToString(" ")
-                            inline = false
+                        val categoryLabel = "$categoryEmoji ${category.title}"
+
+                        val chunks = mutableListOf<String>()
+                        val current = StringBuilder()
+                        for (cmd in commandsList) {
+                            val separator = if (current.isEmpty()) "" else " "
+                            if (current.length + separator.length + cmd.length > 1024) {
+                                chunks.add(current.toString())
+                                current.clear()
+                            }
+                            if (current.isNotEmpty()) current.append(" ")
+                            current.append(cmd)
+                        }
+                        if (current.isNotEmpty()) chunks.add(current.toString())
+
+                        chunks.forEachIndexed { index, chunk ->
+                            field {
+                                name = if (index == 0) categoryLabel else "$categoryLabel (cont.)"
+                                value = chunk
+                                inline = false
+                            }
                         }
                     }
                 }
@@ -131,10 +151,27 @@ class HelpCommand : AbstractCommand() {
 
                                     if (commandsList.isNotEmpty()) {
                                         val categoryEmoji = category.emoji?.formatted ?: ""
-                                        field {
-                                            name = "$categoryEmoji ${category.title}"
-                                            value = commandsList.joinToString("\n")
-                                            inline = false
+                                        val categoryLabel = "$categoryEmoji ${category.title}"
+
+                                        val chunks = mutableListOf<String>()
+                                        val current = StringBuilder()
+                                        for (cmd in commandsList) {
+                                            val separator = if (current.isEmpty()) "" else "\n"
+                                            if (current.length + separator.length + cmd.length > 1024) {
+                                                chunks.add(current.toString())
+                                                current.clear()
+                                            }
+                                            if (current.isNotEmpty()) current.append("\n")
+                                            current.append(cmd)
+                                        }
+                                        if (current.isNotEmpty()) chunks.add(current.toString())
+
+                                        chunks.forEachIndexed { index, chunk ->
+                                            field {
+                                                name = if (index == 0) categoryLabel else "$categoryLabel (cont.)"
+                                                value = chunk
+                                                inline = false
+                                            }
                                         }
                                     }
                                 }

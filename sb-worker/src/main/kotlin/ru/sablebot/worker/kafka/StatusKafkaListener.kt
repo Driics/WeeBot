@@ -5,7 +5,7 @@ import net.dv8tion.jda.api.JDA
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.messaging.handler.annotation.SendTo
 import org.springframework.stereotype.Component
-import ru.sablebot.common.configuration.KafkaConfiguration
+import ru.sablebot.common.configuration.KafkaTopics
 import ru.sablebot.common.model.status.ShardDto
 import ru.sablebot.common.model.status.StatusDto
 
@@ -15,7 +15,7 @@ class StatusKafkaListener(
 ) : BaseKafkaListener() {
 
     @KafkaListener(
-        topics = [KafkaConfiguration.TOPIC_STATUS_REQUEST],
+        topics = [KafkaTopics.STATUS_REQUEST],
         groupId = "sablebot-status-group"
     )
     @SendTo
@@ -23,11 +23,11 @@ class StatusKafkaListener(
         val shardManager = discordService.shardManager
 
         return StatusDto(
-            guildCount = getMetricGauge("discord.guilds"),
-            userCount = getMetricGauge("discord.users"),
-            textChannelCount = getMetricGauge("discord.text.channels"),
-            voiceChannelCount = getMetricGauge("discord.voice.channels"),
-            executedCommands = getMetricCounter("commands.executions"),
+            guildCount = getMetricGauge("sablebot.discord.guilds"),
+            userCount = getMetricGauge("sablebot.discord.users"),
+            textChannelCount = getMetricGauge("sablebot.discord.text.channels"),
+            voiceChannelCount = getMetricGauge("sablebot.discord.voice.channels"),
+            executedCommands = getMetricCounter("sablebot.commands.executed"),
             uptimeDuration = getMetricGauge("process.uptime"),
             shards = shardManager.shards.map { shard ->
                 ShardDto(

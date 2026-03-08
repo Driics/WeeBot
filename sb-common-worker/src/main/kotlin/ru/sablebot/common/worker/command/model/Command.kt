@@ -8,6 +8,10 @@ import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEve
 import ru.sablebot.common.worker.command.model.context.ApplicationCommandContext
 import ru.sablebot.common.worker.message.model.commands.options.ApplicationCommandOptions
 
+@Deprecated(
+    "Use SlashCommandExecutor with SlashCommandDeclarationWrapper DSL instead",
+    level = DeprecationLevel.WARNING
+)
 interface Command {
     fun isAvailable(
         user: User,

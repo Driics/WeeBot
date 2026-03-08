@@ -10,7 +10,16 @@ spring:
     timestamp: "@build.timestamp@"
     name: "SablebotBot-Worker"
   datasource:
-    url: ""
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      idle-timeout: 300000
+      connection-timeout: 20000
+      max-lifetime: 1200000
+      pool-name: SablebotHikariPool
   quartz:
     job-store-type: jdbc
     jdbc:
@@ -44,31 +53,67 @@ spring:
         batch.size: 16384
 
 management:
+  server:
+    port: 9090
   endpoints:
     web:
       exposure:
         include: health,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
   metrics:
     tags:
       application: sablebot
+    distribution:
+      percentiles-histogram:
+        sablebot.commands.duration: true
+        sablebot.events.duration: true
+        sablebot.coroutine.job.duration: true
+      slo:
+        sablebot.commands.duration: 100ms,500ms,1s,5s
+        sablebot.events.duration: 10ms,50ms,100ms,500ms
+  tracing:
+    sampling:
+      probability: 1.0
   prometheus:
     metrics:
       export:
         enabled: true
+  zipkin:
+    tracing:
+      endpoint: ${TEMPO_ENDPOINT:http://localhost:9411/api/v2/spans}
 
+logging:
+  pattern:
+    level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]"
 
 sablebot:
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
   common:
     kafka:
-      bootstrap-servers: ""
+      bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
       group-id: "sablebot-worker-group"
   worker:
     discord:
-      token: ""
+      token: ${DISCORD_TOKEN}
       playingStatus: "Still testing"
       shardsTotal: 1
     commands:
       invokeLogging: true
+    audio:
+      resamplingQuality: MEDIUM
+      searchProvider: youTube
+      frameBufferDuration: 2000
+      itemLoaderThreadPoolSize: 500
+      panelRefreshInterval: 5000
+      lavalink:
+        enabled: true
+        nodes:
+          - name: primary
+            url: ws://${LAVALINK_HOST:localhost}:${LAVALINK_PORT:2333}
+            password: ${LAVALINK_PASSWORD:youshallnotpass}
     support:
       guild-id: 763252709833965579
       emergency-channel-id: 924575732989034506

@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service
 import ru.sablebot.common.configuration.CommonProperties
 import ru.sablebot.common.worker.command.service.CommandsHolderService
 import ru.sablebot.common.worker.configuration.WorkerProperties
+import ru.sablebot.common.worker.shared.support.JmxJDAMBean
 import javax.security.auth.login.LoginException
 
 
@@ -32,7 +33,8 @@ open class DiscordServiceImpl @Autowired constructor(
     private val workerProperties: WorkerProperties,
     private val mBeanExporter: MBeanExporter,
     private val commonProperties: CommonProperties,
-    private val holderService: CommandsHolderService
+    private val holderService: CommandsHolderService,
+    private val audioServices: List<AudioService>
 ) : ListenerAdapter(), DiscordService {
     companion object {
         private val log = KotlinLogging.logger {}
@@ -49,6 +51,10 @@ open class DiscordServiceImpl @Autowired constructor(
                 .setEventManagerProvider { eventManager }
                 .addEventListeners(this)
                 .setEnableShutdownHook(false)
+
+            audioServices.mapNotNull { it.voiceInterceptor() }.firstOrNull()?.let {
+                shardManagerBuilder.setVoiceDispatchInterceptor(it)
+            }
 
             _shardManager = shardManagerBuilder.build()
         } catch (e: LoginException) {
@@ -87,8 +93,26 @@ open class DiscordServiceImpl @Autowired constructor(
     }
 
     override fun onReady(event: ReadyEvent) {
-//        mBeanExporter.registerManagedResource(JmxJDAMBean(event.jda))
+        mBeanExporter.registerManagedResource(JmxJDAMBean(event.jda))
         setUpStatus()
+        initializeAudioServices()
+    }
+
+    private var audioInitialized = false
+
+    @Synchronized
+    private fun initializeAudioServices() {
+        if (audioInitialized) return
+        audioInitialized = true
+        audioServices.forEach { audioService ->
+            try {
+                audioService.configure(this)
+                audioService.onConfigured()
+                log.info { "Audio service configured: ${audioService::class.simpleName}" }
+            } catch (e: Exception) {
+                log.error(e) { "Failed to configure audio service: ${audioService::class.simpleName}" }
+            }
+        }
     }
 
     override fun onSessionResume(event: SessionResumeEvent) = setUpStatus()

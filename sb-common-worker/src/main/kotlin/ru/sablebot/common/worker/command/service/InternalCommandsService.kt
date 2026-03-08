@@ -7,8 +7,9 @@ import ru.sablebot.common.worker.command.model.Command
 
 interface InternalCommandsService : CommandsService, CommandHandler {
     companion object {
-        const val EXECUTIONS_METER = "commands.executions.rate"
-        const val EXECUTIONS_COUNTER = "commands.executions.persist"
+        const val COMMANDS_EXECUTED_COUNTER = "sablebot.commands.executed"
+        const val COMMANDS_DURATION_TIMER = "sablebot.commands.duration"
+        const val COMMANDS_ERRORS_COUNTER = "sablebot.commands.errors"
     }
 
     fun isApplicable(

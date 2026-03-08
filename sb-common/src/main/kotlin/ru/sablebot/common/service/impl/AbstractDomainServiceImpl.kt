@@ -42,9 +42,10 @@ abstract class AbstractDomainServiceImpl<T : GuildEntity, R : GuildRepository<T>
 
     @Transactional(readOnly = true)
     override fun getByGuildId(guildId: Long): T? =
-        if (cacheable)
-            cacheManager.get(getDomainClass(), guildId) { repository.findByGuildId(it) as (T) }
-        else repository.findByGuildId(guildId)
+        if (cacheable) {
+            val cached = cacheManager.getOrNull(getDomainClass(), guildId) { repository.findByGuildId(it) }
+            cached
+        } else repository.findByGuildId(guildId)
 
     @Transactional
     override fun save(entity: T): T {

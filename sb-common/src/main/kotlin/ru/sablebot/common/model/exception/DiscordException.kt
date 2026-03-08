@@ -1,6 +1,6 @@
 package ru.sablebot.common.model.exception
 
-class DiscordException : Exception {
+open class DiscordException : Exception {
 
     private val args: Array<out Any>?
 

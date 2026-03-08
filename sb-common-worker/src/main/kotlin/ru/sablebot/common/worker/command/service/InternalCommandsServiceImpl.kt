@@ -1,7 +1,9 @@
 package ru.sablebot.common.worker.command.service
 
-import com.github.benmanes.caffeine.cache.Caffeine
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.micrometer.core.instrument.MeterRegistry
+import org.slf4j.MDC
+import io.micrometer.core.instrument.Timer
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.User
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
@@ -16,12 +18,9 @@ import ru.sablebot.common.worker.command.model.Command
 import ru.sablebot.common.worker.command.model.SlashCommandArguments
 import ru.sablebot.common.worker.command.model.SlashCommandArgumentsSource
 import ru.sablebot.common.worker.command.model.context.ApplicationCommandContext
-import ru.sablebot.common.worker.command.model.context.BotContext
 import ru.sablebot.common.worker.configuration.WorkerProperties
 import ru.sablebot.common.worker.message.service.MessageService
 import ru.sablebot.common.worker.shared.service.DiscordEntityAccessor
-import java.util.concurrent.TimeUnit
-import kotlin.time.measureTime
 
 @Order(0)
 @Service
@@ -30,18 +29,15 @@ class InternalCommandsServiceImpl @Autowired constructor(
     @Lazy holderService: CommandsHolderService,
     messageService: MessageService,
     discordEntityAccessor: DiscordEntityAccessor,
-    private val coroutineLauncher: ru.sablebot.common.support.CoroutineLauncher
+    private val coroutineLauncher: ru.sablebot.common.support.CoroutineLauncher,
+    private val meterRegistry: MeterRegistry,
+    private val coolDownManager: CommandCoolDownManager
 ) : BaseCommandService(workerProperties, holderService, messageService, discordEntityAccessor),
     InternalCommandsService {
 
     companion object {
         private val log = KotlinLogging.logger { }
     }
-
-    val contexts = Caffeine
-        .newBuilder()
-        .expireAfterAccess(1, TimeUnit.DAYS)
-        .build<Long, BotContext>()
 
     override fun isApplicable(command: Command, user: User, member: Member, channel: TextChannel): Boolean =
         command.isAvailable(user, member, channel.guild)
@@ -101,50 +97,21 @@ class InternalCommandsServiceImpl @Autowired constructor(
             return false
         }
 
-        // Check bot permissions
-        val requiredPermissions = dslCommand.botPermissions
-        if (requiredPermissions.isNotEmpty()) {
-            val self = guild.selfMember
-            if (!self.hasPermission(channel, *requiredPermissions.toTypedArray())) {
-                val missingPermissions = requiredPermissions.filterNot { self.hasPermission(channel, it) }
-                    .joinToString(", ") { "`${it.name}`" }
+        if (!checkBotPermissions(event, dslCommand.botPermissions, guild, channel)) return true
 
-                event.reply("Недостаточно прав бота:\n$missingPermissions")
-                    .setEphemeral(true)
-                    .queue()
+        val userId = event.user.idLong
+        if (coolDownManager.isOnCooldown(userId, dslCommand.name)) {
+            event.reply("Please wait before using this command again.").setEphemeral(true).queue()
+            return true
+        }
+        coolDownManager.recordUsage(userId, dslCommand.name)
 
-                return true
-            }
+        if (workerProperties.commands.invokeLogging) {
+            log.info { "Invoke DSL command [${dslCommand.name}]: ${event.options}" }
         }
 
-        measureTime {
-            try {
-                if (workerProperties.commands.invokeLogging) {
-                    log.info { "Invoke DSL command [${dslCommand.name}]: ${event.options}" }
-                }
-                
-                // Launch executor in coroutine scope since execute is a suspend function
-                coroutineLauncher.launchMessageJob(event) {
-                    executor.execute(
-                        ApplicationCommandContext(
-                            event,
-                            entityAccessor.getOrCreate(guild),
-                            entityAccessor.getOrCreate(event.user)
-                        ),
-                        SlashCommandArguments(SlashCommandArgumentsSource.SlashCommandArgumentsEventSource(event))
-                    )
-                }
-            } catch (e: DiscordException) {
-                log.error(e) { "DSL Command [${dslCommand.name}] execution error" }
-            } catch (e: Exception) {
-                log.error(e) { "Unexpected error executing DSL command [${dslCommand.name}]" }
-            }
-        }.also {
-            if (it.inWholeMilliseconds > workerProperties.commands.executionThresholdMs) {
-                log.warn {
-                    "DSL Command [${dslCommand.name}] took too long ($it) to execute with args: ${event.options}"
-                }
-            }
+        executeWithMetrics(event, dslCommand.name, "dsl", guild) { context, args ->
+            executor.execute(context, args)
         }
 
         return true
@@ -157,7 +124,7 @@ class InternalCommandsServiceImpl @Autowired constructor(
      * @param command Объект legacy-команды для выполнения.
      * @param guild Сервер (Guild), в контексте которого выполняется команда.
      * @param channel Текстовый канал, где была вызвана команда.
-     * @return `true` если событие было обработано и не требует дальнейшей передачи. 
+     * @return `true` если событие было обработано и не требует дальнейшей передачи.
      */
     private fun executeLegacyCommand(
         event: SlashCommandInteractionEvent,
@@ -168,46 +135,121 @@ class InternalCommandsServiceImpl @Autowired constructor(
         if (workerProperties.commands.disabled.contains(command.key))
             return true
 
-        val requiredPermissions = command.permissions
-        if (requiredPermissions.isNotEmpty()) {
-            val self = guild.selfMember
-            if (!self.hasPermission(channel, *requiredPermissions)) {
-                val missingPermissions = requiredPermissions.filterNot { self.hasPermission(channel, it) }
+        if (!checkBotPermissions(event, command.permissions.toList(), guild, channel)) return true
+
+        val userId = event.user.idLong
+        if (coolDownManager.isOnCooldown(userId, command.key)) {
+            event.reply("Please wait before using this command again.").setEphemeral(true).queue()
+            return true
+        }
+        coolDownManager.recordUsage(userId, command.key)
+
+        // Check member permissions
+        val memberPerms = command.annotation.memberRequiredPermissions
+        if (memberPerms.isNotEmpty()) {
+            val member = event.member ?: return true
+            if (!member.hasPermission(event.guildChannel, *memberPerms)) {
+                val missing = memberPerms
+                    .filterNot { member.hasPermission(event.guildChannel, it) }
                     .joinToString(", ") { "`${it.name}`" }
-
-                event.reply("Недостаточно прав бота:\n$missingPermissions")
-                    .setEphemeral(true)
-                    .queue()
-
+                event.reply("Недостаточно прав: $missing").setEphemeral(true).queue()
                 return true
             }
         }
 
-        measureTime {
-            try {
-                if (workerProperties.commands.invokeLogging) {
-                    log.info { "Invoke command [${command::class.simpleName}]: ${event.options}" }
-                }
-                command.execute(
-                    event,
-                    ApplicationCommandContext(
-                        event,
-                        entityAccessor.getOrCreate(guild),
-                        entityAccessor.getOrCreate(event.user)
-                    ),
-                    SlashCommandArguments(SlashCommandArgumentsSource.SlashCommandArgumentsEventSource(event))
-                )
-            } catch (e: DiscordException) {
-                log.error(e) { "Command [${command.key}] execution error" }
-            }
-        }.also {
-            if (it.inWholeMilliseconds > workerProperties.commands.executionThresholdMs) {
-                log.warn {
-                    "Command [${command.javaClass.simpleName}] took too long ($it) to execute with args: ${event.options}"
-                }
-            }
+        if (workerProperties.commands.invokeLogging) {
+            log.info { "Invoke command [${command::class.simpleName}]: ${event.options}" }
+        }
+
+        executeWithMetrics(event, command.key, "legacy", guild) { context, args ->
+            command.execute(event, context, args)
         }
 
         return true
+    }
+
+    private fun executeWithMetrics(
+        event: SlashCommandInteractionEvent,
+        commandName: String,
+        commandType: String,
+        guild: net.dv8tion.jda.api.entities.Guild,
+        block: suspend (ApplicationCommandContext, SlashCommandArguments) -> Unit
+    ) {
+        MDC.put("commandName", commandName)
+        MDC.put("guildId", event.guild?.id ?: "DM")
+        MDC.put("userId", event.user.id)
+
+        coroutineLauncher.launchMessageJob(event) {
+            val sample = Timer.start(meterRegistry)
+            try {
+                val context = ApplicationCommandContext(
+                    event,
+                    entityAccessor.getOrCreate(guild),
+                    entityAccessor.getOrCreate(event.user)
+                )
+                val args = SlashCommandArguments(SlashCommandArgumentsSource.SlashCommandArgumentsEventSource(event))
+                block(context, args)
+                meterRegistry.counter(
+                    InternalCommandsService.COMMANDS_EXECUTED_COUNTER,
+                    "command", commandName, "type", commandType, "outcome", "success"
+                ).increment()
+            } catch (e: DiscordException) {
+                safeReplyError(event)
+                log.error(e) { "Command [$commandName] execution error" }
+                meterRegistry.counter(
+                    InternalCommandsService.COMMANDS_ERRORS_COUNTER,
+                    "command", commandName, "type", commandType, "error_type", "discord"
+                ).increment()
+                meterRegistry.counter(
+                    InternalCommandsService.COMMANDS_EXECUTED_COUNTER,
+                    "command", commandName, "type", commandType, "outcome", "error"
+                ).increment()
+            } catch (e: Exception) {
+                safeReplyError(event)
+                log.error(e) { "Unexpected error executing command [$commandName]" }
+                meterRegistry.counter(
+                    InternalCommandsService.COMMANDS_ERRORS_COUNTER,
+                    "command", commandName, "type", commandType, "error_type", "unexpected"
+                ).increment()
+                meterRegistry.counter(
+                    InternalCommandsService.COMMANDS_EXECUTED_COUNTER,
+                    "command", commandName, "type", commandType, "outcome", "error"
+                ).increment()
+            } finally {
+                sample.stop(
+                    meterRegistry.timer(
+                        InternalCommandsService.COMMANDS_DURATION_TIMER,
+                        "command", commandName, "type", commandType
+                    )
+                )
+            }
+        }
+    }
+
+    private fun safeReplyError(event: SlashCommandInteractionEvent) {
+        try {
+            if (event.isAcknowledged) {
+                event.hook.sendMessage("Произошла ошибка при выполнении команды").setEphemeral(true).queue()
+            } else {
+                event.reply("Произошла ошибка при выполнении команды").setEphemeral(true).queue()
+            }
+        } catch (_: Exception) { /* interaction expired or already handled */
+        }
+    }
+
+    private fun checkBotPermissions(
+        event: SlashCommandInteractionEvent,
+        permissions: Collection<net.dv8tion.jda.api.Permission>,
+        guild: net.dv8tion.jda.api.entities.Guild,
+        channel: GuildChannel
+    ): Boolean {
+        if (permissions.isEmpty()) return true
+        val self = guild.selfMember
+        if (self.hasPermission(channel, *permissions.toTypedArray())) return true
+
+        val missing = permissions.filterNot { self.hasPermission(channel, it) }
+            .joinToString(", ") { "`${it.name}`" }
+        event.reply("Недостаточно прав бота:\n$missing").setEphemeral(true).queue()
+        return false
     }
 }

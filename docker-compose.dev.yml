@@ -1,0 +1,21 @@
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+services:
+  sablebot-worker:
+    build:
+      context: .
+      target: builder
+    environment:
+      - SPRING_PROFILES_ACTIVE=console
+      - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
+    ports:
+      - "9090:9090"
+      - "5005:5005"
+    command: ["./gradlew", ":sb-worker:bootRun", "--no-daemon"]
+    volumes:
+      - .:/app
+      - gradle_cache:/root/.gradle
+    labels:
+      logging: "promtail"
+
+volumes:
+  gradle_cache:

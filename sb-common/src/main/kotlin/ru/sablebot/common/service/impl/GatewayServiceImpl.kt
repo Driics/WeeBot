@@ -6,7 +6,7 @@ import org.springframework.kafka.requestreply.ReplyingKafkaTemplate
 import org.springframework.kafka.requestreply.RequestReplyFuture
 import org.springframework.kafka.support.KafkaHeaders
 import org.springframework.stereotype.Service
-import ru.sablebot.common.configuration.KafkaConfiguration
+import ru.sablebot.common.configuration.KafkaTopics
 import ru.sablebot.common.model.request.CacheEvictRequest
 import ru.sablebot.common.model.request.CheckOwnerRequest
 import ru.sablebot.common.model.status.StatusDto
@@ -21,12 +21,12 @@ class GatewayServiceImpl(
 ) : GatewayService {
     override fun isChannelOwner(req: CheckOwnerRequest): Boolean {
         val record = ProducerRecord<String, Any>(
-            KafkaConfiguration.TOPIC_CHECK_OWNER_REQUEST,
+            KafkaTopics.CHECK_OWNER_REQUEST,
             req
         )
         record.headers().add(
             KafkaHeaders.REPLY_TOPIC,
-            KafkaConfiguration.TOPIC_CHECK_OWNER_REPLY.toByteArray()
+            KafkaTopics.CHECK_OWNER_REPLY.toByteArray()
         )
         record.headers().add(
             KafkaHeaders.CORRELATION_ID,
@@ -40,18 +40,18 @@ class GatewayServiceImpl(
 
         val v = consumerRecord.value()
         return (v as? Boolean) ?: throw IllegalStateException(
-            "Unexpected reply for ${KafkaConfiguration.TOPIC_CHECK_OWNER_REQUEST}: ${v?.javaClass?.name}"
+            "Unexpected reply for ${KafkaTopics.CHECK_OWNER_REQUEST}: ${v?.javaClass?.name}"
         )
     }
 
     override fun getWorkerStatus(): StatusDto {
         val record = ProducerRecord<String, Any>(
-            KafkaConfiguration.TOPIC_STATUS_REQUEST,
+            KafkaTopics.STATUS_REQUEST,
             "1"
         )
         record.headers().add(
             KafkaHeaders.REPLY_TOPIC,
-            KafkaConfiguration.TOPIC_STATUS_REPLY.toByteArray(Charsets.UTF_8)
+            KafkaTopics.STATUS_REPLY.toByteArray(Charsets.UTF_8)
         )
         record.headers().add(
             KafkaHeaders.CORRELATION_ID,
@@ -65,13 +65,13 @@ class GatewayServiceImpl(
 
         val v = consumerRecord.value()
         return (v as? StatusDto) ?: throw IllegalStateException(
-            "Unexpected reply for ${KafkaConfiguration.TOPIC_STATUS_REQUEST}: ${v?.javaClass?.name}"
+            "Unexpected reply for ${KafkaTopics.STATUS_REQUEST}: ${v?.javaClass?.name}"
         )
     }
 
     override fun evictCache(cacheName: String, guildId: Long) {
         kafkaTemplate.send(
-            KafkaConfiguration.TOPIC_CACHE_EVICT_REQUEST,
+            KafkaTopics.CACHE_EVICT_REQUEST,
             guildId.toString(),
             CacheEvictRequest(cacheName, guildId)
         )

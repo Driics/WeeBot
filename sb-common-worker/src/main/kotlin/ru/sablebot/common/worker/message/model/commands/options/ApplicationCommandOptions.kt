@@ -1,5 +1,8 @@
 package ru.sablebot.common.worker.message.model.commands.options
 
+import net.dv8tion.jda.api.entities.Role
+import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel
+
 open class ApplicationCommandOptions {
     companion object {
         fun noOptions(): ApplicationCommandOptions = ApplicationCommandOptions()
@@ -58,5 +61,51 @@ open class ApplicationCommandOptions {
         builder: BooleanDiscordOptionReference<Boolean?>.() -> (Unit) = {}
     ) = BooleanDiscordOptionReference<Boolean?>(name, description, false)
         .apply(builder)
+        .also { registeredOptions.add(it) }
+
+    fun channel(
+        name: String,
+        description: String
+    ) = ChannelDiscordOptionReference<GuildChannel>(
+        name,
+        description,
+        true
+    ).also { registeredOptions.add(it) }
+
+    fun optionalChannel(
+        name: String,
+        description: String
+    ) = ChannelDiscordOptionReference<GuildChannel?>(
+        name,
+        description,
+        false
+    ).also { registeredOptions.add(it) }
+
+    fun user(
+        name: String,
+        description: String
+    ) = UserDiscordOptionReference<UserAndMember>(
+        name,
+        description,
+        true
+    )
+        .also { registeredOptions.add(it) }
+
+    fun optionalUser(
+        name: String,
+        description: String
+    ) = UserDiscordOptionReference<UserAndMember?>(name, description, false)
+        .also { registeredOptions.add(it) }
+
+    fun role(
+        name: String,
+        description: String
+    ) = RoleDiscordOptionReference<Role>(name, description, true)
+        .also { registeredOptions.add(it) }
+
+    fun optionalRole(
+        name: String,
+        description: String
+    ) = RoleDiscordOptionReference<Role?>(name, description, false)
         .also { registeredOptions.add(it) }
 }

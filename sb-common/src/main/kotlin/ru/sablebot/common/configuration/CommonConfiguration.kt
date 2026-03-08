@@ -1,9 +1,12 @@
 package ru.sablebot.common.configuration
 
+import io.micrometer.core.instrument.MeterRegistry
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.domain.EntityScan
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan
+import org.springframework.boot.web.client.RestTemplateBuilder
+import org.springframework.context.MessageSource
 import org.springframework.context.annotation.*
 import org.springframework.core.Ordered
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories
@@ -15,9 +18,13 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler
 import org.springframework.scheduling.support.TaskUtils
 import org.springframework.transaction.annotation.EnableTransactionManagement
+import org.springframework.web.client.RestTemplate
+import ru.sablebot.common.support.ModuleMessageSource
 import ru.sablebot.common.support.SbCacheManager
 import ru.sablebot.common.support.SbCacheManagerImpl
+import ru.sablebot.common.support.SbMessageSource
 import ru.sablebot.common.support.jmx.ThreadPoolTaskExecutorMBean
+import java.time.Duration
 import java.util.concurrent.ThreadPoolExecutor
 
 @EnableAsync
@@ -73,5 +80,16 @@ class CommonConfiguration @Autowired constructor(
     @Bean("sbCacheManager")
     @Primary
     @ConditionalOnMissingBean(SbCacheManager::class)
-    fun sbCacheManager(): SbCacheManager = SbCacheManagerImpl()
+    fun sbCacheManager(
+        @Autowired(required = false) meterRegistry: MeterRegistry? = null
+    ): SbCacheManager = SbCacheManagerImpl(meterRegistry)
+
+    @Bean
+    fun messageSource(messageSources: List<ModuleMessageSource>): MessageSource = SbMessageSource(messageSources)
+
+    @Bean
+    fun restTemplate(): RestTemplate = RestTemplateBuilder()
+        .connectTimeout(Duration.ofSeconds(10))
+        .readTimeout(Duration.ofSeconds(10))
+        .build()
 }

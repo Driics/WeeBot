@@ -3,12 +3,10 @@ build/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/
+.env
 
 ### IntelliJ IDEA ###
-.idea/modules.xml
-.idea/jarRepositories.xml
-.idea/compiler.xml
-.idea/libraries/
+.idea/
 *.iws
 *.iml
 *.ipr
@@ -40,3 +38,26 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+# Docker volumes (never commit)
+postgres_data/
+kafka_data/
+prometheus_data/
+loki_data/
+tempo_data/
+grafana_data/
+
+# Environment files (secrets)
+.env
+!.env.example
+
+# Auto Claude data directory
+.auto-claude/
+
+# Auto Claude generated files
+.auto-claude-security.json
+.auto-claude-status
+.claude_settings.json
+.worktrees/
+.security-key
+logs/security/

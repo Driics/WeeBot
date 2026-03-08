@@ -1,0 +1,65 @@
+groups:
+  - name: sablebot
+    rules:
+      - alert: BotDown
+        expr: up{job="sablebot-worker"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "SableBot worker is down"
+          description: "The sablebot-worker instance {{ $labels.instance }} has been unreachable for more than 1 minute."
+
+      - alert: HighCommandErrorRate
+        expr: rate(sablebot_commands_errors_total[5m]) / rate(sablebot_commands_executed_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High command error rate"
+          description: "More than 10% of commands are failing over the last 5 minutes (current: {{ $value | humanizePercentage }})."
+
+      - alert: HighEventRejectionRate
+        expr: rate(sablebot_events_rejected_total[5m]) / rate(sablebot_events_processed_total[5m]) > 0.2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High event rejection rate"
+          description: "More than 20% of events are being rejected over the last 5 minutes (current: {{ $value | humanizePercentage }})."
+
+      - alert: JvmHeapHigh
+        expr: jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"} > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "JVM heap usage is high"
+          description: "JVM heap usage on {{ $labels.instance }} has exceeded 80% for more than 5 minutes (current: {{ $value | humanizePercentage }})."
+
+      - alert: HighDiscordLatency
+        expr: sablebot_discord_average_ping_ms > 500
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High Discord gateway latency"
+          description: "Discord gateway ping has been above 500ms for more than 5 minutes (current: {{ $value }}ms)."
+
+      - alert: CoroutineQueueBacklog
+        expr: sablebot_coroutine_executor_queue_size > 500
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Coroutine executor queue backlog"
+          description: "The coroutine executor queue has exceeded 500 pending tasks for more than 2 minutes (current: {{ $value }})."
+
+      - alert: AudioTrackExceptions
+        expr: rate(sablebot_audio_tracks_exceptions_total[5m]) > 5/60
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High audio track exception rate"
+          description: "Audio track exceptions are occurring at more than 5 per minute over the last 5 minutes (current: {{ $value | humanize }}/s)."

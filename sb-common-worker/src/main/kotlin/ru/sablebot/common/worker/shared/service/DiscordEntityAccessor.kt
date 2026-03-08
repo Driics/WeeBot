@@ -1,28 +1,35 @@
 package ru.sablebot.common.worker.shared.service
 
 import net.dv8tion.jda.api.entities.Guild
+import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.User
 import org.springframework.orm.ObjectOptimisticLockingFailureException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import ru.sablebot.common.persistence.entity.GuildConfig
+import ru.sablebot.common.persistence.entity.LocalMember
 import ru.sablebot.common.persistence.entity.LocalUser
+import ru.sablebot.common.persistence.repository.LocalMemberRepository
 import ru.sablebot.common.persistence.repository.LocalUserRepository
 import ru.sablebot.common.service.ConfigService
+import ru.sablebot.common.service.MemberService
 import ru.sablebot.common.service.UserService
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 
-
-/*
-TODO: add users and members
- */
 @Service
 open class DiscordEntityAccessor(
     protected val configService: ConfigService,
     protected val userService: UserService,
-    protected val userRepository: LocalUserRepository
+    protected val userRepository: LocalUserRepository,
+    protected val memberService: MemberService,
+    protected val memberRepository: LocalMemberRepository,
 ) {
-    private val `$userLock`: Any = arrayOfNulls<Any>(0)
+    private val userLocks = ConcurrentHashMap<String, Any>()
+    private val memberLocks = ConcurrentHashMap<String, Any>()
+
+    private fun userLockFor(userId: String): Any = userLocks.computeIfAbsent(userId) { Any() }
+    private fun memberLockFor(guildId: Long, userId: String): Any = memberLocks.computeIfAbsent("$guildId:$userId") { Any() }
 
     @Transactional
     open fun getOrCreate(guild: Guild): GuildConfig {
@@ -37,7 +44,7 @@ open class DiscordEntityAccessor(
 
         var localUser = userService.get(user)
         if (localUser == null) {
-            synchronized(`$userLock`) {
+            synchronized(userLockFor(user.id)) {
                 localUser = userService.get(user)
                 if (localUser == null) {
                     localUser = LocalUser().apply {
@@ -51,6 +58,30 @@ open class DiscordEntityAccessor(
         }
 
         return updateIfRequired(user, localUser)
+    }
+
+    @Transactional
+    open fun getOrCreate(member: Member): LocalMember? {
+        if (!memberService.isApplicable(member))
+            return null
+
+        var localMember = memberService.get(member)
+        if (localMember == null) {
+            synchronized(memberLockFor(member.guild.idLong, member.user.id)) {
+                localMember = memberService.get(member)
+                if (localMember == null) {
+                    localMember = LocalMember(
+                        user = getOrCreate(member.user),
+                        effectiveName = member.effectiveName
+                    ).apply { guildId = member.guild.idLong }
+
+                    updateIfRequired(member, localMember)
+                    memberRepository.flush()
+                    return localMember
+                }
+            }
+        }
+        return updateIfRequired(member, localMember)
     }
 
     private fun updateIfRequired(guild: Guild, config: GuildConfig): GuildConfig {
@@ -93,6 +124,33 @@ open class DiscordEntityAccessor(
             if (shouldSave) userService.save(localUser) else localUser
         } catch (_: ObjectOptimisticLockingFailureException) {
             localUser
+        }
+    }
+
+    private fun updateIfRequired(member: Member, localMember: LocalMember?): LocalMember? {
+        localMember ?: return null
+        return try {
+            var shouldSave = localMember.id == null
+
+            if (member.effectiveName != localMember.effectiveName) {
+                localMember.effectiveName = member.effectiveName
+                shouldSave = true
+            }
+
+            val newRoles = member.roles.map { it.idLong }
+
+            if (newRoles != localMember.lastKnownRoles) {
+                localMember.lastKnownRoles = newRoles
+                shouldSave = true
+            }
+
+            updateIfRequired(member.user, localMember.user);
+
+            if (shouldSave) {
+                memberService.save(localMember);
+            } else localMember
+        } catch (_: ObjectOptimisticLockingFailureException) {
+            localMember
         }
     }
 }

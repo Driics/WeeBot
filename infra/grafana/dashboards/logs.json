@@ -1,0 +1,149 @@
+{
+  "uid": "sablebot-logs",
+  "title": "SableBot Logs",
+  "description": "Log exploration and analysis for SableBot worker",
+  "tags": ["sablebot", "logs"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "fiscalYearStartMonth": 0,
+  "liveNow": false,
+  "editable": true,
+  "graphTooltip": 1,
+  "panels": [
+    {
+      "type": "row",
+      "title": "Log Overview",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 1,
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "Log Volume",
+      "id": 2,
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 1 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "drawStyle": "bars",
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "fillOpacity": 50,
+            "gradientMode": "none",
+            "spanNulls": false,
+            "showPoints": "never",
+            "pointSize": 5,
+            "stacking": { "mode": "normal", "group": "A" },
+            "axisPlacement": "auto",
+            "axisBorderShow": false
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "desc" },
+        "legend": { "displayMode": "list", "placement": "bottom", "calcs": [] }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "sum by (level) (count_over_time({container=\"sablebot-worker\"} [1m]))",
+          "legendFormat": "{{level}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "Log Stream",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 },
+      "id": 3,
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "type": "logs",
+      "title": "Live Logs",
+      "id": 4,
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 10 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "showCommonLabels": false,
+        "wrapLogMessage": true,
+        "prettifyLogMessage": true,
+        "enableLogDetails": true,
+        "sortOrder": "Descending",
+        "dedupStrategy": "none"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "{container=\"sablebot-worker\"}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "Errors & Warnings",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 22 },
+      "id": 5,
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "type": "logs",
+      "title": "Errors & Warnings",
+      "id": 6,
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 23 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "showCommonLabels": false,
+        "wrapLogMessage": true,
+        "prettifyLogMessage": true,
+        "enableLogDetails": true,
+        "sortOrder": "Descending",
+        "dedupStrategy": "none"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "{container=\"sablebot-worker\"} |= \"\" | json | level=~\"error|warn\"",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "templating": { "list": [] },
+  "annotations": { "list": [] },
+  "links": [
+    {
+      "title": "SableBot Overview",
+      "type": "link",
+      "url": "/d/sablebot-overview",
+      "icon": "external link",
+      "tooltip": "Bot overview metrics"
+    },
+    {
+      "title": "SableBot Infrastructure",
+      "type": "link",
+      "url": "/d/sablebot-infra",
+      "icon": "external link",
+      "tooltip": "Infrastructure metrics"
+    }
+  ]
+}

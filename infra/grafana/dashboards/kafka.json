@@ -1,0 +1,255 @@
+{
+  "uid": "sablebot-kafka",
+  "title": "SableBot Kafka",
+  "description": "Kafka consumer, cache eviction, and Spring Kafka metrics for SableBot",
+  "tags": ["sablebot", "kafka"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "fiscalYearStartMonth": 0,
+  "liveNow": false,
+  "editable": true,
+  "graphTooltip": 1,
+  "panels": [
+    {
+      "type": "row",
+      "title": "Consumer",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 1,
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "Consumer Lag",
+      "id": 2,
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 1 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "fillOpacity": 20,
+            "gradientMode": "none",
+            "spanNulls": false,
+            "showPoints": "never",
+            "stacking": { "mode": "none", "group": "A" },
+            "axisPlacement": "auto",
+            "axisBorderShow": false
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "desc" },
+        "legend": { "displayMode": "list", "placement": "bottom", "calcs": ["lastNotNull", "max"] }
+      },
+      "targets": [
+        {
+          "expr": "kafka_consumer_fetch_manager_records_lag{topic!=\"\"}",
+          "legendFormat": "{{topic}}-{{partition}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Records Consumed Rate",
+      "id": 3,
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 1 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "fillOpacity": 20,
+            "gradientMode": "none",
+            "spanNulls": false,
+            "showPoints": "never",
+            "stacking": { "mode": "none", "group": "A" },
+            "axisPlacement": "auto",
+            "axisBorderShow": false
+          },
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "desc" },
+        "legend": { "displayMode": "list", "placement": "bottom", "calcs": [] }
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(kafka_consumer_fetch_manager_records_consumed_total[5m])) by (topic)",
+          "legendFormat": "{{topic}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "Cache Eviction",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 },
+      "id": 4,
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "Kafka Cache Eviction Rate",
+      "id": 5,
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 10 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "orange" },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "fillOpacity": 20,
+            "gradientMode": "none",
+            "spanNulls": false,
+            "showPoints": "auto",
+            "pointSize": 5,
+            "stacking": { "mode": "none", "group": "A" },
+            "axisPlacement": "auto",
+            "axisBorderShow": false
+          },
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": { "mode": "single", "sort": "none" },
+        "legend": { "displayMode": "list", "placement": "bottom", "calcs": ["mean", "max"] }
+      },
+      "targets": [
+        {
+          "expr": "rate(sablebot_kafka_cache_evict_total[5m])",
+          "legendFormat": "Evictions/s",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "Spring Kafka",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 18 },
+      "id": 6,
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "Listener Container Idle Time",
+      "id": 7,
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 19 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "fillOpacity": 15,
+            "gradientMode": "none",
+            "spanNulls": false,
+            "showPoints": "never",
+            "stacking": { "mode": "none", "group": "A" },
+            "axisPlacement": "auto",
+            "axisBorderShow": false
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "desc" },
+        "legend": { "displayMode": "list", "placement": "bottom", "calcs": [] }
+      },
+      "targets": [
+        {
+          "expr": "spring_kafka_listener_seconds_sum / spring_kafka_listener_seconds_count",
+          "legendFormat": "{{name}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Fetch Latency",
+      "id": 8,
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 19 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "fillOpacity": 15,
+            "gradientMode": "none",
+            "spanNulls": false,
+            "showPoints": "never",
+            "stacking": { "mode": "none", "group": "A" },
+            "axisPlacement": "auto",
+            "axisBorderShow": false
+          },
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "desc" },
+        "legend": { "displayMode": "list", "placement": "bottom", "calcs": ["mean", "max"] }
+      },
+      "targets": [
+        {
+          "expr": "kafka_consumer_fetch_manager_fetch_latency_avg",
+          "legendFormat": "Avg Fetch Latency",
+          "refId": "A"
+        },
+        {
+          "expr": "kafka_consumer_fetch_manager_fetch_latency_max",
+          "legendFormat": "Max Fetch Latency",
+          "refId": "B"
+        }
+      ]
+    }
+  ],
+  "templating": { "list": [] },
+  "annotations": { "list": [] },
+  "links": [
+    {
+      "title": "SableBot Overview",
+      "type": "link",
+      "url": "/d/sablebot-overview",
+      "icon": "external link",
+      "tooltip": "Bot overview metrics"
+    },
+    {
+      "title": "SableBot Infrastructure",
+      "type": "link",
+      "url": "/d/sablebot-infra",
+      "icon": "external link",
+      "tooltip": "Infrastructure metrics"
+    },
+    {
+      "title": "SableBot Audio",
+      "type": "link",
+      "url": "/d/sablebot-audio",
+      "icon": "external link",
+      "tooltip": "Audio metrics"
+    }
+  ]
+}

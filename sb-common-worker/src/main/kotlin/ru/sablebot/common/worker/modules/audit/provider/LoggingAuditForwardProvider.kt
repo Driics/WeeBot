@@ -7,6 +7,7 @@ import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
 import net.dv8tion.jda.api.utils.FileUpload
 import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.context.annotation.Lazy
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import ru.sablebot.common.persistence.entity.AuditAction
@@ -17,17 +18,17 @@ import ru.sablebot.common.worker.event.service.ContextService
 import ru.sablebot.common.worker.message.service.MessageService
 import ru.sablebot.common.worker.modules.audit.service.AuditService
 import ru.sablebot.common.worker.shared.service.DiscordService
-import kotlin.time.Clock
-import kotlin.time.ExperimentalTime
-import kotlin.time.toJavaInstant
+import java.time.Instant
 
 @Component
 abstract class LoggingAuditForwardProvider : AuditForwardProvider {
 
     @Autowired
+    @Lazy
     protected lateinit var discordService: DiscordService
 
     @Autowired
+    @Lazy
     protected lateinit var auditService: AuditService
 
     @Autowired
@@ -39,7 +40,6 @@ abstract class LoggingAuditForwardProvider : AuditForwardProvider {
     @Autowired
     protected lateinit var contextService: ContextService
 
-    @OptIn(ExperimentalTime::class)
     @Transactional
     override fun send(
         config: AuditConfig,
@@ -60,7 +60,8 @@ abstract class LoggingAuditForwardProvider : AuditForwardProvider {
                 Permission.VIEW_CHANNEL,
                 Permission.MESSAGE_SEND,
                 Permission.MESSAGE_EMBED_LINKS
-        )) {
+            )
+        ) {
             return
         }
 
@@ -72,7 +73,7 @@ abstract class LoggingAuditForwardProvider : AuditForwardProvider {
 
             if (!embedBuilder.isEmpty) {
                 embedBuilder.apply {
-                    setTimestamp(Clock.System.now().toJavaInstant())
+                    setTimestamp(Instant.now())
                     action.actionType.color?.let(::setColor)
                 }
 

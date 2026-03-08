@@ -1,0 +1,78 @@
+spring:
+  application:
+    name: sb-api
+    version: "@build.version@"
+    timestamp: "@build.timestamp@"
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:sablebot}
+    username: ${POSTGRES_USER:sablebot}
+    password: ${POSTGRES_PASSWORD:sablebot}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 3
+      idle-timeout: 300000
+      connection-timeout: 20000
+      max-lifetime: 1200000
+      pool-name: SablebotApiHikariPool
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+  liquibase:
+    change-log: "classpath:db/master.xml"
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
+    consumer:
+      group-id: sablebot-api-group
+      auto-offset-reset: latest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "ru.sablebot.common.model.*,ru.sablebot.api.dto.*"
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+server:
+  port: 8080
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+
+management:
+  server:
+    port: 9090
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    tags:
+      application: sablebot-api
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+
+sablebot:
+  jwt:
+    secret: ${JWT_SECRET:change-me-in-production-this-is-a-default-secret-key-that-is-long-enough}
+    expiration-ms: 86400000
+  discord:
+    client-id: ${DISCORD_CLIENT_ID:}
+    client-secret: ${DISCORD_CLIENT_SECRET:}
+    redirect-uri: ${DISCORD_REDIRECT_URI:http://localhost:8080/api/auth/discord/callback}
+    bot-token: ${DISCORD_BOT_TOKEN:}
+  cookie:
+    secure: ${COOKIE_SECURE:true}
+  cors:
+    allowed-origins: ${DASHBOARD_URL:http://localhost:3000}
+
+logging:
+  pattern:
+    level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]"

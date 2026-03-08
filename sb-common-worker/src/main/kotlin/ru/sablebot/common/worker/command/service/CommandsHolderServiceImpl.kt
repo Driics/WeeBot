@@ -4,7 +4,6 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import ru.sablebot.common.model.CommandCategory
-import ru.sablebot.common.utils.LocaleUtils
 import ru.sablebot.common.worker.command.model.Command
 import ru.sablebot.common.worker.command.model.DiscordCommand
 import ru.sablebot.common.worker.command.model.dsl.SlashCommandDeclaration
@@ -26,8 +25,6 @@ class CommandsHolderServiceImpl : CommandsHolderService {
     override var dslCommands: Map<String, SlashCommandDeclaration> = mutableMapOf()
     private var dslCommandsByFullPath: Map<String, SlashCommandDeclaration> = mutableMapOf()
 
-    private lateinit var descriptorsMap: Map<CommandCategory, List<DiscordCommand>>
-    private lateinit var reverseCommandKeys: Set<String>
     private lateinit var localizedCommands: Map<Locale, Map<String, Command>>
 
     /**
@@ -56,14 +53,12 @@ class CommandsHolderServiceImpl : CommandsHolderService {
      * @return `true` если ключ соответствует legacy-команде или DSL-команде, `false` в противном случае.
      */
     override fun isAnyCommand(key: String): Boolean {
-        // Check legacy commands
-        val isLegacyCommand = reverseCommandKeys.any { key.reversed().lowercase().startsWith(it) }
-        
-        // Check DSL commands (by full path)
-        val isDslCommand = dslCommandsByFullPath.containsKey(key)
-        
+        val lowerKey = key.lowercase()
+        val isLegacyCommand = commands.containsKey(lowerKey)
+        val isDslCommand = dslCommandsByFullPath.containsKey(lowerKey)
+
         logger.debug { "isAnyCommand($key): legacy=$isLegacyCommand, dsl=$isDslCommand" }
-        
+
         return isLegacyCommand || isDslCommand
     }
 
@@ -82,7 +77,6 @@ class CommandsHolderServiceImpl : CommandsHolderService {
      * Заполняет поля сервиса:
      * - `commands` — все команды по исходному ключу;
      * - `publicCommands` — команды, помеченные как публичные (не скрытые);
-     * - `reverseCommandKeys` — множество перевёрнутых локализованных ключей в нижнем регистре;
      * - `localizedCommands` — карта локалей к отображению локализованного (нижнего регистра) ключа -> команда.
      *
      * @param commands Список команд для регистрации (аннотированных `@DiscordCommand`).
@@ -91,12 +85,7 @@ class CommandsHolderServiceImpl : CommandsHolderService {
     private fun registerCommands(commands: List<Command>) {
         val commandMap = mutableMapOf<String, Command>()
         val publicCommandMap = mutableMapOf<String, Command>()
-
-        val mutableLocalizedCommands = mutableMapOf<Locale, MutableMap<String, Command>>()
-        val mutablePublicCommandKeys = mutableSetOf<String>()
-        val mutableReverseCommandKeys = mutableSetOf<String>()
-
-        val locales = LocaleUtils.SUPPORTED_LOCALES.values
+        val localizedKeyMap = mutableMapOf<String, Command>()
 
         commands.filter { it::class.java.isAnnotationPresent(DiscordCommand::class.java) }
             .forEach {
@@ -108,21 +97,13 @@ class CommandsHolderServiceImpl : CommandsHolderService {
                 if (!annotation.hidden)
                     publicCommandMap[rawKey] = it
 
-                locales.forEach { locale ->
-                    val localeCommands = mutableLocalizedCommands.computeIfAbsent(locale) { mutableMapOf() }
-                    val localizedKey = rawKey.lowercase()
-                    mutableReverseCommandKeys.add(localizedKey.reversed())
-                    if (!annotation.hidden) {
-                        mutablePublicCommandKeys.add(localizedKey)
-                    }
-                    localeCommands[localizedKey] = it
-                }
+                localizedKeyMap[rawKey.lowercase()] = it
             }
 
         this.commands = commandMap.toMap()
         this.publicCommands = publicCommandMap.toMap()
-        this.reverseCommandKeys = mutableReverseCommandKeys.toSet()
-        this.localizedCommands = mutableLocalizedCommands.toMap()
+        // TODO: Implement real i18n localization
+        this.localizedCommands = mapOf(Locale.ENGLISH to localizedKeyMap.toMap())
     }
 
     /**
@@ -184,19 +165,14 @@ class CommandsHolderServiceImpl : CommandsHolderService {
         return dslCommandsByFullPath[fullPath]
     }
 
-    override val descriptors: Map<CommandCategory, List<DiscordCommand>>
-        get() {
-            if (!::descriptorsMap.isInitialized) {
-                descriptorsMap = commands.values
-                    .asSequence()
-                    .mapNotNull { it.javaClass.getAnnotation(DiscordCommand::class.java) }
-                    .filterNot { it.hidden }
-                    .sortedBy { it.priority }
-                    .toList()
-                    .groupBy { it.group }
-                    .toSortedMap()
-            }
-
-            return descriptorsMap
-        }
+    override val descriptors: Map<CommandCategory, List<DiscordCommand>> by lazy {
+        commands.values
+            .asSequence()
+            .mapNotNull { it.javaClass.getAnnotation(DiscordCommand::class.java) }
+            .filterNot { it.hidden }
+            .sortedBy { it.priority }
+            .toList()
+            .groupBy { it.group }
+            .toSortedMap()
+    }
 }

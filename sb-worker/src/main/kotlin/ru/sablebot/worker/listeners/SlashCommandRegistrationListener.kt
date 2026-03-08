@@ -2,6 +2,9 @@ package ru.sablebot.worker.listeners
 
 import dev.minn.jda.ktx.interactions.commands.Option
 import io.github.oshai.kotlinlogging.KotlinLogging
+import net.dv8tion.jda.api.entities.Role
+import net.dv8tion.jda.api.entities.User
+import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel
 import net.dv8tion.jda.api.events.session.ReadyEvent
 import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions
 import net.dv8tion.jda.api.interactions.commands.build.*
@@ -12,10 +15,7 @@ import ru.sablebot.common.worker.command.model.dsl.SlashCommandGroupDeclaration
 import ru.sablebot.common.worker.command.service.CommandsHolderService
 import ru.sablebot.common.worker.event.DiscordEvent
 import ru.sablebot.common.worker.event.listeners.DiscordEventListener
-import ru.sablebot.common.worker.message.model.commands.options.BooleanDiscordOptionReference
-import ru.sablebot.common.worker.message.model.commands.options.DiscordOptionReference
-import ru.sablebot.common.worker.message.model.commands.options.OptionReference
-import ru.sablebot.common.worker.message.model.commands.options.StringDiscordOptionReference
+import ru.sablebot.common.worker.message.model.commands.options.*
 
 
 @DiscordEvent
@@ -51,8 +51,8 @@ class SlashCommandRegistrationListener @Autowired constructor(
                 .addCommands(allCommands)
                 .queue(
                     {
-                        logger.info { "✓ Глобальные команды успешно обновлены: ${allCommands.size} команд(ы)" }
-                        logger.info { "✓ Global command registration complete" }
+                        logger.info { "[OK] Глобальные команды успешно обновлены: ${allCommands.size} команд(ы)" }
+                        logger.info { "Successfully completed global command registration" }
                     },
                     { error -> logger.error(error) { "Ошибка при обновлении глобальных команд" } }
                 )
@@ -180,6 +180,36 @@ class SlashCommandRegistrationListener @Autowired constructor(
                             interactionOption.required
                         )
                     )
+
+                    is ChannelDiscordOptionReference -> {
+                        return listOf(
+                            Option<GuildChannel>(
+                                interactionOption.name,
+                                interactionOption.description,
+                                interactionOption.required
+                            )
+                        )
+                    }
+
+                    is UserDiscordOptionReference -> {
+                        return listOf(
+                            Option<User>(
+                                interactionOption.name,
+                                interactionOption.description,
+                                interactionOption.required
+                            )
+                        )
+                    }
+
+                    is RoleDiscordOptionReference -> {
+                        return listOf(
+                            Option<Role>(
+                                interactionOption.name,
+                                interactionOption.description,
+                                interactionOption.required
+                            )
+                        )
+                    }
                 }
             }
         }

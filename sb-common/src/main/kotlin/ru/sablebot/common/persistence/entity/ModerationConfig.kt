@@ -28,7 +28,19 @@ class ModerationConfig(
         orphanRemoval = true
     )
     @OrderBy("strikeCount")
-    var actions: MutableList<ModerationAction> = mutableListOf()
+    var actions: MutableList<ModerationAction> = mutableListOf(),
+
+    @Column(name = "modlog_channel_id")
+    var modlogChannelId: Long? = null,
+
+    @OneToMany(
+        mappedBy = "config",
+        cascade = [CascadeType.ALL],
+        fetch = FetchType.LAZY,
+        orphanRemoval = true
+    )
+    @OrderBy("threshold")
+    var escalationRules: MutableList<WarnEscalationRule> = mutableListOf()
 ) : GuildEntity() {
     constructor(guildId: Long) : this() {
         this.guildId = guildId
