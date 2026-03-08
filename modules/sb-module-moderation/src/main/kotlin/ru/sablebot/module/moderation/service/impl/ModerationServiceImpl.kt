@@ -241,32 +241,24 @@ open class ModerationServiceImpl(
         duration: Long,
         reason: String?
     ): ModerationCase {
-        recordAction("timeout")
-        dmTarget(target.user, guild, "timed out", reason, duration)
-
-        target.timeoutFor(Duration.ofMillis(duration))
-            .reason(reason)
-            .await()
-
-        val case = createCase(
-            guildId = guild.idLong,
-            actionType = ModerationCaseType.TIMEOUT,
+        return executeModerationAction(
+            guild = guild,
             moderator = moderator,
             target = target.user,
+            caseType = ModerationCaseType.TIMEOUT,
+            auditActionType = AuditActionType.MEMBER_MUTE,
             reason = reason,
-            duration = duration
+            duration = duration,
+            metricType = "timeout",
+            preAction = {
+                dmTarget(target.user, guild, "timed out", reason, duration)
+            },
+            discordAction = {
+                target.timeoutFor(Duration.ofMillis(duration))
+                    .reason(reason)
+                    .await()
+            }
         )
-
-        auditService.log(guild, AuditActionType.MEMBER_MUTE)
-            .withUser(moderator)
-            .withTargetUser(target)
-            .withAttribute("reason", reason)
-            .withAttribute("duration", duration)
-            .save()
-
-        sendModlogEmbed(guild, case)
-
-        return case
     }
 
     override suspend fun removeTimeout(
