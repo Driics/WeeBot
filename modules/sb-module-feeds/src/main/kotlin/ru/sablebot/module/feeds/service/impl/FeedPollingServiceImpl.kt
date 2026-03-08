@@ -90,6 +90,9 @@ open class FeedPollingServiceImpl(
             // Update active feed count gauge
             updateActiveFeedGauges()
 
+            // Update feed health metrics
+            updateFeedHealthMetrics()
+
             // Record overall polling metrics
             meterRegistry.counter("sablebot.feeds.polling.cycles.total").increment()
             meterRegistry.timer("sablebot.feeds.polling.duration").record(duration, java.util.concurrent.TimeUnit.MILLISECONDS)
@@ -172,5 +175,124 @@ open class FeedPollingServiceImpl(
         meterRegistry.gauge("sablebot.feeds.active.count", listOf(
             io.micrometer.core.instrument.Tag.of("platform", "all")
         ), totalActiveFeeds)
+    }
+
+    /**
+     * Update Prometheus gauges for feed health metrics.
+     * Tracks healthy, unhealthy, stale, and never-checked feeds per platform.
+     */
+    private fun updateFeedHealthMetrics() {
+        val now = Instant.now()
+
+        FeedType.entries.forEach { feedType ->
+            val platformName = feedType.name.lowercase()
+            val activeFeeds = socialFeedRepository.findByFeedTypeAndEnabled(feedType)
+
+            // Count feeds that have never been checked
+            val neverChecked = activeFeeds.count { it.lastCheckTime == null }
+            meterRegistry.gauge(
+                "sablebot.feeds.health.never_checked",
+                listOf(io.micrometer.core.instrument.Tag.of("platform", platformName)),
+                neverChecked
+            )
+
+            // Count stale feeds (last check > 2x their configured interval)
+            val staleFeeds = activeFeeds.count { feed ->
+                feed.lastCheckTime?.let { lastCheck ->
+                    val maxAllowedAge = feed.checkIntervalMinutes * 60L * 2
+                    val age = now.epochSecond - lastCheck.epochSecond
+                    age > maxAllowedAge
+                } ?: false
+            }
+            meterRegistry.gauge(
+                "sablebot.feeds.health.stale",
+                listOf(io.micrometer.core.instrument.Tag.of("platform", platformName)),
+                staleFeeds
+            )
+
+            // Count healthy feeds (checked recently within their interval)
+            val healthyFeeds = activeFeeds.count { feed ->
+                feed.lastCheckTime?.let { lastCheck ->
+                    val maxAllowedAge = feed.checkIntervalMinutes * 60L * 2
+                    val age = now.epochSecond - lastCheck.epochSecond
+                    age <= maxAllowedAge
+                } ?: false
+            }
+            meterRegistry.gauge(
+                "sablebot.feeds.health.healthy",
+                listOf(io.micrometer.core.instrument.Tag.of("platform", platformName)),
+                healthyFeeds
+            )
+
+            // Count unhealthy feeds (stale or never checked)
+            val unhealthyFeeds = staleFeeds + neverChecked
+            meterRegistry.gauge(
+                "sablebot.feeds.health.unhealthy",
+                listOf(io.micrometer.core.instrument.Tag.of("platform", platformName)),
+                unhealthyFeeds
+            )
+
+            // Calculate health percentage (0-100)
+            val healthPercentage = if (activeFeeds.isNotEmpty()) {
+                (healthyFeeds.toDouble() / activeFeeds.size.toDouble()) * 100.0
+            } else {
+                100.0 // No feeds = 100% healthy (no problems)
+            }
+            meterRegistry.gauge(
+                "sablebot.feeds.health.percentage",
+                listOf(io.micrometer.core.instrument.Tag.of("platform", platformName)),
+                healthPercentage
+            )
+        }
+
+        // Calculate overall health metrics across all platforms
+        val allActiveFeeds = socialFeedRepository.findAll().filter { it.enabled }
+        val allNeverChecked = allActiveFeeds.count { it.lastCheckTime == null }
+        val allStale = allActiveFeeds.count { feed ->
+            feed.lastCheckTime?.let { lastCheck ->
+                val maxAllowedAge = feed.checkIntervalMinutes * 60L * 2
+                val age = now.epochSecond - lastCheck.epochSecond
+                age > maxAllowedAge
+            } ?: false
+        }
+        val allHealthy = allActiveFeeds.count { feed ->
+            feed.lastCheckTime?.let { lastCheck ->
+                val maxAllowedAge = feed.checkIntervalMinutes * 60L * 2
+                val age = now.epochSecond - lastCheck.epochSecond
+                age <= maxAllowedAge
+            } ?: false
+        }
+
+        meterRegistry.gauge(
+            "sablebot.feeds.health.never_checked",
+            listOf(io.micrometer.core.instrument.Tag.of("platform", "all")),
+            allNeverChecked
+        )
+        meterRegistry.gauge(
+            "sablebot.feeds.health.stale",
+            listOf(io.micrometer.core.instrument.Tag.of("platform", "all")),
+            allStale
+        )
+        meterRegistry.gauge(
+            "sablebot.feeds.health.healthy",
+            listOf(io.micrometer.core.instrument.Tag.of("platform", "all")),
+            allHealthy
+        )
+        meterRegistry.gauge(
+            "sablebot.feeds.health.unhealthy",
+            listOf(io.micrometer.core.instrument.Tag.of("platform", "all")),
+            allNeverChecked + allStale
+        )
+
+        val overallHealthPercentage = if (allActiveFeeds.isNotEmpty()) {
+            (allHealthy.toDouble() / allActiveFeeds.size.toDouble()) * 100.0
+        } else {
+            100.0
+        }
+        meterRegistry.gauge(
+            "sablebot.feeds.health.percentage",
+            listOf(io.micrometer.core.instrument.Tag.of("platform", "all")),
+            overallHealthPercentage
+        )
     }
 }
