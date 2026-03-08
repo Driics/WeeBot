@@ -267,28 +267,20 @@ open class ModerationServiceImpl(
         moderator: Member,
         reason: String?
     ): ModerationCase {
-        recordAction("untimeout")
-        target.removeTimeout()
-            .reason(reason)
-            .await()
-
-        val case = createCase(
-            guildId = guild.idLong,
-            actionType = ModerationCaseType.UNTIMEOUT,
+        return executeModerationAction(
+            guild = guild,
             moderator = moderator,
             target = target.user,
-            reason = reason
+            caseType = ModerationCaseType.UNTIMEOUT,
+            auditActionType = AuditActionType.MEMBER_UNMUTE,
+            reason = reason,
+            metricType = "untimeout",
+            discordAction = {
+                target.removeTimeout()
+                    .reason(reason)
+                    .await()
+            }
         )
-
-        auditService.log(guild, AuditActionType.MEMBER_UNMUTE)
-            .withUser(moderator)
-            .withTargetUser(target)
-            .withAttribute("reason", reason)
-            .save()
-
-        sendModlogEmbed(guild, case)
-
-        return case
     }
 
     override suspend fun purgeMessages(channel: TextChannel, count: Int, filterUser: User?): Int {
