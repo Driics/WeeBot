@@ -9,6 +9,7 @@ import {
   Shield,
   KeyRound,
   LayoutDashboard,
+  Star,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -20,6 +21,7 @@ const navItems = [
   { label: "Stats", href: "/stats", icon: BarChart3 },
   { label: "Config", href: "/config", icon: Settings },
   { label: "Moderation", href: "/moderation", icon: Shield },
+  { label: "Reaction Roles", href: "/reaction-roles", icon: Star },
   { label: "API Keys", href: "/api-keys", icon: KeyRound },
 ];
 
