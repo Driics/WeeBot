@@ -68,10 +68,10 @@ class SlashCommandRegistrationListener @Autowired constructor(
                     .addCommands(allCommands)
                     .queue(
                         {
-                            logger.info { "[OK] Глобальные команды успешно обновлены: ${allCommands.size} команд(ы)" }
+                            logger.info { "Successfully registered ${allCommands.size} command(s) to Discord" }
                             logger.info { "Successfully completed global command registration" }
                         },
-                        { error -> logger.error(error) { "Ошибка при обновлении глобальных команд" } }
+                        { error -> logger.error(error) { "Failed to update commands to Discord" } }
                     )
             }
         } catch (e: Exception) {
