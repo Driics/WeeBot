@@ -8,24 +8,25 @@ import ru.sablebot.common.worker.command.model.context.ApplicationCommandContext
 import ru.sablebot.common.worker.command.model.dsl.SlashCommandDeclarationWrapper
 import ru.sablebot.common.worker.command.model.dsl.SlashCommandExecutor
 import ru.sablebot.common.worker.command.model.dsl.slashCommand
+import ru.sablebot.common.worker.command.util.CommandUuidGenerator
 import ru.sablebot.common.worker.configuration.WorkerProperties
 import ru.sablebot.common.worker.message.model.InteractionMessage
 import ru.sablebot.common.worker.message.model.commands.options.ApplicationCommandOptions
 import ru.sablebot.common.worker.message.model.styled
 import ru.sablebot.common.worker.shared.service.DiscordService
-import java.util.*
 import kotlin.time.measureTime
 
 @Component
 class PingCommand(
     private val discordService: DiscordService,
-    private val workerProperties: WorkerProperties
+    private val workerProperties: WorkerProperties,
+    private val uuidGenerator: CommandUuidGenerator
 ) : SlashCommandDeclarationWrapper {
     override fun command() = slashCommand(
         "ping",
         "Display ping",
         CommandCategory.GENERAL,
-        UUID.fromString("a1b2c3d4-e5f6-7890-abcd-ef1234567802")
+        uuidGenerator.generate(CommandCategory.GENERAL, "ping")
     ) {
         executor = PingExecutor()
     }

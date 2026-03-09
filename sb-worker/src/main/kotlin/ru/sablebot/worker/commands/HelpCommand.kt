@@ -9,20 +9,21 @@ import ru.sablebot.common.worker.command.model.dsl.SlashCommandDeclarationWrappe
 import ru.sablebot.common.worker.command.model.dsl.SlashCommandExecutor
 import ru.sablebot.common.worker.command.model.dsl.slashCommand
 import ru.sablebot.common.worker.command.service.CommandsHolderService
+import ru.sablebot.common.worker.command.util.CommandUuidGenerator
 import ru.sablebot.common.worker.message.model.InteractivityManager
 import ru.sablebot.common.worker.message.model.commands.options.ApplicationCommandOptions
-import java.util.*
 
 @Component
 class HelpCommand(
     private val holderService: CommandsHolderService,
-    private val interactivityManager: InteractivityManager
+    private val interactivityManager: InteractivityManager,
+    private val uuidGenerator: CommandUuidGenerator
 ) : SlashCommandDeclarationWrapper {
     override fun command() = slashCommand(
         "help",
         "This helps you with all the commands.",
         CommandCategory.GENERAL,
-        UUID.fromString("d1e2f3a4-b5c6-7890-cdef-1234567890ab")
+        uuidGenerator.generate(CommandCategory.GENERAL, "help")
     ) {
         executor = HelpExecutor()
     }
