@@ -2,6 +2,7 @@ package ru.sablebot.common.worker.message.model
 
 import com.github.benmanes.caffeine.cache.Caffeine
 import com.github.benmanes.caffeine.cache.Scheduler
+import io.micrometer.core.instrument.MeterRegistry
 import jakarta.annotation.PreDestroy
 import kotlinx.coroutines.*
 import net.dv8tion.jda.api.entities.IMentionable
@@ -19,10 +20,15 @@ import kotlin.time.Duration.Companion.minutes
 import kotlin.time.toJavaDuration
 
 @Component
-class InteractivityManager {
+class InteractivityManager(
+    private val meterRegistry: MeterRegistry? = null
+) {
     companion object {
         val DELAY = 5.minutes
         private const val MAX_SIZE = 100L
+
+        // Metric names
+        const val INTERACTIVITY_CACHE_REMOVALS = "sablebot.interactivity.cache.removals"
     }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default + CoroutineName("InteractivityManager"))
