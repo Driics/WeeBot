@@ -13,6 +13,7 @@ import ru.sablebot.common.worker.command.model.Command
 import ru.sablebot.common.worker.command.model.dsl.SlashCommandDeclaration
 import ru.sablebot.common.worker.command.model.dsl.SlashCommandGroupDeclaration
 import ru.sablebot.common.worker.command.service.CommandsHolderService
+import ru.sablebot.common.worker.command.validation.CommandValidator
 import ru.sablebot.common.worker.event.DiscordEvent
 import ru.sablebot.common.worker.event.listeners.DiscordEventListener
 import ru.sablebot.common.worker.message.model.commands.options.*
@@ -21,6 +22,7 @@ import ru.sablebot.common.worker.message.model.commands.options.*
 @DiscordEvent
 class SlashCommandRegistrationListener @Autowired constructor(
     private val holderService: CommandsHolderService,
+    private val commandValidator: CommandValidator,
 ) : DiscordEventListener() {
     companion object {
         private val logger = KotlinLogging.logger {}
