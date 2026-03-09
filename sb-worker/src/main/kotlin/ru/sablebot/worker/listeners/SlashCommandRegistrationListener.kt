@@ -33,7 +33,10 @@ class SlashCommandRegistrationListener @Autowired constructor(
 
         try {
             // Validate DSL commands before registration
+            val commandCount = holderService.dslCommands.values.size
+            logger.info { "Validating $commandCount command(s)" }
             commandValidator.validate(holderService.dslCommands.values)
+            logger.info { "Validation passed" }
 
             // Prepare legacy and DSL commands
             val legacyCommands = holderService.publicCommands.values.map { toJdaDeclaration(it) }
