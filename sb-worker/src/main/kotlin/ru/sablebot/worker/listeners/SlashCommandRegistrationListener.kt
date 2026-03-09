@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import ru.sablebot.common.worker.command.model.Command
 import ru.sablebot.common.worker.command.model.dsl.SlashCommandDeclaration
 import ru.sablebot.common.worker.command.model.dsl.SlashCommandGroupDeclaration
+import ru.sablebot.common.worker.command.service.CommandDiffer
 import ru.sablebot.common.worker.command.service.CommandsHolderService
 import ru.sablebot.common.worker.command.validation.CommandValidator
 import ru.sablebot.common.worker.event.DiscordEvent
@@ -23,6 +24,7 @@ import ru.sablebot.common.worker.message.model.commands.options.*
 class SlashCommandRegistrationListener @Autowired constructor(
     private val holderService: CommandsHolderService,
     private val commandValidator: CommandValidator,
+    private val commandDiffer: CommandDiffer,
 ) : DiscordEventListener() {
     companion object {
         private val logger = KotlinLogging.logger {}
