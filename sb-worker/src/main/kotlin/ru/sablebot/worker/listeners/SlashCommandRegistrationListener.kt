@@ -32,6 +32,9 @@ class SlashCommandRegistrationListener @Autowired constructor(
         logger.info { "=== Starting slash command registration ===" }
 
         try {
+            // Validate DSL commands before registration
+            commandValidator.validate(holderService.dslCommands.values)
+
             // Prepare legacy and DSL commands
             val legacyCommands = holderService.publicCommands.values.map { toJdaDeclaration(it) }
             val dslCommands = holderService.dslCommands.values.map { toDslJdaDeclaration(it) }
