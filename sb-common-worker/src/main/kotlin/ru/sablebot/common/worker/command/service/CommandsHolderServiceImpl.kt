@@ -11,7 +11,6 @@ import java.util.*
 
 @Service
 class CommandsHolderServiceImpl(
-    private val legacyCommands: List<Command>,
     private val dslWrappers: List<SlashCommandDeclarationWrapper>
 ) : CommandsHolderService {
 
@@ -19,95 +18,46 @@ class CommandsHolderServiceImpl(
         private val logger = KotlinLogging.logger {}
     }
 
-    override var commands: Map<String, Command> = mutableMapOf()
+    // Legacy command storage - kept for interface compatibility but always empty
+    override var commands: Map<String, Command> = emptyMap()
 
-    override var publicCommands: Map<String, Command> = mutableMapOf()
+    override var publicCommands: Map<String, Command> = emptyMap()
 
     // DSL commands storage
     override var dslCommands: Map<String, SlashCommandDeclaration> = mutableMapOf()
     private var dslCommandsByFullPath: Map<String, SlashCommandDeclaration> = mutableMapOf()
 
-    private lateinit var localizedCommands: Map<Locale, Map<String, Command>>
-
     init {
-        registerCommands(legacyCommands)
         registerDslCommands(dslWrappers)
     }
 
     /**
      * Находит команду по локализованному ключу в указанных локалях.
      *
+     * Legacy method - returns null as all commands are now DSL-based.
+     *
      * @param localizedKey Локализованный ключ команды (поиск нечувствителен к регистру).
      * @param locale Предпочитаемая локаль для поиска; если `null`, используется английская карта по умолчанию.
      * @param anyLocale Если `true`, сначала ищет во всех доступных локалях и при отсутствии результата пытается в `locale`; если `false`, ищет только в `locale`.
-     * @return Соответствующий объект `Command`, либо `null`, если команда не найдена.
+     * @return `null` as legacy commands are no longer supported.
      */
     override fun getByLocale(localizedKey: String, locale: Locale?, anyLocale: Boolean): Command? {
-        val lowerCaseKey = localizedKey.lowercase()
-
-        return if (anyLocale) {
-            localizedCommands.values.firstNotNullOfOrNull { it[lowerCaseKey] }
-                ?: getLocalizedMap(locale).getOrElse(lowerCaseKey) { null }
-        } else {
-            getLocalizedMap(locale).getOrElse(lowerCaseKey) { null }
-        }
+        return null
     }
 
     /**
-     * Определяет, соответствует ли переданный ключ какой-либо зарегистрированной команде — либо устаревшей (legacy), либо DSL-команде.
+     * Определяет, соответствует ли переданный ключ какой-либо зарегистрированной DSL-команде.
      *
      * @param key Ключ команды или полный путь для DSL-команды (например "cmd subcmd" или "cmd group subcmd").
-     * @return `true` если ключ соответствует legacy-команде или DSL-команде, `false` в противном случае.
+     * @return `true` если ключ соответствует DSL-команде, `false` в противном случае.
      */
     override fun isAnyCommand(key: String): Boolean {
         val lowerKey = key.lowercase()
-        val isLegacyCommand = commands.containsKey(lowerKey)
         val isDslCommand = dslCommandsByFullPath.containsKey(lowerKey)
 
-        logger.debug { "isAnyCommand($key): legacy=$isLegacyCommand, dsl=$isDslCommand" }
+        logger.debug { "isAnyCommand($key): dsl=$isDslCommand" }
 
-        return isLegacyCommand || isDslCommand
-    }
-
-    /**
-         * Получает карту команд, соответствующих заданной локали.
-         *
-         * @param locale Локаль для поиска карты команд; если аргумент опущен, используется Locale.ENGLISH.
-         * @return Карту команд (ключ → Command) для указанной локали, либо пустую карту если для локали нет записей.
-         */
-        private fun getLocalizedMap(locale: Locale? = /*contextService.locale*/ Locale.ENGLISH): Map<String, Command> =
-        localizedCommands[locale] ?: emptyMap()
-
-    /**
-     * Регистрирует набор команд и готовит внутренние индексы для быстрого поиска по ключам и локалям.
-     *
-     * Заполняет поля сервиса:
-     * - `commands` — все команды по исходному ключу;
-     * - `publicCommands` — команды, помеченные как публичные (не скрытые);
-     * - `localizedCommands` — карта локалей к отображению локализованного (нижнего регистра) ключа -> команда.
-     */
-    private fun registerCommands(commands: List<Command>) {
-        val commandMap = mutableMapOf<String, Command>()
-        val publicCommandMap = mutableMapOf<String, Command>()
-        val localizedKeyMap = mutableMapOf<String, Command>()
-
-        commands.filter { it::class.java.isAnnotationPresent(DiscordCommand::class.java) }
-            .forEach {
-                val annotation = it::class.java.getAnnotation(DiscordCommand::class.java)
-                val rawKey = annotation.key
-
-                commandMap[rawKey] = it
-
-                if (!annotation.hidden)
-                    publicCommandMap[rawKey] = it
-
-                localizedKeyMap[rawKey.lowercase()] = it
-            }
-
-        this.commands = commandMap.toMap()
-        this.publicCommands = publicCommandMap.toMap()
-        // TODO: Implement real i18n localization
-        this.localizedCommands = mapOf(Locale.ENGLISH to localizedKeyMap.toMap())
+        return isDslCommand
     }
 
     /**
@@ -128,7 +78,7 @@ class CommandsHolderServiceImpl(
             logger.debug { "Processing DSL command: ${declaration.name}" }
 
             // Register main command by name (ADD TO BOTH MAPS!)
-            dslCommandMap[declaration.name] = declaration  // ← ДОБАВИТЬ ЭТУ СТРОКУ
+            dslCommandMap[declaration.name] = declaration
             dslCommandsByPathMap[declaration.name] = declaration
             logger.debug { "Registered DSL command: ${declaration.name}" }
 
@@ -166,14 +116,8 @@ class CommandsHolderServiceImpl(
         return dslCommandsByFullPath[fullPath]
     }
 
-    override val descriptors: Map<CommandCategory, List<DiscordCommand>> by lazy {
-        commands.values
-            .asSequence()
-            .mapNotNull { it.javaClass.getAnnotation(DiscordCommand::class.java) }
-            .filterNot { it.hidden }
-            .sortedBy { it.priority }
-            .toList()
-            .groupBy { it.group }
-            .toSortedMap()
-    }
+    /**
+     * Legacy descriptors - returns empty map as all commands are now DSL-based.
+     */
+    override val descriptors: Map<CommandCategory, List<DiscordCommand>> = emptyMap()
 }
