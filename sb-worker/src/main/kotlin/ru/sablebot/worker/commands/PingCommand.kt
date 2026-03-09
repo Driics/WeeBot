@@ -10,6 +10,7 @@ import ru.sablebot.common.worker.command.model.dsl.SlashCommandExecutor
 import ru.sablebot.common.worker.command.model.dsl.slashCommand
 import ru.sablebot.common.worker.configuration.WorkerProperties
 import ru.sablebot.common.worker.message.model.InteractionMessage
+import ru.sablebot.common.worker.message.model.commands.options.ApplicationCommandOptions
 import ru.sablebot.common.worker.message.model.styled
 import ru.sablebot.common.worker.shared.service.DiscordService
 import java.util.*
@@ -30,6 +31,10 @@ class PingCommand(
     }
 
     inner class PingExecutor : SlashCommandExecutor() {
+        override val options = Options()
+
+        inner class Options : ApplicationCommandOptions()
+
         override suspend fun execute(context: ApplicationCommandContext, args: SlashCommandArguments) {
             var message: InteractionMessage
 
