@@ -56,21 +56,31 @@ class SlashCommandRegistrationListener @Autowired constructor(
             
             val duplicatesRemoved = legacyCommands.size - uniqueLegacyCommands.size
             
-            logger.info { 
+            logger.info {
                 "Подготовлено ${allCommands.size} команд(ы): " +
                 "${uniqueLegacyCommands.size} legacy, ${dslCommands.size} DSL" +
                 (if (duplicatesRemoved > 0) " ($duplicatesRemoved дубликат(ов) удалено, приоритет DSL)" else "")
             }
 
-            event.jda.updateCommands()
-                .addCommands(allCommands)
-                .queue(
-                    {
-                        logger.info { "[OK] Глобальные команды успешно обновлены: ${allCommands.size} команд(ы)" }
-                        logger.info { "Successfully completed global command registration" }
-                    },
-                    { error -> logger.error(error) { "Ошибка при обновлении глобальных команд" } }
-                )
+            // Compute diff between local and remote commands
+            logger.info { "Computing diff between local and remote commands" }
+            val diff = commandDiffer.computeDiff(allCommands, remoteCommands)
+
+            // Skip updateCommands() if no changes detected
+            if (diff.isEmpty()) {
+                logger.info { "No changes detected - skipping Discord API call" }
+                logger.info { "Successfully completed global command registration (no updates needed)" }
+            } else {
+                event.jda.updateCommands()
+                    .addCommands(allCommands)
+                    .queue(
+                        {
+                            logger.info { "[OK] Глобальные команды успешно обновлены: ${allCommands.size} команд(ы)" }
+                            logger.info { "Successfully completed global command registration" }
+                        },
+                        { error -> logger.error(error) { "Ошибка при обновлении глобальных команд" } }
+                    )
+            }
         } catch (e: Exception) {
             logger.error(e) { "Failed to register global commands" }
         }
