@@ -11,6 +11,9 @@ import type {
   CreateReactionRoleGroupRequest,
   CreateReactionRoleMenuItemRequest,
   CreateReactionRoleMenuRequest,
+  CreateFeedRequest,
+  FeedListResponse,
+  FeedResponse,
   GuildChannel,
   GuildConfig,
   GuildRole,
@@ -26,6 +29,7 @@ import type {
   UpdateReactionRoleGroupRequest,
   UpdateReactionRoleMenuItemRequest,
   UpdateReactionRoleMenuRequest,
+  UpdateFeedRequest,
   UserInfo,
 } from "@/types";
 
@@ -223,6 +227,13 @@ class ApiClient {
     data: CreateReactionRoleMenuItemRequest
   ): Promise<ReactionRoleActionResponse> {
     return this.request(`/api/guilds/${guildId}/reaction-roles/menus/${menuId}/items`, {
+  // Feeds
+  getFeeds(guildId: string): Promise<FeedListResponse> {
+    return this.request(`/api/guilds/${guildId}/feeds`);
+  }
+
+  createFeed(guildId: string, data: CreateFeedRequest): Promise<FeedResponse> {
+    return this.request(`/api/guilds/${guildId}/feeds`, {
       method: "POST",
       body: JSON.stringify(data),
     });
@@ -235,12 +246,17 @@ class ApiClient {
   ): Promise<ReactionRoleActionResponse> {
     return this.request(`/api/guilds/${guildId}/reaction-roles/items/${itemId}`, {
       method: "PUT",
+  updateFeed(guildId: string, feedId: number, data: UpdateFeedRequest): Promise<FeedResponse> {
+    return this.request(`/api/guilds/${guildId}/feeds/${feedId}`, {
+      method: "PATCH",
       body: JSON.stringify(data),
     });
   }
 
   deleteReactionRoleMenuItem(guildId: string, itemId: number): Promise<ReactionRoleActionResponse> {
     return this.request(`/api/guilds/${guildId}/reaction-roles/items/${itemId}`, {
+  deleteFeed(guildId: string, feedId: number): Promise<void> {
+    return this.request(`/api/guilds/${guildId}/feeds/${feedId}`, {
       method: "DELETE",
     });
   }
@@ -284,6 +300,9 @@ class ApiClient {
   deleteReactionRoleGroup(guildId: string, groupId: number): Promise<ReactionRoleActionResponse> {
     return this.request(`/api/guilds/${guildId}/reaction-roles/groups/${groupId}`, {
       method: "DELETE",
+  testFeed(guildId: string, feedId: number): Promise<Record<string, unknown>> {
+    return this.request(`/api/guilds/${guildId}/feeds/${feedId}/test`, {
+      method: "POST",
     });
   }
 }

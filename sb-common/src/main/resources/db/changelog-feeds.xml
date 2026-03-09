@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ This file is part of JuniperBot.
+
+ JuniperBot is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+
+ JuniperBot is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+
+ You should have received a copy of the GNU General Public License
+ along with JuniperBot. If not, see <http://www.gnu.org/licenses/>.
+-->
+<databaseChangeLog
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+   http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.4.xsd">
+
+    <changeSet id="feeds-1" author="sablebot">
+        <createTable tableName="social_feed">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="version" type="BIGINT"/>
+            <column name="guild_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="feed_type" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="target_identifier" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="target_channel_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="check_interval_minutes" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="embed_config" type="JSONB"/>
+            <column name="enabled" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="last_check_time" type="TIMESTAMP WITH TIME ZONE"/>
+            <column name="last_item_id" type="VARCHAR(255)"/>
+        </createTable>
+
+        <createIndex tableName="social_feed" indexName="idx_social_feed_guild_id">
+            <column name="guild_id"/>
+        </createIndex>
+
+        <createIndex tableName="social_feed" indexName="idx_social_feed_feed_type">
+            <column name="feed_type"/>
+        </createIndex>
+
+        <createIndex tableName="social_feed" indexName="idx_social_feed_enabled">
+            <column name="enabled"/>
+        </createIndex>
+
+        <createIndex tableName="social_feed" indexName="idx_social_feed_last_check_time">
+            <column name="last_check_time"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="feeds-2" author="sablebot">
+        <createTable tableName="feed_notification">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="version" type="BIGINT"/>
+            <column name="feed_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="external_item_id" type="VARCHAR(500)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="sent_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="guild_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="feed_notification" indexName="idx_feed_notification_feed_id">
+            <column name="feed_id"/>
+        </createIndex>
+
+        <createIndex tableName="feed_notification" indexName="idx_feed_notification_guild_id">
+            <column name="guild_id"/>
+        </createIndex>
+
+        <createIndex tableName="feed_notification" indexName="idx_feed_notification_external_item">
+            <column name="feed_id"/>
+            <column name="external_item_id"/>
+        </createIndex>
+
+        <addUniqueConstraint tableName="feed_notification"
+                             columnNames="feed_id, external_item_id"
+                             constraintName="uk_feed_notification_feed_external"/>
+    </changeSet>
+
+</databaseChangeLog>

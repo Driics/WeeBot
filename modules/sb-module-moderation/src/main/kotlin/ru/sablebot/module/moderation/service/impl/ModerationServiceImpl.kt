@@ -56,6 +56,75 @@ open class ModerationServiceImpl(
         meterRegistry.counter("sablebot.moderation.actions", "type", type).increment()
     }
 
+    /**
+     * Template method that encapsulates the common moderation action pipeline:
+     * 1. Record metrics
+     * 2. Execute pre-action hooks (e.g., DM target)
+     * 3. Execute Discord API action
+     * 4. Create moderation case
+     * 5. Execute post-action hooks (e.g., scheduling)
+     * 6. Log to audit service
+     * 7. Send modlog embed
+     * 8. Execute final hooks (e.g., escalation check)
+     * 9. Return case
+     */
+    private suspend fun executeModerationAction(
+        guild: Guild,
+        moderator: Member,
+        target: User,
+        caseType: ModerationCaseType,
+        auditActionType: AuditActionType,
+        reason: String?,
+        duration: Long? = null,
+        metricType: String,
+        preAction: (suspend () -> Unit)? = null,
+        discordAction: suspend () -> Unit,
+        postAction: (suspend (ModerationCase) -> Unit)? = null,
+        finalHook: (suspend (ModerationCase) -> Unit)? = null
+    ): ModerationCase {
+        // Record metrics
+        recordAction(metricType)
+
+        // Pre-action hooks (e.g., DM target)
+        preAction?.invoke()
+
+        // Execute Discord action
+        discordAction()
+
+        // Create case
+        val case = createCase(
+            guildId = guild.idLong,
+            actionType = caseType,
+            moderator = moderator,
+            target = target,
+            reason = reason,
+            duration = duration
+        )
+
+        // Post-action hooks (e.g., scheduling)
+        postAction?.invoke(case)
+
+        // Audit log
+        val auditBuilder = auditService.log(guild, auditActionType)
+            .withUser(moderator)
+            .withTargetUser(target)
+            .withAttribute("reason", reason)
+
+        if (duration != null) {
+            auditBuilder.withAttribute("duration", duration)
+        }
+
+        auditBuilder.save()
+
+        // Send modlog embed
+        sendModlogEmbed(guild, case)
+
+        // Final hooks (e.g., escalation check)
+        finalHook?.invoke(case)
+
+        return case
+    }
+
     override suspend fun ban(
         guild: Guild,
         target: Member,
@@ -64,36 +133,29 @@ open class ModerationServiceImpl(
         duration: Long?,
         deleteDays: Int?
     ): ModerationCase {
-        recordAction("ban")
-        dmTarget(target.user, guild, "banned", reason, duration)
-
-        guild.ban(target, deleteDays ?: 0, TimeUnit.DAYS)
-            .reason(reason)
-            .await()
-
-        val case = createCase(
-            guildId = guild.idLong,
-            actionType = ModerationCaseType.BAN,
+        return executeModerationAction(
+            guild = guild,
             moderator = moderator,
             target = target.user,
+            caseType = ModerationCaseType.BAN,
+            auditActionType = AuditActionType.MEMBER_BAN,
             reason = reason,
-            duration = duration
+            duration = duration,
+            metricType = "ban",
+            preAction = {
+                dmTarget(target.user, guild, "banned", reason, duration)
+            },
+            discordAction = {
+                guild.ban(target, deleteDays ?: 0, TimeUnit.DAYS)
+                    .reason(reason)
+                    .await()
+            },
+            postAction = { case ->
+                if (duration != null) {
+                    scheduleUnBan(guild.id, target.user.id, duration)
+                }
+            }
         )
-
-        if (duration != null) {
-            scheduleUnBan(guild.id, target.user.id, duration)
-        }
-
-        auditService.log(guild, AuditActionType.MEMBER_BAN)
-            .withUser(moderator)
-            .withTargetUser(target)
-            .withAttribute("reason", reason)
-            .withAttribute("duration", duration)
-            .save()
-
-        sendModlogEmbed(guild, case)
-
-        return case
     }
 
     override suspend fun unban(
@@ -102,30 +164,23 @@ open class ModerationServiceImpl(
         moderator: Member,
         reason: String?
     ): ModerationCase {
-        recordAction("unban")
-        guild.unban(targetUser)
-            .reason(reason)
-            .await()
-
-        removeUnBanSchedule(guild.id, targetUser.id)
-
-        val case = createCase(
-            guildId = guild.idLong,
-            actionType = ModerationCaseType.UNBAN,
+        return executeModerationAction(
+            guild = guild,
             moderator = moderator,
             target = targetUser,
-            reason = reason
+            caseType = ModerationCaseType.UNBAN,
+            auditActionType = AuditActionType.MEMBER_UNBAN,
+            reason = reason,
+            metricType = "unban",
+            discordAction = {
+                guild.unban(targetUser)
+                    .reason(reason)
+                    .await()
+            },
+            postAction = {
+                removeUnBanSchedule(guild.id, targetUser.id)
+            }
         )
-
-        auditService.log(guild, AuditActionType.MEMBER_UNBAN)
-            .withUser(moderator)
-            .withTargetUser(targetUser)
-            .withAttribute("reason", reason)
-            .save()
-
-        sendModlogEmbed(guild, case)
-
-        return case
     }
 
     override suspend fun kick(
@@ -134,30 +189,23 @@ open class ModerationServiceImpl(
         moderator: Member,
         reason: String?
     ): ModerationCase {
-        recordAction("kick")
-        dmTarget(target.user, guild, "kicked", reason, null)
-
-        guild.kick(target)
-            .reason(reason)
-            .await()
-
-        val case = createCase(
-            guildId = guild.idLong,
-            actionType = ModerationCaseType.KICK,
+        return executeModerationAction(
+            guild = guild,
             moderator = moderator,
             target = target.user,
-            reason = reason
+            caseType = ModerationCaseType.KICK,
+            auditActionType = AuditActionType.MEMBER_KICK,
+            reason = reason,
+            metricType = "kick",
+            preAction = {
+                dmTarget(target.user, guild, "kicked", reason, null)
+            },
+            discordAction = {
+                guild.kick(target)
+                    .reason(reason)
+                    .await()
+            }
         )
-
-        auditService.log(guild, AuditActionType.MEMBER_KICK)
-            .withUser(moderator)
-            .withTargetUser(target)
-            .withAttribute("reason", reason)
-            .save()
-
-        sendModlogEmbed(guild, case)
-
-        return case
     }
 
     override suspend fun warn(
@@ -166,28 +214,24 @@ open class ModerationServiceImpl(
         moderator: Member,
         reason: String
     ): ModerationCase {
-        recordAction("warn")
-        dmTarget(target.user, guild, "warned", reason, null)
-
-        val case = createCase(
-            guildId = guild.idLong,
-            actionType = ModerationCaseType.WARN,
+        return executeModerationAction(
+            guild = guild,
             moderator = moderator,
             target = target.user,
-            reason = reason
+            caseType = ModerationCaseType.WARN,
+            auditActionType = AuditActionType.MEMBER_WARN,
+            reason = reason,
+            metricType = "warn",
+            preAction = {
+                dmTarget(target.user, guild, "warned", reason, null)
+            },
+            discordAction = {
+                // Warnings are database-only, no Discord API action needed
+            },
+            finalHook = {
+                checkEscalation(guild, target, moderator)
+            }
         )
-
-        auditService.log(guild, AuditActionType.MEMBER_WARN)
-            .withUser(moderator)
-            .withTargetUser(target)
-            .withAttribute("reason", reason)
-            .save()
-
-        sendModlogEmbed(guild, case)
-
-        checkEscalation(guild, target, moderator)
-
-        return case
     }
 
     override suspend fun timeout(
@@ -197,32 +241,24 @@ open class ModerationServiceImpl(
         duration: Long,
         reason: String?
     ): ModerationCase {
-        recordAction("timeout")
-        dmTarget(target.user, guild, "timed out", reason, duration)
-
-        target.timeoutFor(Duration.ofMillis(duration))
-            .reason(reason)
-            .await()
-
-        val case = createCase(
-            guildId = guild.idLong,
-            actionType = ModerationCaseType.TIMEOUT,
+        return executeModerationAction(
+            guild = guild,
             moderator = moderator,
             target = target.user,
+            caseType = ModerationCaseType.TIMEOUT,
+            auditActionType = AuditActionType.MEMBER_MUTE,
             reason = reason,
-            duration = duration
+            duration = duration,
+            metricType = "timeout",
+            preAction = {
+                dmTarget(target.user, guild, "timed out", reason, duration)
+            },
+            discordAction = {
+                target.timeoutFor(Duration.ofMillis(duration))
+                    .reason(reason)
+                    .await()
+            }
         )
-
-        auditService.log(guild, AuditActionType.MEMBER_MUTE)
-            .withUser(moderator)
-            .withTargetUser(target)
-            .withAttribute("reason", reason)
-            .withAttribute("duration", duration)
-            .save()
-
-        sendModlogEmbed(guild, case)
-
-        return case
     }
 
     override suspend fun removeTimeout(
@@ -231,28 +267,20 @@ open class ModerationServiceImpl(
         moderator: Member,
         reason: String?
     ): ModerationCase {
-        recordAction("untimeout")
-        target.removeTimeout()
-            .reason(reason)
-            .await()
-
-        val case = createCase(
-            guildId = guild.idLong,
-            actionType = ModerationCaseType.UNTIMEOUT,
+        return executeModerationAction(
+            guild = guild,
             moderator = moderator,
             target = target.user,
-            reason = reason
+            caseType = ModerationCaseType.UNTIMEOUT,
+            auditActionType = AuditActionType.MEMBER_UNMUTE,
+            reason = reason,
+            metricType = "untimeout",
+            discordAction = {
+                target.removeTimeout()
+                    .reason(reason)
+                    .await()
+            }
         )
-
-        auditService.log(guild, AuditActionType.MEMBER_UNMUTE)
-            .withUser(moderator)
-            .withTargetUser(target)
-            .withAttribute("reason", reason)
-            .save()
-
-        sendModlogEmbed(guild, case)
-
-        return case
     }
 
     override suspend fun purgeMessages(channel: TextChannel, count: Int, filterUser: User?): Int {

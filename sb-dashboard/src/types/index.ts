@@ -167,6 +167,47 @@ export interface WsAudioEvent {
   data: Record<string, unknown>;
 }
 
+// Feeds
+export type FeedType = "REDDIT" | "TWITCH" | "YOUTUBE";
+
+export interface FeedResponse {
+  id: number;
+  guildId: string;
+  feedType: FeedType;
+  targetIdentifier: string;
+  targetChannelId: string;
+  checkIntervalMinutes: number;
+  embedConfig: Record<string, unknown> | null;
+  enabled: boolean;
+  lastCheckTime: string | null;
+  lastItemId: string | null;
+  createdAt: string;
+}
+
+export interface FeedListResponse {
+  feeds: FeedResponse[];
+  total: number;
+  page: number;
+  size: number;
+}
+
+export interface CreateFeedRequest {
+  feedType: FeedType;
+  targetIdentifier: string;
+  targetChannelId: string;
+  checkIntervalMinutes?: number;
+  embedConfig?: Record<string, unknown> | null;
+  enabled?: boolean;
+}
+
+export interface UpdateFeedRequest {
+  targetIdentifier?: string;
+  targetChannelId?: string;
+  checkIntervalMinutes?: number;
+  embedConfig?: Record<string, unknown> | null;
+  enabled?: boolean;
+}
+
 // API error
 export interface ApiError {
   error: string;
