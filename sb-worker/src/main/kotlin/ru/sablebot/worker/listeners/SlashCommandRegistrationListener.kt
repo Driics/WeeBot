@@ -9,7 +9,6 @@ import net.dv8tion.jda.api.events.session.ReadyEvent
 import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions
 import net.dv8tion.jda.api.interactions.commands.build.*
 import org.springframework.beans.factory.annotation.Autowired
-import ru.sablebot.common.worker.command.model.Command
 import ru.sablebot.common.worker.command.model.dsl.SlashCommandDeclaration
 import ru.sablebot.common.worker.command.model.dsl.SlashCommandGroupDeclaration
 import ru.sablebot.common.worker.command.service.CommandDiffer
@@ -45,22 +44,10 @@ class SlashCommandRegistrationListener @Autowired constructor(
             val remoteCommands = event.jda.retrieveCommands().complete()
             logger.info { "Retrieved ${remoteCommands.size} registered command(s) from Discord" }
 
-            // Prepare legacy and DSL commands
-            val legacyCommands = holderService.publicCommands.values.map { toJdaDeclaration(it) }
-            val dslCommands = holderService.dslCommands.values.map { toDslJdaDeclaration(it) }
-            
-            // Deduplicate: DSL commands take priority over legacy with the same name
-            val dslCommandNames = dslCommands.map { it.name }.toSet()
-            val uniqueLegacyCommands = legacyCommands.filterNot { it.name in dslCommandNames }
-            val allCommands = uniqueLegacyCommands + dslCommands
-            
-            val duplicatesRemoved = legacyCommands.size - uniqueLegacyCommands.size
-            
-            logger.info {
-                "Подготовлено ${allCommands.size} команд(ы): " +
-                "${uniqueLegacyCommands.size} legacy, ${dslCommands.size} DSL" +
-                (if (duplicatesRemoved > 0) " ($duplicatesRemoved дубликат(ов) удалено, приоритет DSL)" else "")
-            }
+            // Prepare DSL commands for registration
+            val allCommands = holderService.dslCommands.values.map { toDslJdaDeclaration(it) }
+
+            logger.info { "Prepared ${allCommands.size} DSL command(s) for registration" }
 
             // Compute diff between local and remote commands
             logger.info { "Computing diff between local and remote commands" }
@@ -91,30 +78,6 @@ class SlashCommandRegistrationListener @Autowired constructor(
             logger.error(e) { "Failed to register global commands" }
         }
     }
-
-    /**
-         * Преобразует устаревший объект команды в JDA-описание slash-команды для регистрации.
-         *
-         * Преобразование включает имя, описание, флаг NSFW, опции и значения прав по умолчанию; поддержка сабкоманд пока не реализована.
-         * При ошибке создания отдельной опции исключение логируется, а проблемная опция пропускается.
-         *
-         * @param command Устаревшая модель команды, содержащая аннотацию, зарегистрированные опции и требуемые права участников.
-         * @return `SlashCommandData` — объект JDA, готовый для добавления/обновления в списке slash-комманд.
-         */
-    private fun toJdaDeclaration(command: Command): SlashCommandData =
-        Commands.slash(command.annotation.key, command.annotation.description).apply {
-            isNSFW = command.annotation.nsfw
-
-            for (reference in command.commandOptions.registeredOptions) {
-                try {
-                    addOptions(*createOption(reference).toTypedArray())
-                } catch (e: Exception) {
-                    logger.error(e) { "Failed to register command: ${reference.name}" }
-                }
-            }
-
-            defaultPermissions = DefaultMemberPermissions.enabledFor(*command.annotation.memberRequiredPermissions)
-        }
 
     /**
          * Преобразует DSL-описание слэш-команды в объект JDA SlashCommandData с поддержкой подкоманд и групп.
