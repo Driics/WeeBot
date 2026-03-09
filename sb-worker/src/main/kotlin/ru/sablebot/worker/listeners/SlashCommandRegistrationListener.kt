@@ -66,6 +66,12 @@ class SlashCommandRegistrationListener @Autowired constructor(
             logger.info { "Computing diff between local and remote commands" }
             val diff = commandDiffer.computeDiff(allCommands, remoteCommands)
 
+            // Log diff summary
+            logger.info {
+                "Diff summary: ${diff.toAdd.size} to add, ${diff.toUpdate.size} to update, " +
+                "${diff.toRemove.size} to remove, ${diff.unchanged.size} unchanged"
+            }
+
             // Skip updateCommands() if no changes detected
             if (diff.isEmpty()) {
                 logger.info { "No changes detected - skipping Discord API call" }
