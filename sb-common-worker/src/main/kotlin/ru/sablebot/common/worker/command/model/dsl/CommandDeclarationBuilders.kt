@@ -50,7 +50,7 @@ class SlashCommandDeclarationBuilder(
      * @param permissions The permissions the bot needs to execute this command
      */
     fun requireBotPermission(vararg permissions: Permission) {
-        botPermissions = (botPermissions ?: emptySet()) + permissions.toSet()
+        botPermissions = permissions.toSet()
     }
 
     fun subcommand(
