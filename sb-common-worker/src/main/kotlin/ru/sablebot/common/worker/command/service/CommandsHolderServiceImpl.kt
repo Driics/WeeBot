@@ -1,7 +1,6 @@
 package ru.sablebot.common.worker.command.service
 
 import io.github.oshai.kotlinlogging.KotlinLogging
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import ru.sablebot.common.model.CommandCategory
 import ru.sablebot.common.worker.command.model.Command
@@ -11,7 +10,10 @@ import ru.sablebot.common.worker.command.model.dsl.SlashCommandDeclarationWrappe
 import java.util.*
 
 @Service
-class CommandsHolderServiceImpl : CommandsHolderService {
+class CommandsHolderServiceImpl(
+    private val legacyCommands: List<Command>,
+    private val dslWrappers: List<SlashCommandDeclarationWrapper>
+) : CommandsHolderService {
 
     companion object {
         private val logger = KotlinLogging.logger {}
@@ -26,6 +28,11 @@ class CommandsHolderServiceImpl : CommandsHolderService {
     private var dslCommandsByFullPath: Map<String, SlashCommandDeclaration> = mutableMapOf()
 
     private lateinit var localizedCommands: Map<Locale, Map<String, Command>>
+
+    init {
+        registerCommands(legacyCommands)
+        registerDslCommands(dslWrappers)
+    }
 
     /**
      * Находит команду по локализованному ключу в указанных локалях.
@@ -78,10 +85,7 @@ class CommandsHolderServiceImpl : CommandsHolderService {
      * - `commands` — все команды по исходному ключу;
      * - `publicCommands` — команды, помеченные как публичные (не скрытые);
      * - `localizedCommands` — карта локалей к отображению локализованного (нижнего регистра) ключа -> команда.
-     *
-     * @param commands Список команд для регистрации (аннотированных `@DiscordCommand`).
      */
-    @Autowired
     private fun registerCommands(commands: List<Command>) {
         val commandMap = mutableMapOf<String, Command>()
         val publicCommandMap = mutableMapOf<String, Command>()
@@ -112,10 +116,7 @@ class CommandsHolderServiceImpl : CommandsHolderService {
      * Для каждой обёртки извлекается декларация команды; основная команда регистрируется по имени,
      * субкоманды — по пути "command subcommand", а субкоманды внутри групп — по пути "command group subcommand".
      * Результаты сохраняются в полях сервиса `dslCommands` и `dslCommandsByFullPath`.
-     *
-     * @param dslWrappers список обёрток деклараций slash-команд
      */
-    @Autowired
     private fun registerDslCommands(dslWrappers: List<SlashCommandDeclarationWrapper>) {
         val dslCommandMap = mutableMapOf<String, SlashCommandDeclaration>()
         val dslCommandsByPathMap = mutableMapOf<String, SlashCommandDeclaration>()
