@@ -40,6 +40,11 @@ class SlashCommandRegistrationListener @Autowired constructor(
             commandValidator.validate(holderService.dslCommands.values)
             logger.info { "Validation passed" }
 
+            // Retrieve currently registered commands from Discord
+            logger.info { "Retrieving registered commands from Discord" }
+            val remoteCommands = event.jda.retrieveCommands().complete()
+            logger.info { "Retrieved ${remoteCommands.size} registered command(s) from Discord" }
+
             // Prepare legacy and DSL commands
             val legacyCommands = holderService.publicCommands.values.map { toJdaDeclaration(it) }
             val dslCommands = holderService.dslCommands.values.map { toDslJdaDeclaration(it) }
