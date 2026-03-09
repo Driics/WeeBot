@@ -1,205 +1,204 @@
 package ru.sablebot.worker.commands
 
 import dev.minn.jda.ktx.interactions.components.option
-import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
+import org.springframework.beans.factory.ObjectProvider
+import org.springframework.stereotype.Component
 import ru.sablebot.common.model.CommandCategory
-import ru.sablebot.common.worker.command.model.AbstractCommand
-import ru.sablebot.common.worker.command.model.DiscordCommand
 import ru.sablebot.common.worker.command.model.SlashCommandArguments
 import ru.sablebot.common.worker.command.model.context.ApplicationCommandContext
+import ru.sablebot.common.worker.command.model.dsl.SlashCommandDeclarationWrapper
+import ru.sablebot.common.worker.command.model.dsl.SlashCommandExecutor
+import ru.sablebot.common.worker.command.model.dsl.slashCommand
+import ru.sablebot.common.worker.command.service.CommandsHolderService
+import ru.sablebot.common.worker.command.util.CommandUuidGenerator
+import ru.sablebot.common.worker.message.model.InteractivityManager
+import ru.sablebot.common.worker.message.model.commands.options.ApplicationCommandOptions
 
-@DiscordCommand(
-    key = "help",
-    description = "This helps you with all the commands.",
-    priority = 1
-)
-class HelpCommand : AbstractCommand() {
+@Component
+class HelpCommand(
+    private val holderServiceProvider: ObjectProvider<CommandsHolderService>,
+    private val interactivityManager: InteractivityManager,
+    private val uuidGenerator: CommandUuidGenerator
+) : SlashCommandDeclarationWrapper {
+    private val holderService by lazy { holderServiceProvider.getObject() }
 
-    override fun execute(
-        event: SlashCommandInteractionEvent,
-        context: ApplicationCommandContext,
-        args: SlashCommandArguments
+    override fun command() = slashCommand(
+        "help",
+        "This helps you with all the commands.",
+        CommandCategory.GENERAL,
+        uuidGenerator.generate(CommandCategory.GENERAL, "help")
     ) {
-        // Defer reply first since retrieveCommands() is a blocking REST call
-        event.deferReply(true).complete()
+        executor = HelpExecutor()
+    }
 
-        // Retrieve all registered commands from Discord
-        val registeredCommands = event.jda.retrieveCommands().complete()
+    inner class HelpExecutor : SlashCommandExecutor() {
+        override val options = Options()
 
-        // Create a map of command name to Discord command for quick lookup
-        val commandMap = registeredCommands.associateBy { it.name }
+        inner class Options : ApplicationCommandOptions()
 
-        // Group legacy commands by category
-        val legacyByCategory = holderService.publicCommands.values
-            .filter { !it.annotation.hidden }
-            .groupBy { it.annotation.group }
+        override suspend fun execute(context: ApplicationCommandContext, args: SlashCommandArguments) {
+            // Defer reply first since retrieveCommands() is a blocking REST call
+            context.deferChannelMessage(true)
 
-        // Group DSL commands by category
-        val dslByCategory = holderService.dslCommands.values
-            .groupBy { it.category }
+            // Retrieve all registered commands from Discord
+            val registeredCommands = context.event.jda.retrieveCommands().complete()
 
-        // Get all unique categories (using enum order)
-        val allCategories = CommandCategory.entries.filter { category ->
-            legacyByCategory.containsKey(category) || dslByCategory.containsKey(category)
-        }
+            // Create a map of command name to Discord command for quick lookup
+            val commandMap = registeredCommands.associateBy { it.name }
 
-        context.reply(false) {
-            embed {
-                title = "📚 Available Commands"
-                thumbnail = event.jda.selfUser.avatarUrl
-                description = "Here are all available commands, grouped by category:"
+            // Group DSL commands by category
+            val dslByCategory = holderService.dslCommands.values
+                .groupBy { it.category }
 
-                // Iterate through each category in enum order
-                for (category in allCategories) {
-                    val commandsList = mutableListOf<String>()
+            // Get all unique categories (using enum order)
+            val allCategories = CommandCategory.entries.filter { category ->
+                dslByCategory.containsKey(category)
+            }
 
-                    // Add legacy commands from this category
-                    legacyByCategory[category]?.forEach { command ->
-                        commandMap[command.annotation.key]?.let { discordCmd ->
-                            commandsList.add(discordCmd.asMention)
-                        }
-                    }
+            context.reply(false) {
+                embed {
+                    title = "📚 Available Commands"
+                    thumbnail = context.event.jda.selfUser.avatarUrl
+                    description = "Here are all available commands, grouped by category:"
 
-                    // Add DSL commands from this category
-                    dslByCategory[category]?.forEach { dslCommand ->
-                        val baseCommand = commandMap[dslCommand.name] ?: return@forEach
+                    // Iterate through each category in enum order
+                    for (category in allCategories) {
+                        val commandsList = mutableListOf<String>()
 
-                        if (dslCommand.subcommands.isNotEmpty() || dslCommand.subcommandGroups.isNotEmpty()) {
-                            // Add each subcommand individually with manual mention formatting
-                            dslCommand.subcommands.forEach { subcommand ->
-                                val subcommandMention = "</${dslCommand.name} ${subcommand.name}:${baseCommand.idLong}>"
-                                commandsList.add(subcommandMention)
-                            }
+                        // Add DSL commands from this category
+                        dslByCategory[category]?.forEach { dslCommand ->
+                            val baseCommand = commandMap[dslCommand.name] ?: return@forEach
 
-                            // Add subcommands from groups
-                            dslCommand.subcommandGroups.forEach { group ->
-                                group.subcommands.forEach { subcommand ->
-                                    val subcommandMention =
-                                        "</${dslCommand.name} ${group.name} ${subcommand.name}:${baseCommand.idLong}>"
+                            if (dslCommand.subcommands.isNotEmpty() || dslCommand.subcommandGroups.isNotEmpty()) {
+                                // Add each subcommand individually with manual mention formatting
+                                dslCommand.subcommands.forEach { subcommand ->
+                                    val subcommandMention = "</${dslCommand.name} ${subcommand.name}:${baseCommand.idLong}>"
                                     commandsList.add(subcommandMention)
                                 }
-                            }
-                        } else {
-                            // No subcommands, show root command
-                            commandsList.add(baseCommand.asMention)
-                        }
-                    }
 
-                    // Add field(s) for this category, splitting if value exceeds 1024 chars
-                    if (commandsList.isNotEmpty()) {
-                        val categoryEmoji = category.emoji?.formatted ?: ""
-                        val categoryLabel = "$categoryEmoji ${category.title}"
-
-                        val chunks = mutableListOf<String>()
-                        val current = StringBuilder()
-                        for (cmd in commandsList) {
-                            val separator = if (current.isEmpty()) "" else " "
-                            if (current.length + separator.length + cmd.length > 1024) {
-                                chunks.add(current.toString())
-                                current.clear()
-                            }
-                            if (current.isNotEmpty()) current.append(" ")
-                            current.append(cmd)
-                        }
-                        if (current.isNotEmpty()) chunks.add(current.toString())
-
-                        chunks.forEachIndexed { index, chunk ->
-                            field {
-                                name = if (index == 0) categoryLabel else "$categoryLabel (cont.)"
-                                value = chunk
-                                inline = false
-                            }
-                        }
-                    }
-                }
-
-                footer {
-                    name = "Use /help to see this message again"
-                }
-            }
-            actionRow(
-                interactivityManager.stringSelectMenu(true, {
-                    placeholder = "Select a category to filter commands"
-
-                    // Add options for each category
-                    allCategories.forEach { category ->
-                        option(category.title, category.name, null, category.emoji)
-                    }
-                }, { callbackContext, selected ->
-                    val selectedCategories = selected.mapNotNull { categoryName ->
-                        try {
-                            CommandCategory.valueOf(categoryName)
-                        } catch (_: IllegalArgumentException) {
-                            null
-                        }
-                    }
-
-                    callbackContext.reply(true) {
-                        embed {
-                            title = "🔍 Filtered Commands"
-                            thumbnail = callbackContext.event.jda.selfUser.avatarUrl
-
-                            if (selectedCategories.isEmpty()) {
-                                description = "No valid categories selected."
+                                // Add subcommands from groups
+                                dslCommand.subcommandGroups.forEach { group ->
+                                    group.subcommands.forEach { subcommand ->
+                                        val subcommandMention =
+                                            "</${dslCommand.name} ${group.name} ${subcommand.name}:${baseCommand.idLong}>"
+                                        commandsList.add(subcommandMention)
+                                    }
+                                }
                             } else {
-                                description =
-                                    "Commands in selected categor${if (selectedCategories.size > 1) "ies" else "y"}:"
+                                // No subcommands, show root command
+                                commandsList.add(baseCommand.asMention)
+                            }
+                        }
 
-                                selectedCategories.forEach { category ->
-                                    val commandsList =
-                                        buildCommandsList(category, commandMap, legacyByCategory, dslByCategory)
+                        // Add field(s) for this category, splitting if value exceeds 1024 chars
+                        if (commandsList.isNotEmpty()) {
+                            val categoryEmoji = category.emoji?.formatted ?: ""
+                            val categoryLabel = "$categoryEmoji ${category.title}"
 
-                                    if (commandsList.isNotEmpty()) {
-                                        val categoryEmoji = category.emoji?.formatted ?: ""
-                                        val categoryLabel = "$categoryEmoji ${category.title}"
+                            val chunks = mutableListOf<String>()
+                            val current = StringBuilder()
+                            for (cmd in commandsList) {
+                                val separator = if (current.isEmpty()) "" else " "
+                                if (current.length + separator.length + cmd.length > 1024) {
+                                    chunks.add(current.toString())
+                                    current.clear()
+                                }
+                                if (current.isNotEmpty()) current.append(" ")
+                                current.append(cmd)
+                            }
+                            if (current.isNotEmpty()) chunks.add(current.toString())
 
-                                        val chunks = mutableListOf<String>()
-                                        val current = StringBuilder()
-                                        for (cmd in commandsList) {
-                                            val separator = if (current.isEmpty()) "" else "\n"
-                                            if (current.length + separator.length + cmd.length > 1024) {
-                                                chunks.add(current.toString())
-                                                current.clear()
+                            chunks.forEachIndexed { index, chunk ->
+                                field {
+                                    name = if (index == 0) categoryLabel else "$categoryLabel (cont.)"
+                                    value = chunk
+                                    inline = false
+                                }
+                            }
+                        }
+                    }
+
+                    footer {
+                        name = "Use /help to see this message again"
+                    }
+                }
+                actionRow(
+                    interactivityManager.stringSelectMenu(true, {
+                        placeholder = "Select a category to filter commands"
+
+                        // Add options for each category
+                        allCategories.forEach { category ->
+                            option(category.title, category.name, null, category.emoji)
+                        }
+                    }, { callbackContext, selected ->
+                        val selectedCategories = selected.mapNotNull { categoryName ->
+                            try {
+                                CommandCategory.valueOf(categoryName)
+                            } catch (_: IllegalArgumentException) {
+                                null
+                            }
+                        }
+
+                        callbackContext.reply(true) {
+                            embed {
+                                title = "🔍 Filtered Commands"
+                                thumbnail = callbackContext.event.jda.selfUser.avatarUrl
+
+                                if (selectedCategories.isEmpty()) {
+                                    description = "No valid categories selected."
+                                } else {
+                                    description =
+                                        "Commands in selected categor${if (selectedCategories.size > 1) "ies" else "y"}:"
+
+                                    selectedCategories.forEach { category ->
+                                        val commandsList =
+                                            buildCommandsList(category, commandMap, dslByCategory)
+
+                                        if (commandsList.isNotEmpty()) {
+                                            val categoryEmoji = category.emoji?.formatted ?: ""
+                                            val categoryLabel = "$categoryEmoji ${category.title}"
+
+                                            val chunks = mutableListOf<String>()
+                                            val current = StringBuilder()
+                                            for (cmd in commandsList) {
+                                                val separator = if (current.isEmpty()) "" else "\n"
+                                                if (current.length + separator.length + cmd.length > 1024) {
+                                                    chunks.add(current.toString())
+                                                    current.clear()
+                                                }
+                                                if (current.isNotEmpty()) current.append("\n")
+                                                current.append(cmd)
                                             }
-                                            if (current.isNotEmpty()) current.append("\n")
-                                            current.append(cmd)
-                                        }
-                                        if (current.isNotEmpty()) chunks.add(current.toString())
+                                            if (current.isNotEmpty()) chunks.add(current.toString())
 
-                                        chunks.forEachIndexed { index, chunk ->
-                                            field {
-                                                name = if (index == 0) categoryLabel else "$categoryLabel (cont.)"
-                                                value = chunk
-                                                inline = false
+                                            chunks.forEachIndexed { index, chunk ->
+                                                field {
+                                                    name = if (index == 0) categoryLabel else "$categoryLabel (cont.)"
+                                                    value = chunk
+                                                    inline = false
+                                                }
                                             }
                                         }
                                     }
                                 }
-                            }
 
-                            footer {
-                                name = "Use /help to see all commands again"
+                                footer {
+                                    name = "Use /help to see all commands again"
+                                }
                             }
                         }
-                    }
-                })
-            )
+                    })
+                )
+            }
         }
     }
 
     private fun buildCommandsList(
         category: CommandCategory,
         commandMap: Map<String, net.dv8tion.jda.api.interactions.commands.Command>,
-        legacyByCategory: Map<CommandCategory, List<ru.sablebot.common.worker.command.model.Command>>,
         dslByCategory: Map<CommandCategory, List<ru.sablebot.common.worker.command.model.dsl.SlashCommandDeclaration>>
     ): List<String> {
         val commandsList = mutableListOf<String>()
-
-        legacyByCategory[category]?.forEach { command ->
-            commandMap[command.annotation.key]?.let { discordCmd ->
-                commandsList.add("${discordCmd.asMention} — ${command.annotation.description}")
-            }
-        }
 
         dslByCategory[category]?.forEach { dslCommand ->
             val baseCommand = commandMap[dslCommand.name] ?: return@forEach

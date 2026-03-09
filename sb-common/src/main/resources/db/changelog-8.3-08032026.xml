@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+   http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.4.xsd">
+
+    <changeSet id="8.3-1" author="sablebot">
+        <createTable tableName="reaction_role_group">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="guild_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="name" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="TEXT"/>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE"/>
+            <column name="active" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="reaction_role_group" indexName="idx_reaction_role_group_guild">
+            <column name="guild_id"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="8.3-2" author="sablebot">
+        <createTable tableName="reaction_role_menu">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="guild_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="channel_id" type="VARCHAR(21)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="message_id" type="VARCHAR(21)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="title" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="TEXT"/>
+            <column name="menu_type" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE"/>
+            <column name="active" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="reaction_role_menu" indexName="idx_reaction_role_menu_guild">
+            <column name="guild_id"/>
+        </createIndex>
+
+        <createIndex tableName="reaction_role_menu" indexName="idx_reaction_role_menu_message">
+            <column name="channel_id"/>
+            <column name="message_id"/>
+        </createIndex>
+
+        <addUniqueConstraint tableName="reaction_role_menu"
+                             columnNames="channel_id, message_id"
+                             constraintName="uk_reaction_role_menu_message"/>
+    </changeSet>
+
+    <changeSet id="8.3-3" author="sablebot">
+        <createTable tableName="reaction_role_menu_item">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="guild_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="menu_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="group_id" type="BIGINT"/>
+            <column name="role_id" type="VARCHAR(21)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="emoji" type="VARCHAR(100)"/>
+            <column name="label" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="TEXT"/>
+            <column name="display_order" type="INT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="toggleable" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="required_role_ids" type="TEXT"/>
+            <column name="active" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="reaction_role_menu_item" indexName="idx_reaction_role_menu_item_menu">
+            <column name="menu_id"/>
+        </createIndex>
+
+        <createIndex tableName="reaction_role_menu_item" indexName="idx_reaction_role_menu_item_guild">
+            <column name="guild_id"/>
+        </createIndex>
+
+        <createIndex tableName="reaction_role_menu_item" indexName="idx_reaction_role_menu_item_group">
+            <column name="group_id"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

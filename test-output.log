@@ -1,0 +1,151 @@
+Starting a Gradle Daemon, 5 busy and 1 stopped Daemons could not be reused, use --status for details
+> Task :build-logic:checkKotlinGradlePluginConfigurationErrors
+> Task :build-logic:generateExternalPluginSpecBuilders UP-TO-DATE
+> Task :build-logic:extractPrecompiledScriptPluginPlugins UP-TO-DATE
+> Task :build-logic:compilePluginsBlocks UP-TO-DATE
+> Task :build-logic:generatePrecompiledScriptPluginAccessors UP-TO-DATE
+> Task :build-logic:generateScriptPluginAdapters UP-TO-DATE
+> Task :build-logic:compileKotlin UP-TO-DATE
+> Task :build-logic:compileJava NO-SOURCE
+> Task :build-logic:pluginDescriptors UP-TO-DATE
+> Task :build-logic:processResources UP-TO-DATE
+> Task :build-logic:classes UP-TO-DATE
+> Task :build-logic:jar UP-TO-DATE
+
+The Kotlin Gradle plugin was loaded multiple times in different subprojects, which is not supported and may break the build. 
+This might happen in subprojects that apply the Kotlin plugins with the Gradle 'plugins { ... }' DSL if they specify explicit versions, even if the versions are equal.
+Please add the Kotlin plugin to the common parent project or the root project, then remove the versions in the subprojects.
+If the parent project does not need the plugin, add 'apply false' to the plugin line.
+See: https://docs.gradle.org/current/userguide/plugins.html#sec:subprojects_plugins_dsl
+The Kotlin plugin was loaded in the following projects: ':modules', ':sb-common'
+> Task :modules:sb-module-audio:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :sb-common:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :sb-api:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :sb-common-worker:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :modules:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :sb-worker:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :modules:sb-module-moderation:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :modules:sb-module-feeds:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :modules:sb-module-moderation:processResources NO-SOURCE
+> Task :modules:processResources NO-SOURCE
+> Task :modules:sb-module-moderation:processTestResources NO-SOURCE
+> Task :modules:sb-module-feeds:processResources NO-SOURCE
+> Task :sb-common-worker:processResources NO-SOURCE
+> Task :modules:sb-module-feeds:processTestResources NO-SOURCE
+> Task :sb-common-worker:processTestResources NO-SOURCE
+> Task :sb-api:processResources UP-TO-DATE
+> Task :modules:sb-module-audio:processResources UP-TO-DATE
+> Task :sb-worker:processResources UP-TO-DATE
+> Task :modules:processTestResources NO-SOURCE
+> Task :modules:sb-module-audio:processTestResources NO-SOURCE
+> Task :sb-worker:processTestResources NO-SOURCE
+> Task :sb-api:processTestResources UP-TO-DATE
+> Task :sb-common:compileKotlin UP-TO-DATE
+> Task :sb-common:compileJava NO-SOURCE
+> Task :sb-common:processResources UP-TO-DATE
+> Task :sb-common:classes UP-TO-DATE
+> Task :sb-common:jar UP-TO-DATE
+> Task :sb-common:compileTestKotlin UP-TO-DATE
+> Task :sb-common:compileTestJava NO-SOURCE
+> Task :sb-common:processTestResources NO-SOURCE
+> Task :sb-common:testClasses UP-TO-DATE
+> Task :sb-api:compileKotlin UP-TO-DATE
+> Task :sb-api:compileJava NO-SOURCE
+> Task :sb-api:classes UP-TO-DATE
+> Task :sb-common-worker:compileKotlin UP-TO-DATE
+> Task :sb-api:jar UP-TO-DATE
+> Task :sb-common-worker:compileJava NO-SOURCE
+> Task :sb-common-worker:classes UP-TO-DATE
+> Task :sb-common-worker:jar UP-TO-DATE
+> Task :sb-common:test UP-TO-DATE
+> Task :sb-common-worker:compileTestKotlin UP-TO-DATE
+> Task :sb-common-worker:compileTestJava NO-SOURCE
+> Task :sb-common-worker:testClasses UP-TO-DATE
+> Task :modules:sb-module-moderation:compileKotlin UP-TO-DATE
+> Task :modules:sb-module-feeds:compileKotlin UP-TO-DATE
+> Task :modules:sb-module-moderation:compileJava NO-SOURCE
+> Task :modules:sb-module-feeds:compileJava NO-SOURCE
+> Task :modules:sb-module-moderation:classes UP-TO-DATE
+> Task :modules:sb-module-feeds:classes UP-TO-DATE
+> Task :modules:sb-module-moderation:jar UP-TO-DATE
+> Task :modules:sb-module-feeds:jar UP-TO-DATE
+> Task :modules:sb-module-audio:compileKotlin UP-TO-DATE
+> Task :modules:sb-module-audio:compileJava NO-SOURCE
+> Task :modules:sb-module-audio:classes UP-TO-DATE
+> Task :modules:compileKotlin NO-SOURCE
+> Task :modules:sb-module-audio:jar UP-TO-DATE
+> Task :modules:compileJava NO-SOURCE
+> Task :modules:classes UP-TO-DATE
+> Task :modules:sb-module-audio:compileTestKotlin NO-SOURCE
+> Task :modules:sb-module-audio:compileTestJava NO-SOURCE
+> Task :modules:sb-module-audio:testClasses UP-TO-DATE
+> Task :modules:sb-module-audio:test NO-SOURCE
+> Task :modules:jar UP-TO-DATE
+> Task :sb-api:compileTestKotlin UP-TO-DATE
+> Task :sb-api:compileTestJava NO-SOURCE
+> Task :modules:compileTestKotlin NO-SOURCE
+> Task :sb-api:testClasses UP-TO-DATE
+> Task :modules:compileTestJava NO-SOURCE
+> Task :modules:testClasses UP-TO-DATE
+> Task :modules:test NO-SOURCE
+> Task :sb-common-worker:test UP-TO-DATE
+> Task :modules:sb-module-moderation:compileTestKotlin UP-TO-DATE
+> Task :modules:sb-module-feeds:compileTestKotlin UP-TO-DATE
+> Task :modules:sb-module-feeds:compileTestJava NO-SOURCE
+> Task :modules:sb-module-moderation:compileTestJava NO-SOURCE
+> Task :modules:sb-module-moderation:testClasses UP-TO-DATE
+> Task :modules:sb-module-feeds:testClasses UP-TO-DATE
+> Task :modules:sb-module-feeds:test UP-TO-DATE
+> Task :sb-worker:compileKotlin UP-TO-DATE
+> Task :sb-worker:compileJava NO-SOURCE
+> Task :sb-worker:classes UP-TO-DATE
+> Task :sb-worker:jar UP-TO-DATE
+> Task :sb-worker:compileTestKotlin NO-SOURCE
+> Task :sb-worker:compileTestJava NO-SOURCE
+> Task :sb-worker:testClasses UP-TO-DATE
+> Task :sb-worker:test NO-SOURCE
+> Task :modules:sb-module-moderation:test FAILED
+
+> Task :sb-api:test
+
+SbApiApplicationTests > contextLoads() FAILED
+    java.lang.IllegalStateException at DefaultCacheAwareContextLoaderDelegate.java:180
+        Caused by: org.springframework.beans.factory.BeanCreationException at AbstractBeanFactory.java:328
+            Caused by: org.springframework.beans.factory.BeanCreationException at AbstractAutowireCapableBeanFactory.java:1826
+                Caused by: liquibase.exception.LiquibaseException at SpringLiquibase.java:288
+                    Caused by: liquibase.exception.DatabaseException at SpringLiquibase.java:280
+                        Caused by: org.postgresql.util.PSQLException at ConnectionFactoryImpl.java:777
+
+1 test completed, 1 failed
+
+> Task :sb-api:test FAILED
+
+FAILURE: Build completed with 2 failures.
+
+1: Task failed with an exception.
+-----------
+* What went wrong:
+Execution failed for task ':modules:sb-module-moderation:test'.
+> Unable to delete directory 'E:\Dev\.auto-claude\worktrees\tasks\007-improve-commands-registration-process\modules\sb-module-moderation\build\test-results\test\binary'
+    Failed to delete some children. This might happen because a process has files open or has its working directory set in the target directory.
+    - E:\Dev\.auto-claude\worktrees\tasks\007-improve-commands-registration-process\modules\sb-module-moderation\build\test-results\test\binary\output.bin
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+==============================================================================
+
+2: Task failed with an exception.
+-----------
+* What went wrong:
+Execution failed for task ':sb-api:test'.
+> There were failing tests. See the report at: file:///E:/Dev/.auto-claude/worktrees/tasks/007-improve-commands-registration-process/sb-api/build/reports/tests/test/index.html
+
+* Try:
+> Run with --scan to get full insights.
+==============================================================================
+
+BUILD FAILED in 15s
+40 actionable tasks: 3 executed, 37 up-to-date

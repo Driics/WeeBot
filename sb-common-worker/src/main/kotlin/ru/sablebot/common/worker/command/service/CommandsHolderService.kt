@@ -1,35 +1,11 @@
 package ru.sablebot.common.worker.command.service
 
-import ru.sablebot.common.model.CommandCategory
-import ru.sablebot.common.worker.command.model.Command
-import ru.sablebot.common.worker.command.model.DiscordCommand
 import ru.sablebot.common.worker.command.model.dsl.SlashCommandDeclaration
-import java.util.*
 
 interface CommandsHolderService {
 
-    val commands: Map<String, Command>
-
-    val publicCommands: Map<String, Command>
-
-    val descriptors: Map<CommandCategory, List<DiscordCommand>>
-
     // DSL commands
     val dslCommands: Map<String, SlashCommandDeclaration>
-
-    /**
-     * Получает команду по локализованному ключу с учётом указанной локали.
-     *
-     * @param localizedKey Локализованный ключ команды (идентификатор команды, возможно содержащий информацию о локали).
-     * @param locale Опциональная локаль для уточнения поиска; если `null`, используется поведение без уточнения по локали.
-     * @param anyLocale Если `true`, поиск будет возвращать команду независимо от локали соответствия.
-     * @return `Command`, соответствующая ключу, или `null`, если соответствующая команда не найдена.
-     */
-    fun getByLocale(
-        localizedKey: String,
-        locale: Locale? = null,
-        anyLocale: Boolean = false
-    ): Command?
 
     /**
  * Находит DSL-описание slash-команды по её полному пути.

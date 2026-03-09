@@ -9,10 +9,11 @@ import net.dv8tion.jda.api.events.session.ReadyEvent
 import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions
 import net.dv8tion.jda.api.interactions.commands.build.*
 import org.springframework.beans.factory.annotation.Autowired
-import ru.sablebot.common.worker.command.model.Command
 import ru.sablebot.common.worker.command.model.dsl.SlashCommandDeclaration
 import ru.sablebot.common.worker.command.model.dsl.SlashCommandGroupDeclaration
+import ru.sablebot.common.worker.command.service.CommandDiffer
 import ru.sablebot.common.worker.command.service.CommandsHolderService
+import ru.sablebot.common.worker.command.validation.CommandValidator
 import ru.sablebot.common.worker.event.DiscordEvent
 import ru.sablebot.common.worker.event.listeners.DiscordEventListener
 import ru.sablebot.common.worker.message.model.commands.options.*
@@ -21,6 +22,8 @@ import ru.sablebot.common.worker.message.model.commands.options.*
 @DiscordEvent
 class SlashCommandRegistrationListener @Autowired constructor(
     private val holderService: CommandsHolderService,
+    private val commandValidator: CommandValidator,
+    private val commandDiffer: CommandDiffer,
 ) : DiscordEventListener() {
     companion object {
         private val logger = KotlinLogging.logger {}
@@ -30,60 +33,51 @@ class SlashCommandRegistrationListener @Autowired constructor(
         logger.info { "=== Starting slash command registration ===" }
 
         try {
-            // Prepare legacy and DSL commands
-            val legacyCommands = holderService.publicCommands.values.map { toJdaDeclaration(it) }
-            val dslCommands = holderService.dslCommands.values.map { toDslJdaDeclaration(it) }
-            
-            // Deduplicate: DSL commands take priority over legacy with the same name
-            val dslCommandNames = dslCommands.map { it.name }.toSet()
-            val uniqueLegacyCommands = legacyCommands.filterNot { it.name in dslCommandNames }
-            val allCommands = uniqueLegacyCommands + dslCommands
-            
-            val duplicatesRemoved = legacyCommands.size - uniqueLegacyCommands.size
-            
-            logger.info { 
-                "Подготовлено ${allCommands.size} команд(ы): " +
-                "${uniqueLegacyCommands.size} legacy, ${dslCommands.size} DSL" +
-                (if (duplicatesRemoved > 0) " ($duplicatesRemoved дубликат(ов) удалено, приоритет DSL)" else "")
+            // Validate DSL commands before registration
+            val commandCount = holderService.dslCommands.values.size
+            logger.info { "Validating $commandCount command(s)" }
+            commandValidator.validate(holderService.dslCommands.values)
+            logger.info { "Validation passed" }
+
+            // Retrieve currently registered commands from Discord
+            logger.info { "Retrieving registered commands from Discord" }
+            val remoteCommands = event.jda.retrieveCommands().complete()
+            logger.info { "Retrieved ${remoteCommands.size} registered command(s) from Discord" }
+
+            // Prepare DSL commands for registration
+            val allCommands = holderService.dslCommands.values.map { toDslJdaDeclaration(it) }
+
+            logger.info { "Prepared ${allCommands.size} DSL command(s) for registration" }
+
+            // Compute diff between local and remote commands
+            logger.info { "Computing diff between local and remote commands" }
+            val diff = commandDiffer.computeDiff(allCommands, remoteCommands)
+
+            // Log diff summary
+            logger.info {
+                "Diff summary: ${diff.toAdd.size} to add, ${diff.toUpdate.size} to update, " +
+                "${diff.toRemove.size} to remove, ${diff.unchanged.size} unchanged"
             }
 
-            event.jda.updateCommands()
-                .addCommands(allCommands)
-                .queue(
-                    {
-                        logger.info { "[OK] Глобальные команды успешно обновлены: ${allCommands.size} команд(ы)" }
-                        logger.info { "Successfully completed global command registration" }
-                    },
-                    { error -> logger.error(error) { "Ошибка при обновлении глобальных команд" } }
-                )
+            // Skip updateCommands() if no changes detected
+            if (diff.isEmpty()) {
+                logger.info { "No changes detected - skipping Discord API call" }
+                logger.info { "Successfully completed global command registration (no updates needed)" }
+            } else {
+                event.jda.updateCommands()
+                    .addCommands(allCommands)
+                    .queue(
+                        {
+                            logger.info { "Successfully registered ${allCommands.size} command(s) to Discord" }
+                            logger.info { "Successfully completed global command registration" }
+                        },
+                        { error -> logger.error(error) { "Failed to update commands to Discord" } }
+                    )
+            }
         } catch (e: Exception) {
             logger.error(e) { "Failed to register global commands" }
         }
     }
-
-    /**
-         * Преобразует устаревший объект команды в JDA-описание slash-команды для регистрации.
-         *
-         * Преобразование включает имя, описание, флаг NSFW, опции и значения прав по умолчанию; поддержка сабкоманд пока не реализована.
-         * При ошибке создания отдельной опции исключение логируется, а проблемная опция пропускается.
-         *
-         * @param command Устаревшая модель команды, содержащая аннотацию, зарегистрированные опции и требуемые права участников.
-         * @return `SlashCommandData` — объект JDA, готовый для добавления/обновления в списке slash-комманд.
-         */
-    private fun toJdaDeclaration(command: Command): SlashCommandData =
-        Commands.slash(command.annotation.key, command.annotation.description).apply {
-            isNSFW = command.annotation.nsfw
-
-            for (reference in command.commandOptions.registeredOptions) {
-                try {
-                    addOptions(*createOption(reference).toTypedArray())
-                } catch (e: Exception) {
-                    logger.error(e) { "Failed to register command: ${reference.name}" }
-                }
-            }
-
-            defaultPermissions = DefaultMemberPermissions.enabledFor(*command.annotation.memberRequiredPermissions)
-        }
 
     /**
          * Преобразует DSL-описание слэш-команды в объект JDA SlashCommandData с поддержкой подкоманд и групп.

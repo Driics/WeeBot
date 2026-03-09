@@ -1,0 +1,145 @@
+> Task :build-logic:checkKotlinGradlePluginConfigurationErrors
+> Task :build-logic:generateExternalPluginSpecBuilders UP-TO-DATE
+> Task :build-logic:extractPrecompiledScriptPluginPlugins UP-TO-DATE
+> Task :build-logic:compilePluginsBlocks UP-TO-DATE
+> Task :build-logic:generatePrecompiledScriptPluginAccessors UP-TO-DATE
+> Task :build-logic:generateScriptPluginAdapters UP-TO-DATE
+> Task :build-logic:compileKotlin UP-TO-DATE
+> Task :build-logic:compileJava NO-SOURCE
+> Task :build-logic:pluginDescriptors UP-TO-DATE
+> Task :build-logic:processResources UP-TO-DATE
+> Task :build-logic:classes UP-TO-DATE
+> Task :build-logic:jar UP-TO-DATE
+
+The Kotlin Gradle plugin was loaded multiple times in different subprojects, which is not supported and may break the build. 
+This might happen in subprojects that apply the Kotlin plugins with the Gradle 'plugins { ... }' DSL if they specify explicit versions, even if the versions are equal.
+Please add the Kotlin plugin to the common parent project or the root project, then remove the versions in the subprojects.
+If the parent project does not need the plugin, add 'apply false' to the plugin line.
+See: https://docs.gradle.org/current/userguide/plugins.html#sec:subprojects_plugins_dsl
+The Kotlin plugin was loaded in the following projects: ':modules', ':sb-common'
+> Task :modules:sb-module-audio:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :modules:sb-module-moderation:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :sb-common:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :sb-common-worker:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :sb-worker:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :sb-common-worker:processResources NO-SOURCE
+> Task :modules:sb-module-moderation:processResources NO-SOURCE
+> Task :sb-worker:processResources UP-TO-DATE
+> Task :modules:sb-module-audio:processResources UP-TO-DATE
+> Task :sb-common:compileKotlin UP-TO-DATE
+> Task :sb-common:compileJava NO-SOURCE
+> Task :sb-common:processResources UP-TO-DATE
+> Task :sb-common:classes UP-TO-DATE
+> Task :sb-common:jar UP-TO-DATE
+> Task :sb-common-worker:compileKotlin UP-TO-DATE
+> Task :sb-common-worker:compileJava NO-SOURCE
+> Task :sb-common-worker:classes UP-TO-DATE
+> Task :sb-common-worker:jar UP-TO-DATE
+> Task :modules:sb-module-moderation:compileKotlin UP-TO-DATE
+> Task :modules:sb-module-audio:compileKotlin UP-TO-DATE
+> Task :modules:sb-module-audio:compileJava NO-SOURCE
+> Task :modules:sb-module-moderation:compileJava NO-SOURCE
+> Task :modules:sb-module-audio:classes UP-TO-DATE
+> Task :modules:sb-module-moderation:classes UP-TO-DATE
+> Task :modules:sb-module-moderation:jar UP-TO-DATE
+> Task :modules:sb-module-audio:jar UP-TO-DATE
+> Task :sb-worker:compileKotlin UP-TO-DATE
+> Task :sb-worker:compileJava NO-SOURCE
+> Task :sb-worker:classes UP-TO-DATE
+> Task :sb-worker:resolveMainClassName UP-TO-DATE
+
+> Task :sb-worker:bootRun
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v3.5.6)
+
+{"@timestamp":"2026-03-09T16:03:19.8893424+03:00","message":"Starting Launcher v@build.version@ using Java 21.0.9 with PID 5196 (E:\\Dev\\.auto-claude\\worktrees\\tasks\\007-improve-commands-registration-process\\sb-worker\\build\\classes\\kotlin\\main started by nikit in E:\\Dev\\.auto-claude\\worktrees\\tasks\\007-improve-commands-registration-process\\sb-worker)","logger_name":"ru.sablebot.worker.Launcher","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:19.8982115+03:00","message":"No active profile set, falling back to 1 default profile: \"default\"","logger_name":"ru.sablebot.worker.Launcher","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:20.6832876+03:00","message":"Bootstrapping Spring Data JPA repositories in DEFAULT mode.","logger_name":"org.springframework.data.repository.config.RepositoryConfigurationDelegate","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:20.8145959+03:00","message":"Finished Spring Data repository scanning in 125 ms. Found 19 JPA repository interfaces.","logger_name":"org.springframework.data.repository.config.RepositoryConfigurationDelegate","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:21.1901316+03:00","message":"BeanFactory id=0433e688-c6ce-3029-9475-8997a7def3f5","logger_name":"org.springframework.cloud.context.scope.GenericScope","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:21.4946592+03:00","message":"Tomcat initialized with port 8080 (http)","logger_name":"org.springframework.boot.web.embedded.tomcat.TomcatWebServer","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:21.5033758+03:00","message":"Starting service [Tomcat]","logger_name":"org.apache.catalina.core.StandardService","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:21.5033758+03:00","message":"Starting Servlet engine: [Apache Tomcat/10.1.46]","logger_name":"org.apache.catalina.core.StandardEngine","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:21.5506846+03:00","message":"Initializing Spring embedded WebApplicationContext","logger_name":"org.apache.catalina.core.ContainerBase.[Tomcat].[localhost].[/]","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:21.5516894+03:00","message":"Root WebApplicationContext: initialization completed in 1525 ms","logger_name":"org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:21.8081007+03:00","message":"SablebotHikariPool - Starting...","logger_name":"com.zaxxer.hikari.HikariDataSource","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:21.8901584+03:00","message":"SablebotHikariPool - Added connection org.postgresql.jdbc.PgConnection@2fccfcdb","logger_name":"com.zaxxer.hikari.pool.HikariPool","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:21.8912121+03:00","message":"SablebotHikariPool - Start completed.","logger_name":"com.zaxxer.hikari.HikariDataSource","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:21.985402+03:00","message":"Set default schema name to public","logger_name":"liquibase.database","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:22.2793405+03:00","message":"Reading from public.databasechangelog","logger_name":"liquibase.changelog","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:22.7034988+03:00","message":"Database is up to date, no changesets to execute","logger_name":"liquibase.ui","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:22.7050613+03:00","message":"Reading from public.databasechangelog","logger_name":"liquibase.changelog","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:22.7469496+03:00","message":"UPDATE SUMMARY","logger_name":"liquibase.util","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:22.7469496+03:00","message":"Run:                          0","logger_name":"liquibase.util","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:22.7469496+03:00","message":"Previously run:             224","logger_name":"liquibase.util","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:22.7469496+03:00","message":"Filtered out:                 0","logger_name":"liquibase.util","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:22.7469496+03:00","message":"-------------------------------","logger_name":"liquibase.util","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:22.7469496+03:00","message":"Total change sets:          224","logger_name":"liquibase.util","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:22.7474557+03:00","message":"Update summary generated","logger_name":"liquibase.util","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:22.7484614+03:00","message":"Command execution complete","logger_name":"liquibase.command","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:24.5537366+03:00","message":"No LoadTimeWeaver setup: ignoring JPA class transformer","logger_name":"org.springframework.orm.jpa.persistenceunit.SpringPersistenceUnitInfo","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:25.5206056+03:00","message":"Initialized JPA EntityManagerFactory for persistence unit 'default'","logger_name":"org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:26.0662905+03:00","message":"Hibernate is in classpath; If applicable, HQL parser will be used.","logger_name":"org.springframework.data.jpa.repository.query.QueryEnhancerFactory","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:27.4706416+03:00","message":"Using default implementation for ThreadExecutor","logger_name":"org.quartz.impl.StdSchedulerFactory","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:27.4778214+03:00","message":"Initialized Scheduler Signaller of type: class org.quartz.core.SchedulerSignalerImpl","logger_name":"org.quartz.core.SchedulerSignalerImpl","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:27.4778214+03:00","message":"Quartz Scheduler v2.5.0 created.","logger_name":"org.quartz.core.QuartzScheduler","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:27.4825467+03:00","message":"Using db table-based data access locking (synchronization).","logger_name":"org.springframework.scheduling.quartz.LocalDataSourceJobStore","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:27.4836796+03:00","message":"JobStoreCMT initialized.","logger_name":"org.springframework.scheduling.quartz.LocalDataSourceJobStore","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:27.4836796+03:00","message":"Scheduler meta-data: Quartz Scheduler (v2.5.0) 'sablebot-spring-boot-quartz' with instanceId 'NON_CLUSTERED'\n  Scheduler class: 'org.quartz.core.QuartzScheduler' - running locally.\n  NOT STARTED.\n  Currently in standby mode.\n  Number of jobs executed: 0\n  Using thread pool 'org.quartz.simpl.SimpleThreadPool' - with 15 threads.\n  Using job-store 'org.springframework.scheduling.quartz.LocalDataSourceJobStore' - which supports persistence. and is not clustered.\n","logger_name":"org.quartz.core.QuartzScheduler","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:27.4836796+03:00","message":"Quartz scheduler 'sablebot-spring-boot-quartz' initialized from an externally provided properties instance.","logger_name":"org.quartz.impl.StdSchedulerFactory","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:27.4845178+03:00","message":"Quartz scheduler version: 2.5.0","logger_name":"org.quartz.impl.StdSchedulerFactory","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:27.4845178+03:00","message":"JobFactory set to: ru.sablebot.common.worker.configuration.QuartzConfiguration$jobFactory$1@6700af3","logger_name":"org.quartz.core.QuartzScheduler","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:27.6695713+03:00","message":"Registering 45 DSL command wrappers","logger_name":"ru.sablebot.common.worker.command.service.CommandsHolderServiceImpl","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:27.7178962+03:00","message":"DSL commands registered: [audit, why, game, shards, help, ping, test, automod, ban, case, clear-warnings, kick, lock, modconfig, modlog, purge, slowmode, timeout, unban, unlock, untimeout, warn, warnings, clear, disconnect, filter, history, join, lyrics, move, nowplaying, pause, play, playlist, queue, remove, repeat, resume, seek, shuffle, skip, skipto, stop, 247, volume]","logger_name":"ru.sablebot.common.worker.command.service.CommandsHolderServiceImpl","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:27.7184038+03:00","message":"Total DSL command paths registered: 73","logger_name":"ru.sablebot.common.worker.command.service.CommandsHolderServiceImpl","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:40.1100253+03:00","message":"Login Successful!","logger_name":"net.dv8tion.jda.api.sharding.ShardManager","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:40.1194376+03:00","message":"Bean with key 'ru.sablebot.common.support.jmx.ThreadPoolTaskExecutorMBean' has been registered as an MBean but has no exposed attributes or operations","logger_name":"org.springframework.jmx.export.MBeanExporter","thread_name":"JDA RateLimit-Elastic-Worker 1","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:40.669454+03:00","message":"spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning","logger_name":"org.springframework.boot.autoconfigure.orm.jpa.JpaBaseConfiguration$JpaWebConfiguration","thread_name":"main","level":"WARN","level_value":30000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:40.9477147+03:00","message":"The meter (MeterId{name='executor.completed', tags=[tag(application=sablebot),tag(name=taskExecutor)]}) registration has failed: Prometheus requires that all meters with the same name have the same set of tag keys. There is already an existing meter named 'executor_completed_tasks' containing tag keys [application, name, shard]. The meter you are attempting to register has keys [application, name]. Note that subsequent logs will be logged at debug level.","logger_name":"io.micrometer.prometheusmetrics.PrometheusMeterRegistry","thread_name":"main","level":"WARN","level_value":30000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:41.1162655+03:00","message":"Bean with key 'taskExecutorMBean' has been registered as an MBean but has no exposed attributes or operations","logger_name":"org.springframework.jmx.export.MBeanExporter","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:41.5121221+03:00","message":"Tomcat started on port 8080 (http) with context path '/'","logger_name":"org.springframework.boot.web.embedded.tomcat.TomcatWebServer","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:41.584155+03:00","message":"Tomcat initialized with port 9090 (http)","logger_name":"org.springframework.boot.web.embedded.tomcat.TomcatWebServer","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:41.584155+03:00","message":"Starting service [Tomcat]","logger_name":"org.apache.catalina.core.StandardService","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:41.584155+03:00","message":"Starting Servlet engine: [Apache Tomcat/10.1.46]","logger_name":"org.apache.catalina.core.StandardEngine","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:41.616985+03:00","message":"Initializing Spring embedded WebApplicationContext","logger_name":"org.apache.catalina.core.ContainerBase.[Tomcat-1].[localhost].[/]","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:41.616985+03:00","message":"Root WebApplicationContext: initialization completed in 95 ms","logger_name":"org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:41.6277033+03:00","message":"Exposing 3 endpoints beneath base path '/actuator'","logger_name":"org.springframework.boot.actuate.endpoint.web.EndpointLinksResolver","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:41.6658233+03:00","message":"Exception encountered during context initialization - cancelling refresh attempt: org.springframework.context.ApplicationContextException: Failed to start bean 'webServerStartStop'","logger_name":"org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext","thread_name":"main","level":"WARN","level_value":30000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:41.6673341+03:00","message":"Stopping service [Tomcat]","logger_name":"org.apache.catalina.core.StandardService","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:41.7653476+03:00","message":"sablebot-reply-group: Consumer stopped","logger_name":"org.springframework.kafka.listener.KafkaMessageListenerContainer","thread_name":"replyContainer-0-C-1","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:41.7710166+03:00","message":"Exception encountered during context initialization - cancelling refresh attempt: org.springframework.context.ApplicationContextException: Failed to start bean 'childManagementContextInitializer'","logger_name":"org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext","thread_name":"main","level":"WARN","level_value":30000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:41.7791143+03:00","message":"Shutting down Quartz Scheduler","logger_name":"org.springframework.scheduling.quartz.SchedulerFactoryBean","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:41.7791143+03:00","message":"Scheduler sablebot-spring-boot-quartz_$_NON_CLUSTERED shutting down.","logger_name":"org.quartz.core.QuartzScheduler","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:41.7806315+03:00","message":"Scheduler sablebot-spring-boot-quartz_$_NON_CLUSTERED paused.","logger_name":"org.quartz.core.QuartzScheduler","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:41.7806315+03:00","message":"Scheduler sablebot-spring-boot-quartz_$_NON_CLUSTERED shutdown complete.","logger_name":"org.quartz.core.QuartzScheduler","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:41.7821897+03:00","message":"Closing JPA EntityManagerFactory for persistence unit 'default'","logger_name":"org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:41.7852975+03:00","message":"SablebotHikariPool - Shutdown initiated...","logger_name":"com.zaxxer.hikari.HikariDataSource","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:41.787343+03:00","message":"SablebotHikariPool - Shutdown completed.","logger_name":"com.zaxxer.hikari.HikariDataSource","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:42.8017321+03:00","message":"\r\n\r\nError starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.","logger_name":"org.springframework.boot.autoconfigure.logging.ConditionEvaluationReportLogger","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:42.8147095+03:00","message":"\r\n\r\n***************************\r\nAPPLICATION FAILED TO START\r\n***************************\r\n\r\nDescription:\r\n\r\nWeb server failed to start. Port 9090 was already in use.\r\n\r\nAction:\r\n\r\nIdentify and stop the process that's listening on port 9090 or configure this application to listen on another port.\r\n","logger_name":"org.springframework.boot.diagnostics.LoggingFailureAnalysisReporter","thread_name":"main","level":"ERROR","level_value":40000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:45.2440399+03:00","message":"Connected to WebSocket","logger_name":"net.dv8tion.jda.internal.requests.WebSocketClient","thread_name":"JDA [0 / 1] MainWS-ReadThread","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T16:03:45.2508231+03:00","message":"Encountered exception on lifecycle level\nJSON: {\"op\":10,\"s\":null,\"t\":null,\"d\":{\"_trace\":[\"[\\\"gateway-prd-arm-us-east1-c-kfqc\\\",{\\\"micros\\\":0.0}]\"],\"heartbeat_interval\":41250}}","logger_name":"net.dv8tion.jda.internal.requests.WebSocketClient","thread_name":"JDA [0 / 1] MainWS-ReadThread","level":"ERROR","level_value":40000,"stack_trace":"java.util.concurrent.RejectedExecutionException: Task java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask@1261428a[Not completed, task = java.util.concurrent.Executors$RunnableAdapter@1dbc12d4[Wrapped task = net.dv8tion.jda.internal.requests.WebSocketClient$$Lambda/0x0000017602247258@59560f40]] rejected from java.util.concurrent.ScheduledThreadPoolExecutor@69254534[Terminated, pool size = 0, active threads = 0, queued tasks = 0, completed tasks = 4]\r\n\tat java.base/java.util.concurrent.ThreadPoolExecutor$AbortPolicy.rejectedExecution(ThreadPoolExecutor.java:2081)\r\n\tat java.base/java.util.concurrent.ThreadPoolExecutor.reject(ThreadPoolExecutor.java:841)\r\n\tat java.base/java.util.concurrent.ScheduledThreadPoolExecutor.delayedExecute(ScheduledThreadPoolExecutor.java:340)\r\n\tat java.base/java.util.concurrent.ScheduledThreadPoolExecutor.scheduleAtFixedRate(ScheduledThreadPoolExecutor.java:632)\r\n\tat net.dv8tion.jda.internal.requests.WebSocketClient.setupKeepAlive(WebSocketClient.java:718)\r\n\tat net.dv8tion.jda.internal.requests.WebSocketClient.onEvent(WebSocketClient.java:921)\r\n\tat net.dv8tion.jda.internal.requests.WebSocketClient.handleEvent(WebSocketClient.java:870)\r\n\tat net.dv8tion.jda.internal.requests.WebSocketClient.onBinaryMessage(WebSocketClient.java:1048)\r\n\tat com.neovisionaries.ws.client.ListenerManager.callOnBinaryMessage(ListenerManager.java:385)\r\n\tat com.neovisionaries.ws.client.ReadingThread.callOnBinaryMessage(ReadingThread.java:276)\r\n\tat com.neovisionaries.ws.client.ReadingThread.handleBinaryFrame(ReadingThread.java:996)\r\n\tat com.neovisionaries.ws.client.ReadingThread.handleFrame(ReadingThread.java:755)\r\n\tat com.neovisionaries.ws.client.ReadingThread.main(ReadingThread.java:108)\r\n\tat com.neovisionaries.ws.client.ReadingThread.runMain(ReadingThread.java:64)\r\n\tat com.neovisionaries.ws.client.WebSocketThread.run(WebSocketThread.java:45)\r\n","app":"sablebot-worker"}
+
+> Task :sb-worker:bootRun FAILED
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':sb-worker:bootRun'.
+> Process 'command 'E:\DevSoft\.jdks\termurin-21.0.9\bin\java.exe'' finished with non-zero exit value 1
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 33s
+24 actionable tasks: 2 executed, 22 up-to-date
