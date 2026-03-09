@@ -33,13 +33,11 @@ class HelpCommand(
         inner class Options : ApplicationCommandOptions()
 
         override suspend fun execute(context: ApplicationCommandContext, args: SlashCommandArguments) {
-            val event = context.event
-
             // Defer reply first since retrieveCommands() is a blocking REST call
-            event.deferReply(true).complete()
+            context.deferChannelMessage(true)
 
             // Retrieve all registered commands from Discord
-            val registeredCommands = event.jda.retrieveCommands().complete()
+            val registeredCommands = context.event.jda.retrieveCommands().complete()
 
             // Create a map of command name to Discord command for quick lookup
             val commandMap = registeredCommands.associateBy { it.name }
@@ -61,7 +59,7 @@ class HelpCommand(
             context.reply(false) {
                 embed {
                     title = "📚 Available Commands"
-                    thumbnail = event.jda.selfUser.avatarUrl
+                    thumbnail = context.event.jda.selfUser.avatarUrl
                     description = "Here are all available commands, grouped by category:"
 
                     // Iterate through each category in enum order
