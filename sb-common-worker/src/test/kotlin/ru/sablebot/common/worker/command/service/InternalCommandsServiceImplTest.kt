@@ -125,7 +125,6 @@ class InternalCommandsServiceImplTest {
         val event = mockEvent(commandName = "unknown", fullCommandName = "unknown")
 
         every { holderService.getDslCommandByFullPath("unknown") } returns null
-        every { holderService.getByLocale(localizedKey = "unknown", anyLocale = true) } returns null
 
         val result = service.sendCommand(event)
 
