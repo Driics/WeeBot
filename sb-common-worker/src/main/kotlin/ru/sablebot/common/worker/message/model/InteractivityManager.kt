@@ -44,7 +44,7 @@ class InteractivityManager(
         .expireAfterWrite(DELAY.toJavaDuration())
         .scheduler(Scheduler.systemScheduler())
         .removalListener<UUID, ButtonInteractionCallback> { key, _, cause ->
-            // TODO: meter removal events (key, cause)
+            meterRegistry?.counter(INTERACTIVITY_CACHE_REMOVALS, "component_type", "button", "cause", cause.name)?.increment()
         }
         .build<UUID, ButtonInteractionCallback>()
         .asMap()
@@ -54,7 +54,7 @@ class InteractivityManager(
         .expireAfterWrite(DELAY.toJavaDuration())
         .scheduler(Scheduler.systemScheduler())
         .removalListener<UUID, SelectMenuInteractionCallback> { key, _, cause ->
-            // TODO: meter removal events (key, cause)
+            meterRegistry?.counter(INTERACTIVITY_CACHE_REMOVALS, "component_type", "selectMenu", "cause", cause.name)?.increment()
         }
         .build<UUID, SelectMenuInteractionCallback>()
         .asMap()
@@ -64,7 +64,7 @@ class InteractivityManager(
         .expireAfterWrite(DELAY.toJavaDuration())
         .scheduler(Scheduler.systemScheduler())
         .removalListener<UUID, SelectMenuEntityInteractionCallback> { key, _, cause ->
-            // TODO: meter removal events (key, cause)
+            meterRegistry?.counter(INTERACTIVITY_CACHE_REMOVALS, "component_type", "selectMenuEntity", "cause", cause.name)?.increment()
         }
         .build<UUID, SelectMenuEntityInteractionCallback>()
         .asMap()
@@ -74,7 +74,7 @@ class InteractivityManager(
         .expireAfterWrite(DELAY.toJavaDuration())
         .scheduler(Scheduler.systemScheduler())
         .removalListener<UUID, ModalInteractionCallback> { key, _, cause ->
-            // TODO: meter removal events (key, cause)
+            meterRegistry?.counter(INTERACTIVITY_CACHE_REMOVALS, "component_type", "modal", "cause", cause.name)?.increment()
         }
         .build<UUID, ModalInteractionCallback>()
         .asMap()
