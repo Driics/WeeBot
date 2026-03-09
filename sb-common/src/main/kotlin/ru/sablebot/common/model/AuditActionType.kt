@@ -14,6 +14,8 @@ enum class AuditActionType(hex: String? = null) {
     MEMBER_KICK("#FFA154"),
     MEMBER_MUTE("#FFCA59"),
     MEMBER_UNMUTE("#85EA8A"),
+    MEMBER_ROLE_ASSIGN("#7DE8B8"),
+    MEMBER_ROLE_REMOVE("#E8B87D"),
     MESSAGE_DELETE("#FF6D96"),
     MESSAGES_CLEAR("#FF6D96"),
     MESSAGE_EDIT("#60AFFF"),

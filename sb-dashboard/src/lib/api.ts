@@ -8,6 +8,9 @@ import type {
   CommandUsage,
   CreateApiKeyRequest,
   CreateApiKeyResponse,
+  CreateReactionRoleGroupRequest,
+  CreateReactionRoleMenuItemRequest,
+  CreateReactionRoleMenuRequest,
   CreateFeedRequest,
   FeedListResponse,
   FeedResponse,
@@ -15,7 +18,17 @@ import type {
   GuildConfig,
   GuildRole,
   MemberGrowth,
+  PostMenuResponse,
+  ReactionRoleActionResponse,
+  ReactionRoleGroupListResponse,
+  ReactionRoleGroupResponse,
+  ReactionRoleMenuListResponse,
+  ReactionRoleMenuResponse,
+  ReactionRoleMenuType,
   StatsOverview,
+  UpdateReactionRoleGroupRequest,
+  UpdateReactionRoleMenuItemRequest,
+  UpdateReactionRoleMenuRequest,
   UpdateFeedRequest,
   UserInfo,
 } from "@/types";
@@ -152,6 +165,68 @@ class ApiClient {
     });
   }
 
+  // Reaction Roles - Menus
+  getReactionRoleMenus(
+    guildId: string,
+    params?: { page?: number; size?: number; menuType?: ReactionRoleMenuType }
+  ): Promise<ReactionRoleMenuListResponse> {
+    const query = new URLSearchParams();
+    if (params) {
+      if (params.page !== undefined) query.set("page", String(params.page));
+      if (params.size !== undefined) query.set("size", String(params.size));
+      if (params.menuType) query.set("menuType", params.menuType);
+    }
+    const qs = query.toString();
+    return this.request(`/api/guilds/${guildId}/reaction-roles/menus${qs ? `?${qs}` : ""}`);
+  }
+
+  getReactionRoleMenu(guildId: string, menuId: number): Promise<ReactionRoleMenuResponse> {
+    return this.request(`/api/guilds/${guildId}/reaction-roles/menus/${menuId}`);
+  }
+
+  createReactionRoleMenu(guildId: string, data: CreateReactionRoleMenuRequest): Promise<ReactionRoleActionResponse> {
+    return this.request(`/api/guilds/${guildId}/reaction-roles/menus`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  updateReactionRoleMenu(
+    guildId: string,
+    menuId: number,
+    data: UpdateReactionRoleMenuRequest
+  ): Promise<ReactionRoleActionResponse> {
+    return this.request(`/api/guilds/${guildId}/reaction-roles/menus/${menuId}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
+  }
+
+  deleteReactionRoleMenu(guildId: string, menuId: number): Promise<ReactionRoleActionResponse> {
+    return this.request(`/api/guilds/${guildId}/reaction-roles/menus/${menuId}`, {
+      method: "DELETE",
+    });
+  }
+
+  postReactionRoleMenu(guildId: string, menuId: number): Promise<PostMenuResponse> {
+    return this.request(`/api/guilds/${guildId}/reaction-roles/menus/${menuId}/post`, {
+      method: "POST",
+    });
+  }
+
+  updatePostedReactionRoleMenu(guildId: string, menuId: number): Promise<PostMenuResponse> {
+    return this.request(`/api/guilds/${guildId}/reaction-roles/menus/${menuId}/update`, {
+      method: "POST",
+    });
+  }
+
+  // Reaction Roles - Menu Items
+  createReactionRoleMenuItem(
+    guildId: string,
+    menuId: number,
+    data: CreateReactionRoleMenuItemRequest
+  ): Promise<ReactionRoleActionResponse> {
+    return this.request(`/api/guilds/${guildId}/reaction-roles/menus/${menuId}/items`, {
   // Feeds
   getFeeds(guildId: string): Promise<FeedListResponse> {
     return this.request(`/api/guilds/${guildId}/feeds`);
@@ -164,6 +239,13 @@ class ApiClient {
     });
   }
 
+  updateReactionRoleMenuItem(
+    guildId: string,
+    itemId: number,
+    data: UpdateReactionRoleMenuItemRequest
+  ): Promise<ReactionRoleActionResponse> {
+    return this.request(`/api/guilds/${guildId}/reaction-roles/items/${itemId}`, {
+      method: "PUT",
   updateFeed(guildId: string, feedId: number, data: UpdateFeedRequest): Promise<FeedResponse> {
     return this.request(`/api/guilds/${guildId}/feeds/${feedId}`, {
       method: "PATCH",
@@ -171,12 +253,53 @@ class ApiClient {
     });
   }
 
+  deleteReactionRoleMenuItem(guildId: string, itemId: number): Promise<ReactionRoleActionResponse> {
+    return this.request(`/api/guilds/${guildId}/reaction-roles/items/${itemId}`, {
   deleteFeed(guildId: string, feedId: number): Promise<void> {
     return this.request(`/api/guilds/${guildId}/feeds/${feedId}`, {
       method: "DELETE",
     });
   }
 
+  // Reaction Roles - Groups
+  getReactionRoleGroups(
+    guildId: string,
+    params?: { page?: number; size?: number }
+  ): Promise<ReactionRoleGroupListResponse> {
+    const query = new URLSearchParams();
+    if (params) {
+      if (params.page !== undefined) query.set("page", String(params.page));
+      if (params.size !== undefined) query.set("size", String(params.size));
+    }
+    const qs = query.toString();
+    return this.request(`/api/guilds/${guildId}/reaction-roles/groups${qs ? `?${qs}` : ""}`);
+  }
+
+  getReactionRoleGroup(guildId: string, groupId: number): Promise<ReactionRoleGroupResponse> {
+    return this.request(`/api/guilds/${guildId}/reaction-roles/groups/${groupId}`);
+  }
+
+  createReactionRoleGroup(guildId: string, data: CreateReactionRoleGroupRequest): Promise<ReactionRoleActionResponse> {
+    return this.request(`/api/guilds/${guildId}/reaction-roles/groups`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  updateReactionRoleGroup(
+    guildId: string,
+    groupId: number,
+    data: UpdateReactionRoleGroupRequest
+  ): Promise<ReactionRoleActionResponse> {
+    return this.request(`/api/guilds/${guildId}/reaction-roles/groups/${groupId}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
+  }
+
+  deleteReactionRoleGroup(guildId: string, groupId: number): Promise<ReactionRoleActionResponse> {
+    return this.request(`/api/guilds/${guildId}/reaction-roles/groups/${groupId}`, {
+      method: "DELETE",
   testFeed(guildId: string, feedId: number): Promise<Record<string, unknown>> {
     return this.request(`/api/guilds/${guildId}/feeds/${feedId}/test`, {
       method: "POST",
