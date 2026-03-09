@@ -33,6 +33,26 @@ class SlashCommandDeclarationBuilder(
     val subcommands = mutableListOf<SlashCommandDeclarationBuilder>()
     val subcommandGroups = mutableListOf<SlashCommandGroupDeclarationBuilder>()
 
+    /**
+     * Set the required member permissions for this command.
+     * Users without these permissions will not be able to see or execute the command.
+     *
+     * @param permissions The permissions required to execute this command
+     */
+    fun requireMemberPermission(vararg permissions: Permission) {
+        defaultMemberPermissions = DefaultMemberPermissions.enabledFor(*permissions)
+    }
+
+    /**
+     * Set the required bot permissions for this command.
+     * The bot must have these permissions in order to execute the command successfully.
+     *
+     * @param permissions The permissions the bot needs to execute this command
+     */
+    fun requireBotPermission(vararg permissions: Permission) {
+        botPermissions = (botPermissions ?: emptySet()) + permissions.toSet()
+    }
+
     fun subcommand(
         name: String,
         description: String,
