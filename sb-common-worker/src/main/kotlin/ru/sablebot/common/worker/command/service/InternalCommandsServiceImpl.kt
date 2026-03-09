@@ -14,7 +14,6 @@ import org.springframework.context.annotation.Lazy
 import org.springframework.core.annotation.Order
 import org.springframework.stereotype.Service
 import ru.sablebot.common.model.exception.DiscordException
-import ru.sablebot.common.worker.command.model.Command
 import ru.sablebot.common.worker.command.model.SlashCommandArguments
 import ru.sablebot.common.worker.command.model.SlashCommandArgumentsSource
 import ru.sablebot.common.worker.command.model.context.ApplicationCommandContext
@@ -39,13 +38,10 @@ class InternalCommandsServiceImpl @Autowired constructor(
         private val log = KotlinLogging.logger { }
     }
 
-    override fun isApplicable(command: Command, user: User, member: Member, channel: TextChannel): Boolean =
-        command.isAvailable(user, member, channel.guild)
-
     override fun isValidKey(event: SlashCommandInteractionEvent, key: String): Boolean = holderService.isAnyCommand(key)
 
     /**
-     * Обрабатывает входящее SlashCommandInteractionEvent, маршрутизируя его сначала в DSL‑команду по полному пути, а при отсутствии — в устаревшую команду по локализованному ключу.
+     * Обрабатывает входящее SlashCommandInteractionEvent, маршрутизируя его в DSL‑команду по полному пути.
      *
      * @param event Событие слеш‑команды, полученное от Discord.
      * @return `true`, если событие принято и обработано (включая случаи, когда дальнейшая обработка прекращена из‑за отсутствия разрешений или ошибок выполнения); `false`, если событие не применимо (нет гильдии) или для команды не найден соответствующий обработчик. */
@@ -55,7 +51,7 @@ class InternalCommandsServiceImpl @Autowired constructor(
 
         log.info { "Received slash command event: ${event.name}, fullCommandName: ${event.fullCommandName}" }
 
-        // Try to find DSL command first by full command name (supports subcommands)
+        // Find DSL command by full command name (supports subcommands)
         val fullCommandName = event.fullCommandName
         val dslCommand = holderService.getDslCommandByFullPath(fullCommandName)
 
@@ -64,17 +60,8 @@ class InternalCommandsServiceImpl @Autowired constructor(
             return executeDslCommand(event, dslCommand, guild, guildChannel)
         }
 
-        log.debug { "No DSL command found for '$fullCommandName', trying legacy command with key '${event.name}'" }
-
-        // Fall back to legacy command handling
-        val command = holderService.getByLocale(localizedKey = event.name, anyLocale = true)
-        if (command == null) {
-            log.warn { "No command found (neither DSL nor legacy) for: ${event.fullCommandName}" }
-            return false
-        }
-
-        log.info { "Found legacy command: ${command.key}" }
-        return executeLegacyCommand(event, command, guild, guildChannel)
+        log.warn { "No DSL command found for: ${event.fullCommandName}" }
+        return false
     }
 
     /**
@@ -112,57 +99,6 @@ class InternalCommandsServiceImpl @Autowired constructor(
 
         executeWithMetrics(event, dslCommand.name, "dsl", guild) { context, args ->
             executor.execute(context, args)
-        }
-
-        return true
-    }
-
-    /**
-     * Обрабатывает legacy-реализацию slash-команды: проверяет отключение и права бота, выполняет команду и фиксирует слишком долгую обработку.
-     *
-     * @param event Событие взаимодействия slash-команды.
-     * @param command Объект legacy-команды для выполнения.
-     * @param guild Сервер (Guild), в контексте которого выполняется команда.
-     * @param channel Текстовый канал, где была вызвана команда.
-     * @return `true` если событие было обработано и не требует дальнейшей передачи.
-     */
-    private fun executeLegacyCommand(
-        event: SlashCommandInteractionEvent,
-        command: Command,
-        guild: net.dv8tion.jda.api.entities.Guild,
-        channel: GuildChannel
-    ): Boolean {
-        if (workerProperties.commands.disabled.contains(command.key))
-            return true
-
-        if (!checkBotPermissions(event, command.permissions.toList(), guild, channel)) return true
-
-        val userId = event.user.idLong
-        if (coolDownManager.isOnCooldown(userId, command.key)) {
-            event.reply("Please wait before using this command again.").setEphemeral(true).queue()
-            return true
-        }
-        coolDownManager.recordUsage(userId, command.key)
-
-        // Check member permissions
-        val memberPerms = command.annotation.memberRequiredPermissions
-        if (memberPerms.isNotEmpty()) {
-            val member = event.member ?: return true
-            if (!member.hasPermission(event.guildChannel, *memberPerms)) {
-                val missing = memberPerms
-                    .filterNot { member.hasPermission(event.guildChannel, it) }
-                    .joinToString(", ") { "`${it.name}`" }
-                event.reply("Недостаточно прав: $missing").setEphemeral(true).queue()
-                return true
-            }
-        }
-
-        if (workerProperties.commands.invokeLogging) {
-            log.info { "Invoke command [${command::class.simpleName}]: ${event.options}" }
-        }
-
-        executeWithMetrics(event, command.key, "legacy", guild) { context, args ->
-            command.execute(event, context, args)
         }
 
         return true

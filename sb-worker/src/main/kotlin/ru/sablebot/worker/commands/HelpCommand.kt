@@ -43,18 +43,13 @@ class HelpCommand(
             // Create a map of command name to Discord command for quick lookup
             val commandMap = registeredCommands.associateBy { it.name }
 
-            // Group legacy commands by category
-            val legacyByCategory = holderService.publicCommands.values
-                .filter { !it.annotation.hidden }
-                .groupBy { it.annotation.group }
-
             // Group DSL commands by category
             val dslByCategory = holderService.dslCommands.values
                 .groupBy { it.category }
 
             // Get all unique categories (using enum order)
             val allCategories = CommandCategory.entries.filter { category ->
-                legacyByCategory.containsKey(category) || dslByCategory.containsKey(category)
+                dslByCategory.containsKey(category)
             }
 
             context.reply(false) {
@@ -66,13 +61,6 @@ class HelpCommand(
                     // Iterate through each category in enum order
                     for (category in allCategories) {
                         val commandsList = mutableListOf<String>()
-
-                        // Add legacy commands from this category
-                        legacyByCategory[category]?.forEach { command ->
-                            commandMap[command.annotation.key]?.let { discordCmd ->
-                                commandsList.add(discordCmd.asMention)
-                            }
-                        }
 
                         // Add DSL commands from this category
                         dslByCategory[category]?.forEach { dslCommand ->
@@ -161,7 +149,7 @@ class HelpCommand(
 
                                     selectedCategories.forEach { category ->
                                         val commandsList =
-                                            buildCommandsList(category, commandMap, legacyByCategory, dslByCategory)
+                                            buildCommandsList(category, commandMap, dslByCategory)
 
                                         if (commandsList.isNotEmpty()) {
                                             val categoryEmoji = category.emoji?.formatted ?: ""
@@ -205,16 +193,9 @@ class HelpCommand(
     private fun buildCommandsList(
         category: CommandCategory,
         commandMap: Map<String, net.dv8tion.jda.api.interactions.commands.Command>,
-        legacyByCategory: Map<CommandCategory, List<ru.sablebot.common.worker.command.model.Command>>,
         dslByCategory: Map<CommandCategory, List<ru.sablebot.common.worker.command.model.dsl.SlashCommandDeclaration>>
     ): List<String> {
         val commandsList = mutableListOf<String>()
-
-        legacyByCategory[category]?.forEach { command ->
-            commandMap[command.annotation.key]?.let { discordCmd ->
-                commandsList.add("${discordCmd.asMention} — ${command.annotation.description}")
-            }
-        }
 
         dslByCategory[category]?.forEach { dslCommand ->
             val baseCommand = commandMap[dslCommand.name] ?: return@forEach

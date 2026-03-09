@@ -2,12 +2,8 @@ package ru.sablebot.common.worker.command.service
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.stereotype.Service
-import ru.sablebot.common.model.CommandCategory
-import ru.sablebot.common.worker.command.model.Command
-import ru.sablebot.common.worker.command.model.DiscordCommand
 import ru.sablebot.common.worker.command.model.dsl.SlashCommandDeclaration
 import ru.sablebot.common.worker.command.model.dsl.SlashCommandDeclarationWrapper
-import java.util.*
 
 @Service
 class CommandsHolderServiceImpl(
@@ -17,11 +13,6 @@ class CommandsHolderServiceImpl(
     companion object {
         private val logger = KotlinLogging.logger {}
     }
-
-    // Legacy command storage - kept for interface compatibility but always empty
-    override var commands: Map<String, Command> = emptyMap()
-
-    override var publicCommands: Map<String, Command> = emptyMap()
 
     // DSL commands storage
     override var dslCommands: Map<String, SlashCommandDeclaration> = mutableMapOf()
@@ -41,7 +32,7 @@ class CommandsHolderServiceImpl(
      * @param anyLocale Если `true`, сначала ищет во всех доступных локалях и при отсутствии результата пытается в `locale`; если `false`, ищет только в `locale`.
      * @return `null` as legacy commands are no longer supported.
      */
-    override fun getByLocale(localizedKey: String, locale: Locale?, anyLocale: Boolean): Command? {
+    override fun getByLocale(localizedKey: String, locale: java.util.Locale?, anyLocale: Boolean): Nothing? {
         return null
     }
 
@@ -115,9 +106,4 @@ class CommandsHolderServiceImpl(
     override fun getDslCommandByFullPath(fullPath: String): SlashCommandDeclaration? {
         return dslCommandsByFullPath[fullPath]
     }
-
-    /**
-     * Legacy descriptors - returns empty map as all commands are now DSL-based.
-     */
-    override val descriptors: Map<CommandCategory, List<DiscordCommand>> = emptyMap()
 }

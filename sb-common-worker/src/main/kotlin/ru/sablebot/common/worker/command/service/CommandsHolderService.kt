@@ -1,18 +1,8 @@
 package ru.sablebot.common.worker.command.service
 
-import ru.sablebot.common.model.CommandCategory
-import ru.sablebot.common.worker.command.model.Command
-import ru.sablebot.common.worker.command.model.DiscordCommand
 import ru.sablebot.common.worker.command.model.dsl.SlashCommandDeclaration
-import java.util.*
 
 interface CommandsHolderService {
-
-    val commands: Map<String, Command>
-
-    val publicCommands: Map<String, Command>
-
-    val descriptors: Map<CommandCategory, List<DiscordCommand>>
 
     // DSL commands
     val dslCommands: Map<String, SlashCommandDeclaration>
@@ -20,16 +10,18 @@ interface CommandsHolderService {
     /**
      * Получает команду по локализованному ключу с учётом указанной локали.
      *
+     * @deprecated Legacy method - returns null as legacy commands have been removed
      * @param localizedKey Локализованный ключ команды (идентификатор команды, возможно содержащий информацию о локали).
      * @param locale Опциональная локаль для уточнения поиска; если `null`, используется поведение без уточнения по локали.
      * @param anyLocale Если `true`, поиск будет возвращать команду независимо от локали соответствия.
-     * @return `Command`, соответствующая ключу, или `null`, если соответствующая команда не найдена.
+     * @return Always returns `null` as legacy commands have been removed.
      */
+    @Deprecated("Legacy commands have been removed, this always returns null")
     fun getByLocale(
         localizedKey: String,
-        locale: Locale? = null,
+        locale: java.util.Locale? = null,
         anyLocale: Boolean = false
-    ): Command?
+    ): Nothing?
 
     /**
  * Находит DSL-описание slash-команды по её полному пути.
