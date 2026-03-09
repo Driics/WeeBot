@@ -1,7 +1,7 @@
 package ru.sablebot.worker.commands
 
 import dev.minn.jda.ktx.interactions.components.option
-import org.springframework.context.annotation.Lazy
+import org.springframework.beans.factory.ObjectProvider
 import org.springframework.stereotype.Component
 import ru.sablebot.common.model.CommandCategory
 import ru.sablebot.common.worker.command.model.SlashCommandArguments
@@ -16,10 +16,12 @@ import ru.sablebot.common.worker.message.model.commands.options.ApplicationComma
 
 @Component
 class HelpCommand(
-    @Lazy private val holderService: CommandsHolderService,
+    private val holderServiceProvider: ObjectProvider<CommandsHolderService>,
     private val interactivityManager: InteractivityManager,
     private val uuidGenerator: CommandUuidGenerator
 ) : SlashCommandDeclarationWrapper {
+    private val holderService by lazy { holderServiceProvider.getObject() }
+
     override fun command() = slashCommand(
         "help",
         "This helps you with all the commands.",

@@ -1,0 +1,94 @@
+Starting a Gradle Daemon, 4 busy and 1 stopped Daemons could not be reused, use --status for details
+> Task :build-logic:checkKotlinGradlePluginConfigurationErrors
+> Task :build-logic:generateExternalPluginSpecBuilders UP-TO-DATE
+> Task :build-logic:extractPrecompiledScriptPluginPlugins UP-TO-DATE
+> Task :build-logic:compilePluginsBlocks UP-TO-DATE
+> Task :build-logic:generatePrecompiledScriptPluginAccessors UP-TO-DATE
+> Task :build-logic:generateScriptPluginAdapters UP-TO-DATE
+> Task :build-logic:compileKotlin UP-TO-DATE
+> Task :build-logic:compileJava NO-SOURCE
+> Task :build-logic:pluginDescriptors UP-TO-DATE
+> Task :build-logic:processResources UP-TO-DATE
+> Task :build-logic:classes UP-TO-DATE
+> Task :build-logic:jar UP-TO-DATE
+
+The Kotlin Gradle plugin was loaded multiple times in different subprojects, which is not supported and may break the build. 
+This might happen in subprojects that apply the Kotlin plugins with the Gradle 'plugins { ... }' DSL if they specify explicit versions, even if the versions are equal.
+Please add the Kotlin plugin to the common parent project or the root project, then remove the versions in the subprojects.
+If the parent project does not need the plugin, add 'apply false' to the plugin line.
+See: https://docs.gradle.org/current/userguide/plugins.html#sec:subprojects_plugins_dsl
+The Kotlin plugin was loaded in the following projects: ':modules', ':sb-common'
+> Task :modules:sb-module-moderation:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :modules:sb-module-audio:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :sb-common-worker:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :sb-worker:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :sb-common:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :sb-common-worker:processResources NO-SOURCE
+> Task :modules:sb-module-moderation:processResources NO-SOURCE
+> Task :sb-worker:processResources UP-TO-DATE
+> Task :modules:sb-module-audio:processResources UP-TO-DATE
+> Task :sb-common:compileKotlin UP-TO-DATE
+> Task :sb-common:compileJava NO-SOURCE
+> Task :sb-common:processResources UP-TO-DATE
+> Task :sb-common:classes UP-TO-DATE
+> Task :sb-common:jar UP-TO-DATE
+> Task :sb-common-worker:compileKotlin UP-TO-DATE
+> Task :sb-common-worker:compileJava NO-SOURCE
+> Task :sb-common-worker:classes UP-TO-DATE
+> Task :sb-common-worker:jar UP-TO-DATE
+> Task :modules:sb-module-moderation:compileKotlin UP-TO-DATE
+> Task :modules:sb-module-moderation:compileJava NO-SOURCE
+> Task :modules:sb-module-moderation:classes UP-TO-DATE
+> Task :modules:sb-module-moderation:jar UP-TO-DATE
+> Task :modules:sb-module-audio:compileKotlin UP-TO-DATE
+> Task :modules:sb-module-audio:compileJava NO-SOURCE
+> Task :modules:sb-module-audio:classes UP-TO-DATE
+> Task :modules:sb-module-audio:jar UP-TO-DATE
+> Task :sb-worker:compileKotlin UP-TO-DATE
+> Task :sb-worker:compileJava NO-SOURCE
+> Task :sb-worker:classes UP-TO-DATE
+> Task :sb-worker:resolveMainClassName UP-TO-DATE
+
+> Task :sb-worker:bootRun
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v3.5.6)
+
+{"@timestamp":"2026-03-09T15:59:04.439576+03:00","message":"Starting Launcher v@build.version@ using Java 21.0.9 with PID 30916 (E:\\Dev\\.auto-claude\\worktrees\\tasks\\007-improve-commands-registration-process\\sb-worker\\build\\classes\\kotlin\\main started by nikit in E:\\Dev\\.auto-claude\\worktrees\\tasks\\007-improve-commands-registration-process\\sb-worker)","logger_name":"ru.sablebot.worker.Launcher","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T15:59:04.4496637+03:00","message":"No active profile set, falling back to 1 default profile: \"default\"","logger_name":"ru.sablebot.worker.Launcher","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T15:59:05.2531863+03:00","message":"Bootstrapping Spring Data JPA repositories in DEFAULT mode.","logger_name":"org.springframework.data.repository.config.RepositoryConfigurationDelegate","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T15:59:05.3938608+03:00","message":"Finished Spring Data repository scanning in 135 ms. Found 19 JPA repository interfaces.","logger_name":"org.springframework.data.repository.config.RepositoryConfigurationDelegate","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T15:59:05.7795891+03:00","message":"BeanFactory id=0433e688-c6ce-3029-9475-8997a7def3f5","logger_name":"org.springframework.cloud.context.scope.GenericScope","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T15:59:06.080148+03:00","message":"Tomcat initialized with port 8080 (http)","logger_name":"org.springframework.boot.web.embedded.tomcat.TomcatWebServer","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T15:59:06.0905601+03:00","message":"Starting service [Tomcat]","logger_name":"org.apache.catalina.core.StandardService","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T15:59:06.0905601+03:00","message":"Starting Servlet engine: [Apache Tomcat/10.1.46]","logger_name":"org.apache.catalina.core.StandardEngine","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T15:59:06.1422799+03:00","message":"Initializing Spring embedded WebApplicationContext","logger_name":"org.apache.catalina.core.ContainerBase.[Tomcat].[localhost].[/]","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T15:59:06.1438134+03:00","message":"Root WebApplicationContext: initialization completed in 1565 ms","logger_name":"org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T15:59:06.3732865+03:00","message":"Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'entityManagerFactory' defined in class path resource [org/springframework/boot/autoconfigure/orm/jpa/HibernateJpaConfiguration.class]: Failed to initialize dependency 'liquibase' of LoadTimeWeaverAware bean 'entityManagerFactory': Error creating bean with name 'liquibase' defined in class path resource [org/springframework/boot/autoconfigure/liquibase/LiquibaseAutoConfiguration$LiquibaseConfiguration.class]: Failed to instantiate [liquibase.integration.spring.SpringLiquibase]: Factory method 'liquibase' threw exception with message: Error creating bean with name 'dataSource' defined in class path resource [org/springframework/boot/autoconfigure/jdbc/DataSourceConfiguration$Hikari.class]: Failed to instantiate [com.zaxxer.hikari.HikariDataSource]: Factory method 'dataSource' threw exception with message: 'url' must start with \"jdbc\"","logger_name":"org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext","thread_name":"main","level":"WARN","level_value":30000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T15:59:07.3767157+03:00","message":"Timed out waiting for in-flight spans to send","logger_name":"zipkin2.reporter.internal.AsyncReporter$BoundedAsyncReporter","thread_name":"main","level":"WARN","level_value":30000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T15:59:07.3787705+03:00","message":"Stopping service [Tomcat]","logger_name":"org.apache.catalina.core.StandardService","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T15:59:07.3896558+03:00","message":"\r\n\r\nError starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.","logger_name":"org.springframework.boot.autoconfigure.logging.ConditionEvaluationReportLogger","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
+{"@timestamp":"2026-03-09T15:59:07.401833+03:00","message":"Application run failed","logger_name":"org.springframework.boot.SpringApplication","thread_name":"main","level":"ERROR","level_value":40000,"stack_trace":"org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'entityManagerFactory' defined in class path resource [org/springframework/boot/autoconfigure/orm/jpa/HibernateJpaConfiguration.class]: Failed to initialize dependency 'liquibase' of LoadTimeWeaverAware bean 'entityManagerFactory': Error creating bean with name 'liquibase' defined in class path resource [org/springframework/boot/autoconfigure/liquibase/LiquibaseAutoConfiguration$LiquibaseConfiguration.class]: Failed to instantiate [liquibase.integration.spring.SpringLiquibase]: Factory method 'liquibase' threw exception with message: Error creating bean with name 'dataSource' defined in class path resource [org/springframework/boot/autoconfigure/jdbc/DataSourceConfiguration$Hikari.class]: Failed to instantiate [com.zaxxer.hikari.HikariDataSource]: Factory method 'dataSource' threw exception with message: 'url' must start with \"jdbc\"\r\n\tat org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:328)\r\n\tat org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:207)\r\n\tat org.springframework.context.support.AbstractApplicationContext.finishBeanFactoryInitialization(AbstractApplicationContext.java:970)\r\n\tat org.springframework.context.support.AbstractApplicationContext.refresh(AbstractApplicationContext.java:627)\r\n\tat org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext.refresh(ServletWebServerApplicationContext.java:146)\r\n\tat org.springframework.boot.SpringApplication.refresh(SpringApplication.java:752)\r\n\tat org.springframework.boot.SpringApplication.refreshContext(SpringApplication.java:439)\r\n\tat org.springframework.boot.SpringApplication.run(SpringApplication.java:318)\r\n\tat ru.sablebot.worker.Launcher.main(Launcher.kt:21)\r\nCaused by: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'liquibase' defined in class path resource [org/springframework/boot/autoconfigure/liquibase/LiquibaseAutoConfiguration$LiquibaseConfiguration.class]: Failed to instantiate [liquibase.integration.spring.SpringLiquibase]: Factory method 'liquibase' threw exception with message: Error creating bean with name 'dataSource' defined in class path resource [org/springframework/boot/autoconfigure/jdbc/DataSourceConfiguration$Hikari.class]: Failed to instantiate [com.zaxxer.hikari.HikariDataSource]: Factory method 'dataSource' threw exception with message: 'url' must start with \"jdbc\"\r\n\tat org.springframework.beans.factory.support.ConstructorResolver.instantiate(ConstructorResolver.java:657)\r\n\tat org.springframework.beans.factory.support.ConstructorResolver.instantiateUsingFactoryMethod(ConstructorResolver.java:645)\r\n\tat org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.instantiateUsingFactoryMethod(AbstractAutowireCapableBeanFactory.java:1375)\r\n\tat org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBeanInstance(AbstractAutowireCapableBeanFactory.java:1205)\r\n\tat org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:569)\r\n\tat org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:529)\r\n\tat org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:339)\r\n\tat org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:373)\r\n\tat org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:337)\r\n\tat org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:202)\r\n\tat org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:315)\r\n\t... 8 common frames omitted\r\nCaused by: org.springframework.beans.BeanInstantiationException: Failed to instantiate [liquibase.integration.spring.SpringLiquibase]: Factory method 'liquibase' threw exception with message: Error creating bean with name 'dataSource' defined in class path resource [org/springframework/boot/autoconfigure/jdbc/DataSourceConfiguration$Hikari.class]: Failed to instantiate [com.zaxxer.hikari.HikariDataSource]: Factory method 'dataSource' threw exception with message: 'url' must start with \"jdbc\"\r\n\tat org.springframework.beans.factory.support.SimpleInstantiationStrategy.lambda$instantiate$0(SimpleInstantiationStrategy.java:200)\r\n\tat org.springframework.beans.factory.support.SimpleInstantiationStrategy.instantiateWithFactoryMethod(SimpleInstantiationStrategy.java:89)\r\n\tat org.springframework.beans.factory.support.SimpleInstantiationStrategy.instantiate(SimpleInstantiationStrategy.java:169)\r\n\tat org.springframework.beans.factory.support.ConstructorResolver.instantiate(ConstructorResolver.java:653)\r\n\t... 18 common frames omitted\r\nCaused by: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'dataSource' defined in class path resource [org/springframework/boot/autoconfigure/jdbc/DataSourceConfiguration$Hikari.class]: Failed to instantiate [com.zaxxer.hikari.HikariDataSource]: Factory method 'dataSource' threw exception with message: 'url' must start with \"jdbc\"\r\n\tat org.springframework.beans.factory.support.ConstructorResolver.instantiate(ConstructorResolver.java:657)\r\n\tat org.springframework.beans.factory.support.ConstructorResolver.instantiateUsingFactoryMethod(ConstructorResolver.java:645)\r\n\tat org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.instantiateUsingFactoryMethod(AbstractAutowireCapableBeanFactory.java:1375)\r\n\tat org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBeanInstance(AbstractAutowireCapableBeanFactory.java:1205)\r\n\tat org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:569)\r\n\tat org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:529)\r\n\tat org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:339)\r\n\tat org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:373)\r\n\tat org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:337)\r\n\tat org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:202)\r\n\tat org.springframework.beans.factory.support.DefaultListableBeanFactory.doResolveDependency(DefaultListableBeanFactory.java:1698)\r\n\tat org.springframework.beans.factory.support.DefaultListableBeanFactory$DependencyObjectProvider.getIfUnique(DefaultListableBeanFactory.java:2593)\r\n\tat org.springframework.boot.autoconfigure.liquibase.LiquibaseAutoConfiguration$LiquibaseConfiguration.liquibase(LiquibaseAutoConfiguration.java:107)\r\n\tat java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)\r\n\tat java.base/java.lang.reflect.Method.invoke(Method.java:580)\r\n\tat org.springframework.beans.factory.support.SimpleInstantiationStrategy.lambda$instantiate$0(SimpleInstantiationStrategy.java:172)\r\n\t... 21 common frames omitted\r\nCaused by: org.springframework.beans.BeanInstantiationException: Failed to instantiate [com.zaxxer.hikari.HikariDataSource]: Factory method 'dataSource' threw exception with message: 'url' must start with \"jdbc\"\r\n\tat org.springframework.beans.factory.support.SimpleInstantiationStrategy.lambda$instantiate$0(SimpleInstantiationStrategy.java:200)\r\n\tat org.springframework.beans.factory.support.SimpleInstantiationStrategy.instantiateWithFactoryMethod(SimpleInstantiationStrategy.java:89)\r\n\tat org.springframework.beans.factory.support.SimpleInstantiationStrategy.instantiate(SimpleInstantiationStrategy.java:169)\r\n\tat org.springframework.beans.factory.support.ConstructorResolver.instantiate(ConstructorResolver.java:653)\r\n\t... 36 common frames omitted\r\nCaused by: java.lang.IllegalArgumentException: 'url' must start with \"jdbc\"\r\n\tat org.springframework.util.Assert.isTrue(Assert.java:116)\r\n\tat org.springframework.boot.jdbc.DatabaseDriver.fromJdbcUrl(DatabaseDriver.java:310)\r\n\tat org.springframework.boot.autoconfigure.jdbc.DataSourceProperties.findDriverClassName(DataSourceProperties.java:189)\r\n\tat org.springframework.boot.autoconfigure.jdbc.DataSourceProperties.determineDriverClassName(DataSourceProperties.java:174)\r\n\tat org.springframework.boot.autoconfigure.jdbc.PropertiesJdbcConnectionDetails.getDriverClassName(PropertiesJdbcConnectionDetails.java:49)\r\n\tat org.springframework.boot.autoconfigure.jdbc.DataSourceConfiguration.createDataSource(DataSourceConfiguration.java:62)\r\n\tat org.springframework.boot.autoconfigure.jdbc.DataSourceConfiguration$Hikari.dataSource(DataSourceConfiguration.java:127)\r\n\tat java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)\r\n\tat java.base/java.lang.reflect.Method.invoke(Method.java:580)\r\n\tat org.springframework.beans.factory.support.SimpleInstantiationStrategy.lambda$instantiate$0(SimpleInstantiationStrategy.java:172)\r\n\t... 39 common frames omitted\r\n","app":"sablebot-worker"}
+
+> Task :sb-worker:bootRun FAILED
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':sb-worker:bootRun'.
+> Process 'command 'E:\DevSoft\.jdks\termurin-21.0.9\bin\java.exe'' finished with non-zero exit value 1
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 15s
+24 actionable tasks: 2 executed, 22 up-to-date

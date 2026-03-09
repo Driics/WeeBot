@@ -1,6 +1,7 @@
 package ru.sablebot.worker.commands
 
 import dev.minn.jda.ktx.messages.InlineMessage
+import org.springframework.beans.factory.ObjectProvider
 import org.springframework.stereotype.Component
 import ru.sablebot.common.model.CommandCategory
 import ru.sablebot.common.worker.command.model.SlashCommandArguments
@@ -18,10 +19,12 @@ import kotlin.time.measureTime
 
 @Component
 class PingCommand(
-    private val discordService: DiscordService,
+    private val discordServiceProvider: ObjectProvider<DiscordService>,
     private val workerProperties: WorkerProperties,
     private val uuidGenerator: CommandUuidGenerator
 ) : SlashCommandDeclarationWrapper {
+    private val discordService by lazy { discordServiceProvider.getObject() }
+
     override fun command() = slashCommand(
         "ping",
         "Display ping",
