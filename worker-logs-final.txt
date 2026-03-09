@@ -125,3 +125,20 @@ The Kotlin plugin was loaded in the following projects: ':modules', ':sb-common'
 {"@timestamp":"2026-03-09T16:01:23.8676042+03:00","message":"\r\n\r\nError starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.","logger_name":"org.springframework.boot.autoconfigure.logging.ConditionEvaluationReportLogger","thread_name":"main","level":"INFO","level_value":20000,"app":"sablebot-worker"}
 {"@timestamp":"2026-03-09T16:01:23.8793587+03:00","message":"\r\n\r\n***************************\r\nAPPLICATION FAILED TO START\r\n***************************\r\n\r\nDescription:\r\n\r\nWeb server failed to start. Port 9090 was already in use.\r\n\r\nAction:\r\n\r\nIdentify and stop the process that's listening on port 9090 or configure this application to listen on another port.\r\n","logger_name":"org.springframework.boot.diagnostics.LoggingFailureAnalysisReporter","thread_name":"main","level":"ERROR","level_value":40000,"app":"sablebot-worker"}
 {"@timestamp":"2026-03-09T16:01:31.8614015+03:00","message":"Failed to establish connection for a node, appending to queue","logger_name":"net.dv8tion.jda.api.utils.SessionControllerAdapter","thread_name":"ConcurrentSessionController-Worker-0","level":"ERROR","level_value":40000,"stack_trace":"java.lang.IllegalStateException: com.neovisionaries.ws.client.HostnameUnverifiedException: The certificate of the peer does not match the expected hostname (gateway.discord.gg)\r\n\tat net.dv8tion.jda.internal.requests.WebSocketClient.connect(WebSocketClient.java:413)\r\n\tat net.dv8tion.jda.internal.requests.WebSocketClient$StartingNode.run(WebSocketClient.java:1470)\r\n\tat net.dv8tion.jda.api.utils.ConcurrentSessionController$Worker.processQueue(ConcurrentSessionController.java:155)\r\n\tat net.dv8tion.jda.api.utils.ConcurrentSessionController$Worker.run(ConcurrentSessionController.java:133)\r\n\tat java.base/java.lang.Thread.run(Thread.java:1583)\r\nCaused by: com.neovisionaries.ws.client.HostnameUnverifiedException: The certificate of the peer does not match the expected hostname (gateway.discord.gg)\r\n\tat com.neovisionaries.ws.client.SocketConnector.verifyHostname(SocketConnector.java:304)\r\n\tat com.neovisionaries.ws.client.SocketConnector.doConnect(SocketConnector.java:251)\r\n\tat com.neovisionaries.ws.client.SocketConnector.connect(SocketConnector.java:189)\r\n\tat com.neovisionaries.ws.client.WebSocket.connect(WebSocket.java:2351)\r\n\tat net.dv8tion.jda.internal.requests.WebSocketClient.connect(WebSocketClient.java:406)\r\n\t... 4 common frames omitted\r\n","app":"sablebot-worker"}
+
+> Task :sb-worker:bootRun FAILED
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':sb-worker:bootRun'.
+> Process 'command 'E:\DevSoft\.jdks\termurin-21.0.9\bin\java.exe'' finished with non-zero exit value 1
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 3m 26s
+24 actionable tasks: 2 executed, 22 up-to-date

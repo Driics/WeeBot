@@ -23,20 +23,6 @@ class CommandsHolderServiceImpl(
     }
 
     /**
-     * Находит команду по локализованному ключу в указанных локалях.
-     *
-     * Legacy method - returns null as all commands are now DSL-based.
-     *
-     * @param localizedKey Локализованный ключ команды (поиск нечувствителен к регистру).
-     * @param locale Предпочитаемая локаль для поиска; если `null`, используется английская карта по умолчанию.
-     * @param anyLocale Если `true`, сначала ищет во всех доступных локалях и при отсутствии результата пытается в `locale`; если `false`, ищет только в `locale`.
-     * @return `null` as legacy commands are no longer supported.
-     */
-    override fun getByLocale(localizedKey: String, locale: java.util.Locale?, anyLocale: Boolean): Nothing? {
-        return null
-    }
-
-    /**
      * Определяет, соответствует ли переданный ключ какой-либо зарегистрированной DSL-команде.
      *
      * @param key Ключ команды или полный путь для DSL-команды (например "cmd subcmd" или "cmd group subcmd").

@@ -17,7 +17,6 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import ru.sablebot.common.support.CoroutineLauncher
-import ru.sablebot.common.worker.command.model.Command
 import ru.sablebot.common.worker.command.model.dsl.SlashCommandDeclaration
 import ru.sablebot.common.worker.command.model.dsl.SlashCommandExecutor
 import ru.sablebot.common.worker.configuration.WorkerProperties
@@ -119,25 +118,6 @@ class InternalCommandsServiceImplTest {
 
         assertTrue(result)
         verify { holderService.getDslCommandByFullPath("moderation ban") }
-        // Should NOT fall back to legacy
-        verify(exactly = 0) { holderService.getByLocale(any(), any(), any()) }
-    }
-
-    @Test
-    fun `sendCommand falls back to legacy command when no DSL match`() {
-        val event = mockEvent(commandName = "oldcmd", fullCommandName = "oldcmd")
-        val legacyCommand = mockk<Command>(relaxed = true) {
-            every { key } returns "oldcmd"
-            every { permissions } returns emptyArray()
-        }
-
-        every { holderService.getDslCommandByFullPath("oldcmd") } returns null
-        every { holderService.getByLocale(localizedKey = "oldcmd", anyLocale = true) } returns legacyCommand
-
-        val result = service.sendCommand(event)
-
-        assertTrue(result)
-        verify { holderService.getByLocale(localizedKey = "oldcmd", anyLocale = true) }
     }
 
     @Test
