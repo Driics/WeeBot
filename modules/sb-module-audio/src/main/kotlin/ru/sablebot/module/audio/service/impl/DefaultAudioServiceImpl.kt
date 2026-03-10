@@ -23,6 +23,9 @@ import ru.sablebot.module.audio.service.ILavalinkV4AudioService
 import java.net.URI
 import java.util.Base64
 import java.util.concurrent.ConcurrentHashMap
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 
 @Service
 class DefaultAudioServiceImpl(
@@ -71,7 +74,9 @@ class DefaultAudioServiceImpl(
 
         this.jdaProvider = { shardId -> discordService.getShardById(shardId) }
 
-        addNodes()
+        runBlocking {
+            addNodes()
+        }
     }
 
     private fun extractUserIdFromToken(token: String): Long {
@@ -116,7 +121,7 @@ class DefaultAudioServiceImpl(
         }
     }
 
-    private fun addNodes() {
+    private suspend fun addNodes() {
         val cfg = workerProperties.audio.lavalink
 
         cfg.nodes.forEach { nodeCfg ->
@@ -137,6 +142,18 @@ class DefaultAudioServiceImpl(
         val discovery = cfg.discovery
         if (discovery != null && discovery.enabled && discovery.serviceName.isNotBlank()) {
             scheduler.scheduleWithFixedDelay(::lookUpDiscovery, 60_000L)
+        }
+
+        // Wait for at least one node to become available with 30s timeout
+        try {
+            withTimeout(30_000) {
+                while (!hasAvailableNode()) {
+                    delay(500)
+                }
+                log.info { "Lavalink nodes ready: ${lavalink.nodes.count { it.available }} node(s) available" }
+            }
+        } catch (e: Exception) {
+            log.warn { "Lavalink node readiness timeout after 30s: ${lavalink.nodes.size} node(s) configured, 0 available" }
         }
     }
 
