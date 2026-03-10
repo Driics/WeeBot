@@ -57,6 +57,11 @@ class PlayerServiceImpl(
     private val log = KotlinLogging.logger {}
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
+    // Connection metrics counters
+    private val connectionRetriesCounter = meterRegistry?.counter("sablebot.audio.connection.retries")
+    private val connectionSuccessCounter = meterRegistry?.counter("sablebot.audio.connection.success")
+    private val connectionFailureCounter = meterRegistry?.counter("sablebot.audio.connection.failure")
+
     init {
         lavaAudioService.addOnConfiguredCallback { initializeListeners() }
     }
@@ -109,15 +114,17 @@ class PlayerServiceImpl(
                 log.debug { "Attempting voice connection for guild ${instance.guildId} (attempt ${attempt + 1}/3)" }
                 lavaAudioService.connect(voiceChannel)
                 log.debug { "Successfully connected to voice channel for guild ${instance.guildId}" }
+                connectionSuccessCounter?.increment()
                 return voiceChannel
             } catch (e: Exception) {
                 if (attempt < 2) {
                     val delayMs = 500L * (attempt + 1)
                     log.warn { "Connection attempt ${attempt + 1} failed for guild ${instance.guildId}, retrying in ${delayMs}ms: ${e.message}" }
-                    meterRegistry?.counter("sablebot.audio.connection.retries")?.increment()
+                    connectionRetriesCounter?.increment()
                     delay(delayMs)
                 } else {
                     log.error { "All connection attempts failed for guild ${instance.guildId}: ${e.message}" }
+                    connectionFailureCounter?.increment()
                     throw e
                 }
             }
