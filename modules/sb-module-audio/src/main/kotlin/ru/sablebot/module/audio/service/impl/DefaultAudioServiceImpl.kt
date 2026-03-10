@@ -8,6 +8,8 @@ import dev.arbjerg.lavalink.libraries.jda.JDAVoiceUpdateListener
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.micrometer.core.instrument.Gauge
 import io.micrometer.core.instrument.MeterRegistry
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withTimeoutOrNull
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.entities.Guild
 import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel
@@ -85,7 +87,14 @@ class DefaultAudioServiceImpl(
     }
 
     override suspend fun connectAndWait(channel: VoiceChannel, timeoutMs: Long): Boolean {
-        TODO("Implementation to be added in subtask-1-2")
+        connect(channel)
+
+        return withTimeoutOrNull(timeoutMs) {
+            while (!isConnected(channel.guild)) {
+                delay(50)
+            }
+            true
+        } ?: false
     }
 
     override fun disconnect(guild: Guild) = guild.jda.directAudioController.disconnect(guild)
