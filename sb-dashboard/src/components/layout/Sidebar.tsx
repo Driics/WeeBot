@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   Star,
   Rss,
+  Ticket,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -22,6 +23,7 @@ const navItems = [
   { label: "Stats", href: "/stats", icon: BarChart3 },
   { label: "Config", href: "/config", icon: Settings },
   { label: "Moderation", href: "/moderation", icon: Shield },
+  { label: "Tickets", href: "/tickets", icon: Ticket },
   { label: "Reaction Roles", href: "/reaction-roles", icon: Star },
   { label: "Feeds", href: "/feeds", icon: Rss },
   { label: "API Keys", href: "/api-keys", icon: KeyRound },

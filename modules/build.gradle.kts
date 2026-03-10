@@ -5,4 +5,5 @@ plugins {
 dependencies {
     api(project(":sb-common"))
     api(project(":modules:sb-module-audio"))
+    api(project(":modules:sb-module-tickets"))
 }

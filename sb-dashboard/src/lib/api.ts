@@ -26,6 +26,10 @@ import type {
   ReactionRoleMenuResponse,
   ReactionRoleMenuType,
   StatsOverview,
+  TicketFilterParams,
+  TicketListResponse,
+  TicketMetrics,
+  TicketResponse,
   UpdateReactionRoleGroupRequest,
   UpdateReactionRoleMenuItemRequest,
   UpdateReactionRoleMenuRequest,
@@ -227,6 +231,11 @@ class ApiClient {
     data: CreateReactionRoleMenuItemRequest
   ): Promise<ReactionRoleActionResponse> {
     return this.request(`/api/guilds/${guildId}/reaction-roles/menus/${menuId}/items`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
   // Feeds
   getFeeds(guildId: string): Promise<FeedListResponse> {
     return this.request(`/api/guilds/${guildId}/feeds`);
@@ -246,6 +255,10 @@ class ApiClient {
   ): Promise<ReactionRoleActionResponse> {
     return this.request(`/api/guilds/${guildId}/reaction-roles/items/${itemId}`, {
       method: "PUT",
+      body: JSON.stringify(data),
+    });
+  }
+
   updateFeed(guildId: string, feedId: number, data: UpdateFeedRequest): Promise<FeedResponse> {
     return this.request(`/api/guilds/${guildId}/feeds/${feedId}`, {
       method: "PATCH",
@@ -255,6 +268,10 @@ class ApiClient {
 
   deleteReactionRoleMenuItem(guildId: string, itemId: number): Promise<ReactionRoleActionResponse> {
     return this.request(`/api/guilds/${guildId}/reaction-roles/items/${itemId}`, {
+      method: "DELETE",
+    });
+  }
+
   deleteFeed(guildId: string, feedId: number): Promise<void> {
     return this.request(`/api/guilds/${guildId}/feeds/${feedId}`, {
       method: "DELETE",
@@ -300,10 +317,35 @@ class ApiClient {
   deleteReactionRoleGroup(guildId: string, groupId: number): Promise<ReactionRoleActionResponse> {
     return this.request(`/api/guilds/${guildId}/reaction-roles/groups/${groupId}`, {
       method: "DELETE",
+    });
+  }
+
   testFeed(guildId: string, feedId: number): Promise<Record<string, unknown>> {
     return this.request(`/api/guilds/${guildId}/feeds/${feedId}/test`, {
       method: "POST",
     });
+  }
+
+  // Tickets
+  getTickets(guildId: string, params?: TicketFilterParams): Promise<TicketListResponse> {
+    const query = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== "") {
+          query.set(key, String(value));
+        }
+      });
+    }
+    const qs = query.toString();
+    return this.request(`/api/guilds/${guildId}/tickets${qs ? `?${qs}` : ""}`);
+  }
+
+  getTicket(guildId: string, ticketId: number): Promise<TicketResponse> {
+    return this.request(`/api/guilds/${guildId}/tickets/${ticketId}`);
+  }
+
+  getTicketMetrics(guildId: string): Promise<TicketMetrics> {
+    return this.request(`/api/guilds/${guildId}/tickets/metrics`);
   }
 }
 

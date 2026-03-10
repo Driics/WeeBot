@@ -18,6 +18,7 @@ dependencies {
     implementation(project(":sb-common-worker"))
     implementation(project(":modules:sb-module-moderation"))
     implementation(project(":modules:sb-module-audio"))
+    implementation(project(":modules:sb-module-tickets"))
 
     implementation(libs.groovy)
 }

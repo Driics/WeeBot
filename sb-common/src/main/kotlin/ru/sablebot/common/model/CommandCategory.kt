@@ -11,4 +11,5 @@ enum class CommandCategory(
     MODERATION("Moderation", "Moderation commands", Emoji.fromUnicode("\uD83C\uDF89")),
     ADMIN("Admin", "Admins commands", Emoji.fromUnicode("\uD83C\uDF89")),
     MUSIC("Music", "Music commands", Emoji.fromUnicode("\uD83C\uDFB5")),
+    TICKETS("Tickets", "Ticket support commands", Emoji.fromUnicode("\uD83C\uDFAB")),
 }
