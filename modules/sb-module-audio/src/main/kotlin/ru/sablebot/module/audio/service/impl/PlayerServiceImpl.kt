@@ -93,7 +93,12 @@ class PlayerServiceImpl(
         val voiceChannel = member.voiceState?.channel?.asVoiceChannel()
             ?: throw DiscordException("discord.command.audio.error.notInChannel")
 
-        lavaAudioService.connectAndWait(voiceChannel, workerProperties.audio.connection.timeoutMs)
+        val connected = lavaAudioService.connectAndWait(voiceChannel, workerProperties.audio.connection.timeoutMs)
+        if (!connected) {
+            throw DiscordException("discord.command.audio.error.connectionTimeout")
+        }
+
+        log.info { "Voice connected for guild ${instance.guildId}" }
         return voiceChannel
     }
 
