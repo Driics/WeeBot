@@ -89,11 +89,16 @@ class PlayerServiceImpl(
     // ==================== Connection ====================
 
     @Throws(DiscordException::class)
-    override fun connectToChannel(instance: PlaybackInstance, member: Member): VoiceChannel {
+    override suspend fun connectToChannel(instance: PlaybackInstance, member: Member): VoiceChannel {
         val voiceChannel = member.voiceState?.channel?.asVoiceChannel()
             ?: throw DiscordException("discord.command.audio.error.notInChannel")
 
-        lavaAudioService.connect(voiceChannel)
+        val connected = lavaAudioService.connectAndWait(voiceChannel, workerProperties.audio.connection.timeoutMs)
+        if (!connected) {
+            throw DiscordException("discord.command.audio.error.connectionTimeout")
+        }
+
+        log.info { "Voice connected for guild ${instance.guildId}" }
         return voiceChannel
     }
 
@@ -214,7 +219,13 @@ class PlayerServiceImpl(
 
         val member = request.member()
         if (member != null) {
-            connectToChannel(instance, member)
+            try {
+                connectToChannel(instance, member)
+            } catch (e: DiscordException) {
+                log.warn(e) { "Failed to connect to voice channel for guild ${instance.guildId}" }
+                clearInstance(instance, notify = false)
+                throw e
+            }
         }
 
         val trackToStart = instance.enqueue(request)
@@ -234,7 +245,13 @@ class PlayerServiceImpl(
         val filtered = validationService.filterPlaylist(requests, member, playlistRequested = true)
         if (filtered.isEmpty()) return 0
 
-        connectToChannel(instance, member)
+        try {
+            connectToChannel(instance, member)
+        } catch (e: DiscordException) {
+            log.warn(e) { "Failed to connect to voice channel for guild ${instance.guildId}" }
+            clearInstance(instance, notify = false)
+            throw e
+        }
 
         var started = false
         for (request in filtered) {

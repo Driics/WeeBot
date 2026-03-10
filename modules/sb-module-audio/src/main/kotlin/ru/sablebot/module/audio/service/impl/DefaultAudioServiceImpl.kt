@@ -8,6 +8,8 @@ import dev.arbjerg.lavalink.libraries.jda.JDAVoiceUpdateListener
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.micrometer.core.instrument.Gauge
 import io.micrometer.core.instrument.MeterRegistry
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withTimeoutOrNull
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.entities.Guild
 import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel
@@ -21,7 +23,7 @@ import ru.sablebot.common.worker.configuration.WorkerProperties
 import ru.sablebot.common.worker.shared.service.DiscordService
 import ru.sablebot.module.audio.service.ILavalinkV4AudioService
 import java.net.URI
-import java.util.Base64
+import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
 @Service
@@ -82,6 +84,17 @@ class DefaultAudioServiceImpl(
 
     override fun connect(channel: VoiceChannel) {
         channel.jda.directAudioController.connect(channel)
+    }
+
+    override suspend fun connectAndWait(channel: VoiceChannel, timeoutMs: Long): Boolean {
+        connect(channel)
+
+        return withTimeoutOrNull(timeoutMs) {
+            while (!isConnected(channel.guild)) {
+                delay(50)
+            }
+            true
+        } ?: false
     }
 
     override fun disconnect(guild: Guild) = guild.jda.directAudioController.disconnect(guild)

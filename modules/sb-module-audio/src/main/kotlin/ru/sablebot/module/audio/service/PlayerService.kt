@@ -39,7 +39,7 @@ interface PlayerServiceV4 {
     fun memberChannel(member: Member): VoiceChannel?
 
     @Throws(DiscordException::class)
-    fun connectToChannel(instance: PlaybackInstance, member: Member): VoiceChannel
+    suspend fun connectToChannel(instance: PlaybackInstance, member: Member): VoiceChannel
 
     fun connectedChannel(guild: Guild): VoiceChannel?
     fun connectedChannel(guildId: Long): VoiceChannel?
