@@ -26,6 +26,10 @@ import type {
   ReactionRoleMenuResponse,
   ReactionRoleMenuType,
   StatsOverview,
+  TicketFilterParams,
+  TicketListResponse,
+  TicketMetrics,
+  TicketResponse,
   UpdateReactionRoleGroupRequest,
   UpdateReactionRoleMenuItemRequest,
   UpdateReactionRoleMenuRequest,
@@ -304,6 +308,28 @@ class ApiClient {
     return this.request(`/api/guilds/${guildId}/feeds/${feedId}/test`, {
       method: "POST",
     });
+  }
+
+  // Tickets
+  getTickets(guildId: string, params?: TicketFilterParams): Promise<TicketListResponse> {
+    const query = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== "") {
+          query.set(key, String(value));
+        }
+      });
+    }
+    const qs = query.toString();
+    return this.request(`/api/guilds/${guildId}/tickets${qs ? `?${qs}` : ""}`);
+  }
+
+  getTicket(guildId: string, ticketId: number): Promise<TicketResponse> {
+    return this.request(`/api/guilds/${guildId}/tickets/${ticketId}`);
+  }
+
+  getTicketMetrics(guildId: string): Promise<TicketMetrics> {
+    return this.request(`/api/guilds/${guildId}/tickets/metrics`);
   }
 }
 

@@ -208,6 +208,57 @@ export interface UpdateFeedRequest {
   enabled?: boolean;
 }
 
+// Tickets
+export type TicketStatus = "OPEN" | "CLAIMED" | "CLOSED" | "REOPENED";
+
+export interface TicketResponse {
+  id: number;
+  ticketNumber: number;
+  guildId: string;
+  status: TicketStatus;
+  userId: string;
+  userName: string;
+  assignedStaffId: string | null;
+  assignedStaffName: string | null;
+  category: string | null;
+  subject: string;
+  channelId: string;
+  threadId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  closedAt: string | null;
+  active: boolean;
+}
+
+export interface TicketListResponse {
+  tickets: TicketResponse[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+export interface TicketFilterParams {
+  status?: TicketStatus;
+  userId?: string;
+  assignedStaffId?: string;
+  category?: string;
+  search?: string;
+  page?: number;
+  pageSize?: number;
+  sortBy?: string;
+  sortDirection?: "asc" | "desc";
+}
+
+export interface TicketMetrics {
+  totalTickets: number;
+  openTickets: number;
+  claimedTickets: number;
+  closedLast7d: number;
+  avgResponseTimeMinutes: number | null;
+  avgResolutionTimeHours: number | null;
+}
+
 // API error
 export interface ApiError {
   error: string;
