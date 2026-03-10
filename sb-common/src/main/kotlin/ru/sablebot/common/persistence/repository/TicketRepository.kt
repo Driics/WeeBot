@@ -16,6 +16,8 @@ interface TicketRepository : GuildRepository<Ticket> {
 
     fun findByGuildIdAndTicketNumber(guildId: Long, ticketNumber: Int): Ticket?
 
+    fun findByGuildIdAndChannelId(guildId: Long, channelId: String): Ticket?
+
     fun findByGuildIdAndUserId(guildId: Long, userId: String): List<Ticket>
 
     fun findByGuildIdAndUserIdOrderByTicketNumberDesc(guildId: Long, userId: String): List<Ticket>
