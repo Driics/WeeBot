@@ -89,11 +89,11 @@ class PlayerServiceImpl(
     // ==================== Connection ====================
 
     @Throws(DiscordException::class)
-    override fun connectToChannel(instance: PlaybackInstance, member: Member): VoiceChannel {
+    override suspend fun connectToChannel(instance: PlaybackInstance, member: Member): VoiceChannel {
         val voiceChannel = member.voiceState?.channel?.asVoiceChannel()
             ?: throw DiscordException("discord.command.audio.error.notInChannel")
 
-        lavaAudioService.connect(voiceChannel)
+        lavaAudioService.connectAndWait(voiceChannel)
         return voiceChannel
     }
 
