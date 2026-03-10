@@ -99,6 +99,10 @@ class PlayerServiceImpl(
         val voiceChannel = member.voiceState?.channel?.asVoiceChannel()
             ?: throw DiscordException("discord.command.audio.error.notInChannel")
 
+        // Pre-create Lavalink Link to prevent race condition with JDA voice state updates
+        lavaAudioService.lavalink.getOrCreateLink(instance.guildId)
+        log.debug { "Pre-created Lavalink Link for guild ${instance.guildId} before voice connection" }
+
         lavaAudioService.connect(voiceChannel)
         return voiceChannel
     }
