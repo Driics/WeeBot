@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+   http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.4.xsd">
+
+    <changeSet id="tickets-1" author="sablebot">
+        <createTable tableName="ticket_config">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="guild_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="enabled" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="support_channel_id" type="VARCHAR(21)"/>
+            <column name="staff_role_ids" type="JSONB"/>
+            <column name="category_channel_id" type="VARCHAR(21)"/>
+            <column name="transcript_channel_id" type="VARCHAR(21)"/>
+            <column name="max_tickets_per_user" type="INT" defaultValueNumeric="1">
+                <constraints nullable="false"/>
+            </column>
+            <column name="auto_close_inactive_days" type="INT"/>
+            <column name="dm_on_close" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="ticket_config" indexName="idx_ticket_config_guild">
+            <column name="guild_id"/>
+        </createIndex>
+
+        <addUniqueConstraint tableName="ticket_config"
+                             columnNames="guild_id"
+                             constraintName="uk_ticket_config_guild"/>
+    </changeSet>
+
+    <changeSet id="tickets-2" author="sablebot">
+        <createTable tableName="ticket_category">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="config_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="name" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="TEXT"/>
+            <column name="emoji" type="VARCHAR(100)"/>
+            <column name="staff_role_ids" type="JSONB"/>
+            <column name="enabled" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="display_order" type="INT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="ticket_category" indexName="idx_ticket_category_config">
+            <column name="config_id"/>
+        </createIndex>
+
+        <addForeignKeyConstraint baseTableName="ticket_category"
+                                 baseColumnNames="config_id"
+                                 constraintName="fk_ticket_category_config"
+                                 referencedTableName="ticket_config"
+                                 referencedColumnNames="id"
+                                 onDelete="CASCADE"/>
+    </changeSet>
+
+    <changeSet id="tickets-3" author="sablebot">
+        <createTable tableName="ticket">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="guild_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="ticket_number" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="user_id" type="VARCHAR(21)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="user_name" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="assigned_staff_id" type="VARCHAR(21)"/>
+            <column name="assigned_staff_name" type="VARCHAR(255)"/>
+            <column name="category" type="VARCHAR(255)"/>
+            <column name="subject" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="channel_id" type="VARCHAR(21)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="thread_id" type="VARCHAR(21)"/>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="closed_at" type="TIMESTAMP WITH TIME ZONE"/>
+            <column name="active" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="ticket" indexName="idx_ticket_guild_user">
+            <column name="guild_id"/>
+            <column name="user_id"/>
+        </createIndex>
+
+        <createIndex tableName="ticket" indexName="idx_ticket_guild_status">
+            <column name="guild_id"/>
+            <column name="status"/>
+        </createIndex>
+
+        <createIndex tableName="ticket" indexName="idx_ticket_assigned_staff">
+            <column name="assigned_staff_id"/>
+        </createIndex>
+
+        <addUniqueConstraint tableName="ticket"
+                             columnNames="guild_id, ticket_number"
+                             constraintName="uk_ticket_guild_ticket_number"/>
+    </changeSet>
+
+    <changeSet id="tickets-4" author="sablebot">
+        <createTable tableName="ticket_message">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="guild_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="message_id" type="VARCHAR(21)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="ticket_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="author_id" type="VARCHAR(21)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="author_name" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="content" type="TEXT"/>
+            <column name="timestamp" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="is_system_message" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="attachments" type="JSONB"/>
+        </createTable>
+
+        <createIndex tableName="ticket_message" indexName="idx_ticket_message_ticket">
+            <column name="ticket_id"/>
+        </createIndex>
+
+        <createIndex tableName="ticket_message" indexName="idx_ticket_message_timestamp">
+            <column name="timestamp"/>
+        </createIndex>
+
+        <createIndex tableName="ticket_message" indexName="idx_ticket_message_guild_ticket">
+            <column name="guild_id"/>
+            <column name="ticket_id"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>
