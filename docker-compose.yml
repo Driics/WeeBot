@@ -46,11 +46,14 @@ services:
       - DISCORD_REDIRECT_URI=${DISCORD_REDIRECT_URI:-http://localhost:8080/api/auth/discord/callback}
       - JWT_SECRET=${JWT_SECRET:-change-me-in-production-this-is-a-default-secret-key-that-is-long-enough}
       - DASHBOARD_URL=${DASHBOARD_URL:-http://localhost:3000}
+      - TEMPO_ENDPOINT=http://tempo:9411/api/v2/spans
     depends_on:
       postgres:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      tempo:
+        condition: service_started
     labels:
       logging: "promtail"
 

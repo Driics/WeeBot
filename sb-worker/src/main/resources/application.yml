@@ -36,6 +36,10 @@ spring:
     change-log: "classpath:db/master.xml"
   kafka:
     bootstrap-servers: ${sablebot.common.kafka.bootstrap-servers}
+    listener:
+      observation-enabled: true
+    template:
+      observation-enabled: true
     consumer:
       group-id: ${sablebot.common.kafka.group-id}
       auto-offset-reset: latest

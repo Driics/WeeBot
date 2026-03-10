@@ -5,22 +5,24 @@ WORKDIR /app
 # Cache Gradle wrapper
 COPY gradlew gradlew.bat ./
 COPY gradle/ gradle/
-RUN chmod +x gradlew && ./gradlew --version
+RUN sed -i 's/\r$//' gradlew && chmod +x gradlew && ./gradlew --version
 
 # Cache dependencies
-COPY build.gradle settings.gradle ./
-COPY sb-common/build.gradle sb-common/build.gradle
-COPY sb-common-worker/build.gradle sb-common-worker/build.gradle
-COPY sb-worker/build.gradle sb-worker/build.gradle
-COPY sb-api/build.gradle sb-api/build.gradle
-COPY modules/build.gradle modules/build.gradle
-COPY modules/sb-module-audio/build.gradle modules/sb-module-audio/build.gradle
-COPY modules/sb-module-moderation/build.gradle modules/sb-module-moderation/build.gradle
+COPY build.gradle.kts settings.gradle.kts ./
+COPY build-logic/ build-logic/
+COPY sb-common/build.gradle.kts sb-common/build.gradle.kts
+COPY sb-common-worker/build.gradle.kts sb-common-worker/build.gradle.kts
+COPY sb-worker/build.gradle.kts sb-worker/build.gradle.kts
+COPY sb-api/build.gradle.kts sb-api/build.gradle.kts
+COPY modules/build.gradle.kts modules/build.gradle.kts
+COPY modules/sb-module-audio/build.gradle.kts modules/sb-module-audio/build.gradle.kts
+COPY modules/sb-module-moderation/build.gradle.kts modules/sb-module-moderation/build.gradle.kts
+COPY modules/sb-module-feeds/build.gradle.kts modules/sb-module-feeds/build.gradle.kts
 RUN ./gradlew dependencies --no-daemon || true
 
 # Copy source and build
 COPY . .
-RUN ./gradlew :sb-worker:bootJar --no-daemon
+RUN sed -i 's/\r$//' gradlew && ./gradlew :sb-worker:bootJar --no-daemon
 
 # Stage 2: Runtime
 FROM eclipse-temurin:21-jre

@@ -38,7 +38,8 @@ class LyricsServiceImpl(
             val url = UriComponentsBuilder.fromUri(URI.create(LRCLIB_API))
                 .path("/search")
                 .queryParam("q", query)
-                .build(true)
+                .encode()
+                .build()
                 .toUriString()
 
             log.debug { "Searching lyrics with query: $query" }
@@ -70,7 +71,8 @@ class LyricsServiceImpl(
                     .path("/get")
                     .queryParam("track_name", trackName)
                     .queryParam("artist_name", artistName)
-                    .build(true)
+                    .encode()
+                    .build()
                     .toUriString()
 
                 log.debug { "Fetching lyrics for track: $trackName by $artistName" }

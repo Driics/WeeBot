@@ -17,7 +17,7 @@ class JwtTokenService(private val jwtProperties: JwtProperties) {
 
     private val key: SecretKey = Keys.hmacShaKeyFor(jwtProperties.secret.toByteArray())
 
-    fun generateToken(userId: String, username: String, avatar: String?): String {
+    fun generateToken(userId: String, username: String, avatar: String?, accessToken: String? = null): String {
         val now = Date()
         val expiry = Date(now.time + jwtProperties.expirationMs)
 
@@ -25,6 +25,7 @@ class JwtTokenService(private val jwtProperties: JwtProperties) {
             .subject(userId)
             .claim("username", username)
             .claim("avatar", avatar)
+            .apply { if (accessToken != null) claim("at", accessToken) }
             .issuedAt(now)
             .expiration(expiry)
             .signWith(key)
@@ -52,4 +53,6 @@ class JwtTokenService(private val jwtProperties: JwtProperties) {
     fun extractUsername(token: String): String? = extractClaims(token).get("username", String::class.java)
 
     fun extractAvatar(token: String): String? = extractClaims(token).get("avatar", String::class.java)
+
+    fun extractAccessToken(token: String): String? = extractClaims(token).get("at", String::class.java)
 }

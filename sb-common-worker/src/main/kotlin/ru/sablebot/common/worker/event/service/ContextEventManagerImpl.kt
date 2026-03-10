@@ -5,6 +5,8 @@ import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Tag
 import io.micrometer.core.instrument.Timer
 import io.micrometer.core.instrument.binder.jvm.ExecutorServiceMetrics
+import io.micrometer.observation.Observation
+import io.micrometer.observation.ObservationRegistry
 import jakarta.annotation.PreDestroy
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.events.Event
@@ -23,7 +25,6 @@ import ru.sablebot.common.worker.configuration.WorkerProperties
 import ru.sablebot.common.worker.event.DiscordEvent
 import ru.sablebot.common.worker.event.intercept.EventFilterFactory
 import ru.sablebot.common.worker.event.listeners.DiscordEventListener
-import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
 
@@ -32,7 +33,8 @@ class ContextEventManagerImpl @Autowired constructor(
     private val workerProperties: WorkerProperties,
     private val mBeanExportOperations: MBeanExportOperations,
     private val contextService: ContextService,
-    private val meterRegistry: MeterRegistry
+    private val meterRegistry: MeterRegistry,
+    private val observationRegistry: ObservationRegistry
 ) : SbEventManager {
 
     companion object {
@@ -65,12 +67,16 @@ class ContextEventManagerImpl @Autowired constructor(
 
     private fun handleEvent(event: GenericEvent, eventType: String) {
         val sample = Timer.start(meterRegistry)
-        MDC.put("traceId", UUID.randomUUID().toString().replace("-", ""))
+        val observation = Observation.createNotStarted("discord.event", observationRegistry)
+            .lowCardinalityKeyValue("event_type", eventType)
+            .start()
+        val scope = observation.openScope()
         MDC.put("eventType", event.javaClass.simpleName)
         try {
             loopListeners(event)
             meterRegistry.counter(EVENTS_PROCESSED, "event_type", eventType).increment()
         } catch (e: Exception) {
+            observation.error(e)
             log.error("Event manager caused an uncaught exception", e)
             meterRegistry.counter(
                 EVENTS_ERRORS,
@@ -81,7 +87,9 @@ class ContextEventManagerImpl @Autowired constructor(
             ).increment()
         } finally {
             sample.stop(meterRegistry.timer(EVENTS_DURATION, "event_type", eventType))
-            MDC.clear()
+            MDC.remove("eventType")
+            scope.close()
+            observation.stop()
             contextService.resetContext()
         }
     }

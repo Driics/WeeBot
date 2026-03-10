@@ -37,6 +37,11 @@ dependencies {
     // Metrics
     implementation(libs.micrometer.prometheus)
 
+    // Distributed tracing (Brave/Zipkin → Tempo)
+    implementation(libs.micrometer.tracing.brave)
+    implementation(libs.zipkin.reporter.brave)
+    implementation(libs.zipkin.sender.urlconnection)
+
     // Structured logging
     implementation(libs.logstash.logback)
 

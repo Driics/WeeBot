@@ -12,3 +12,10 @@ scrape_configs:
       - targets: ["sablebot-worker:9090"]
         labels:
           app: "sablebot-worker"
+
+  - job_name: "sablebot-api"
+    metrics_path: "/actuator/prometheus"
+    static_configs:
+      - targets: [ "sablebot-api:9090" ]
+        labels:
+          app: "sablebot-api"

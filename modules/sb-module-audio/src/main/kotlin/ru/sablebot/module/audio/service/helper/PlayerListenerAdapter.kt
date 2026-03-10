@@ -1,11 +1,9 @@
 package ru.sablebot.module.audio.service.helper
 
-import dev.arbjerg.lavalink.client.event.TrackEndEvent
-import dev.arbjerg.lavalink.client.event.TrackExceptionEvent
-import dev.arbjerg.lavalink.client.event.TrackStartEvent
-import dev.arbjerg.lavalink.client.event.TrackStuckEvent
+import dev.arbjerg.lavalink.client.event.*
 import dev.arbjerg.lavalink.client.player.TrackException
 import dev.arbjerg.lavalink.protocol.v4.Message
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.micrometer.core.instrument.Gauge
 import io.micrometer.core.instrument.MeterRegistry
 import kotlinx.coroutines.CoroutineScope
@@ -22,6 +20,7 @@ abstract class PlayerListenerAdapter(
     private val scope: CoroutineScope,
     protected val meterRegistry: MeterRegistry? = null
 ) {
+    private val log = KotlinLogging.logger {}
     protected val instancesByGuild = ConcurrentHashMap<Long, PlaybackInstance>()
     private val listenersInitialized = AtomicBoolean(false)
 
@@ -65,6 +64,15 @@ abstract class PlayerListenerAdapter(
         thresholdMs: Long
     )
 
+    protected open suspend fun onWebSocketClosed(
+        instance: PlaybackInstance,
+        code: Int,
+        reason: String,
+        byRemote: Boolean
+    ) {
+        // Default: log and clean up on non-resumable close codes
+    }
+
     // ==================== Event Setup ====================
 
     private fun setupEventListeners() {
@@ -107,6 +115,23 @@ abstract class PlayerListenerAdapter(
                 meterRegistry?.counter(AUDIO_TRACKS_STUCK)?.increment()
                 instancesByGuild[event.guildId]?.let { instance ->
                     onTrackStuck(instance, event.thresholdMs)
+                }
+            }
+            .launchIn(scope)
+
+        lavalink.on<PlayerUpdateEvent>()
+            .asFlow()
+            .onEach { event ->
+                instancesByGuild[event.guildId]?.updatePositionFromLavalink(event.state.position)
+            }
+            .launchIn(scope)
+
+        lavalink.on<WebSocketClosedEvent>()
+            .asFlow()
+            .onEach { event ->
+                log.debug { "Voice WebSocket closed for guild ${event.guildId}: code=${event.code}, reason=${event.reason}, byRemote=${event.byRemote}" }
+                instancesByGuild[event.guildId]?.let { instance ->
+                    onWebSocketClosed(instance, event.code, event.reason, event.byRemote)
                 }
             }
             .launchIn(scope)

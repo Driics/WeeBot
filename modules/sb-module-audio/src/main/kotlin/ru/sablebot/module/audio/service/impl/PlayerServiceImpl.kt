@@ -77,7 +77,7 @@ class PlayerServiceImpl(
         return instancesByGuild.computeIfAbsent(guildId) { id ->
             musicConfigService.getOrCreate(guildId)
             val player = lavaAudioService.player(id)
-            registerInstance(PlaybackInstance(id, player))
+            PlaybackInstance(id, player)
         }
     }
 
@@ -469,6 +469,23 @@ class PlayerServiceImpl(
         log.warn { "Track stuck in guild ${instance.guildId} (threshold: ${thresholdMs}ms)" }
 
         if (!playNext(instance)) {
+            scope.launch(Dispatchers.IO) {
+                clearInstance(instance, notify = true)
+            }
+        }
+    }
+
+    override suspend fun onWebSocketClosed(
+        instance: PlaybackInstance,
+        code: Int,
+        reason: String,
+        byRemote: Boolean
+    ) {
+        // 4006 = session no longer valid, 4009 = session timeout
+        // Note: 4014 (disconnected) is NOT handled here — it fires during normal
+        // voice connection handoff and would cause premature cleanup
+        if (code == 4006 || code == 4009) {
+            log.info { "Voice WebSocket closed for guild ${instance.guildId} (code=$code, reason=$reason), cleaning up" }
             scope.launch(Dispatchers.IO) {
                 clearInstance(instance, notify = true)
             }

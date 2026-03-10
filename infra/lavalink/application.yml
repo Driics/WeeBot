@@ -3,10 +3,13 @@ server:
   address: 0.0.0.0
 
 lavalink:
+  plugins:
+    - dependency: "dev.lavalink.youtube:youtube-plugin:1.11.5"
+      repository: "https://maven.lavalink.dev/releases"
   server:
     password: ${LAVALINK_PASSWORD:-youshallnotpass}
     sources:
-      youtube: true
+      youtube: false
       bandcamp: true
       soundcloud: true
       twitch: true
@@ -17,9 +20,16 @@ lavalink:
     frameBufferDurationMs: 5000
     youtubePlaylistLoadLimit: 6
     playerUpdateInterval: 5
-    youtubeSearchEnabled: true
     soundcloudSearchEnabled: true
     gc-warnings: true
+
+plugins:
+  youtube:
+    enabled: true
+    clients:
+      - MUSIC
+      - WEB
+      - ANDROID_TESTSUITE
 
 logging:
   level:

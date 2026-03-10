@@ -1,8 +1,7 @@
 plugins {
-    alias(libs.plugins.kotlin.spring)
+    id("sablebot.kotlin-library")
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.kotlin.jpa)
-    id("sablebot.kotlin-library")
 }
 
 dependencies {

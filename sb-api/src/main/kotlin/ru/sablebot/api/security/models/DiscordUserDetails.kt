@@ -20,6 +20,9 @@ class DiscordUserDetails : AbstractDetails() {
     var email: String? = null
         private set
 
+    var accessToken: String? = null
+        internal set
+
     companion object {
 
         fun create(attrs: Map<String, Any?>): DiscordUserDetails =
@@ -31,6 +34,7 @@ class DiscordUserDetails : AbstractDetails() {
                 avatar = attrs["avatar"] as? String
                 discriminator = attrs["discriminator"] as? String
                 email = attrs["email"] as? String
+                accessToken = attrs["at"] as? String
             }
     }
 }

@@ -34,7 +34,8 @@ class JwtAuthenticationFilter(
                     mapOf(
                         "id" to claims.subject,
                         "username" to claims.get("username", String::class.java),
-                        "avatar" to claims.get("avatar", String::class.java)
+                        "avatar" to claims.get("avatar", String::class.java),
+                        "at" to claims.get("at", String::class.java)
                     )
                 )
 

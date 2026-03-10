@@ -21,7 +21,11 @@ spring:
   liquibase:
     change-log: "classpath:db/master.xml"
   kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:kafka:9092}
+    listener:
+      observation-enabled: true
+    template:
+      observation-enabled: true
     consumer:
       group-id: sablebot-api-group
       auto-offset-reset: latest
@@ -54,6 +58,12 @@ management:
   metrics:
     tags:
       application: sablebot-api
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: ${TEMPO_ENDPOINT:http://localhost:9411/api/v2/spans}
   prometheus:
     metrics:
       export:

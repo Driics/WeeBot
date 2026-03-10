@@ -27,6 +27,7 @@ spring-cloud-bom = { module = "org.springframework.cloud:spring-cloud-dependenci
 
 # Gradle plugins (for build-logic dependencies)
 kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
+kotlin-allopen = { module = "org.jetbrains.kotlin:kotlin-allopen", version.ref = "kotlin" }
 spring-boot-gradle-plugin = { module = "org.springframework.boot:spring-boot-gradle-plugin", version.ref = "spring-boot" }
 
 # Kotlin
@@ -109,6 +110,7 @@ mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
 
 [bundles]
 testing = ["spring-boot-starter-test", "kotlin-test-junit5", "mockk", "kotlinx-coroutines-test", "junit-platform-launcher"]
+
 discord = ["jda", "jda-ktx", "discord-webhooks"]
 monitoring = ["micrometer-core", "micrometer-prometheus", "micrometer-tracing-brave", "zipkin-reporter-brave", "zipkin-sender-urlconnection"]
 jwt = ["jjwt-api", "jjwt-impl", "jjwt-jackson"]

@@ -33,16 +33,24 @@ class PlayCommand(
         }
 
         override suspend fun execute(context: ApplicationCommandContext, args: SlashCommandArguments) {
+            val member = context.member
             try {
-                val member = context.member
                 AudioCommandPreconditions.requireVoiceChannel(member)
-                context.deferChannelMessage(false)
+            } catch (e: DiscordException) {
+                context.reply(ephemeral = true, e.message ?: "An error occurred")
+                return
+            }
+
+            val hook = context.deferChannelMessage(false)
+            try {
                 val query = args[options.query]
                 val channel = context.channel as TextChannel
                 playerService.loadAndPlay(channel, member, query)
             } catch (e: DiscordException) {
-                context.reply(ephemeral = true, e.message ?: "An error occurred")
+                hook.editOriginal { content = e.message ?: "An error occurred" }
+                return
             }
+            hook.jdaHook.deleteOriginal().queue(null) {}
         }
     }
 }

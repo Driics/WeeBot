@@ -2,6 +2,7 @@ plugins {
     java
     `java-library`
     id("org.jetbrains.kotlin.jvm")
+    kotlin("plugin.spring")
 }
 
 repositories {

@@ -7,11 +7,13 @@ import jakarta.servlet.http.HttpServletResponse
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
+import ru.sablebot.api.dto.auth.GuildInfoResponse
 import ru.sablebot.api.dto.auth.UserInfoResponse
 import ru.sablebot.api.security.config.CookieProperties
 import ru.sablebot.api.security.config.CorsProperties
 import ru.sablebot.api.security.config.DiscordProperties
 import ru.sablebot.api.security.filter.JwtAuthenticationFilter
+import ru.sablebot.api.security.service.GuildPermissionService
 import ru.sablebot.api.security.service.JwtTokenService
 import ru.sablebot.api.security.utils.SecurityUtils
 import ru.sablebot.api.service.DiscordApiService
@@ -25,7 +27,8 @@ class AuthController(
     private val corsProperties: CorsProperties,
     private val cookieProperties: CookieProperties,
     private val discordApiService: DiscordApiService,
-    private val jwtTokenService: JwtTokenService
+    private val jwtTokenService: JwtTokenService,
+    private val guildPermissionService: GuildPermissionService
 ) {
     private val logger = KotlinLogging.logger {}
 
@@ -84,7 +87,7 @@ class AuthController(
         val tokens = discordApiService.exchangeCode(code)
         val user = discordApiService.getCurrentUser(tokens.accessToken)
 
-        val jwt = jwtTokenService.generateToken(user.id, user.username, user.avatar)
+        val jwt = jwtTokenService.generateToken(user.id, user.username, user.avatar, tokens.accessToken)
 
         val cookie = Cookie(JwtAuthenticationFilter.COOKIE_NAME, jwt).apply {
             isHttpOnly = true
@@ -118,13 +121,42 @@ class AuthController(
             ?: return ResponseEntity.status(401).build()
 
         val userId = details.id ?: return ResponseEntity.status(401).build()
+        val accessToken = details.accessToken
+
+        val guilds = if (accessToken != null) {
+            try {
+                val botGuildIds = discordApiService.getBotGuildIds()
+                val userGuilds = discordApiService.getUserGuilds(accessToken)
+
+                // Cache permissions for later use in guild-specific endpoints
+                guildPermissionService.cacheGuildsPermissions(
+                    userId,
+                    userGuilds.map { it.id to it.permissions }
+                )
+
+                userGuilds.map { guild ->
+                    GuildInfoResponse(
+                        id = guild.id,
+                        name = guild.name,
+                        icon = guild.icon,
+                        permissions = guild.permissions,
+                        botPresent = guild.id in botGuildIds
+                    )
+                }
+            } catch (e: Exception) {
+                logger.warn(e) { "Failed to fetch guilds for user $userId" }
+                emptyList()
+            }
+        } else {
+            emptyList()
+        }
 
         return ResponseEntity.ok(
             UserInfoResponse(
                 id = userId,
                 username = details.userName ?: "",
                 avatar = details.avatar,
-                guilds = emptyList()
+                guilds = guilds
             )
         )
     }

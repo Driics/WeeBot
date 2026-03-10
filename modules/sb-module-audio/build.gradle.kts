@@ -1,5 +1,4 @@
 plugins {
-    alias(libs.plugins.kotlin.spring)
     id("sablebot.kotlin-library")
 }
 

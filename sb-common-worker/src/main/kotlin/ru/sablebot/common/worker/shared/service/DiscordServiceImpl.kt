@@ -45,21 +45,31 @@ open class DiscordServiceImpl @Autowired constructor(
         val token = workerProperties.discord.token
         require(token.isNotBlank()) { "No Discord token provided" }
 
-        try {
-            RestAction.setPassContext(false)
-            val shardManagerBuilder = DefaultShardManagerBuilder.createDefault(token)
-                .setEventManagerProvider { eventManager }
-                .addEventListeners(this)
-                .setEnableShutdownHook(false)
+        RestAction.setPassContext(false)
+        val shardManagerBuilder = DefaultShardManagerBuilder.createDefault(token)
+            .setEventManagerProvider { eventManager }
+            .addEventListeners(this)
+            .setEnableShutdownHook(false)
 
-            audioServices.mapNotNull { it.voiceInterceptor() }.firstOrNull()?.let {
-                shardManagerBuilder.setVoiceDispatchInterceptor(it)
+        audioServices.mapNotNull { it.voiceInterceptor() }.firstOrNull()?.let {
+            shardManagerBuilder.setVoiceDispatchInterceptor(it)
+        }
+
+        val maxRetries = 5
+        for (attempt in 1..maxRetries) {
+            try {
+                _shardManager = shardManagerBuilder.build()
+                return
+            } catch (e: LoginException) {
+                throw IllegalStateException("Invalid Discord token", e)
+            } catch (e: Exception) {
+                if (attempt == maxRetries) {
+                    throw IllegalStateException("Failed to connect to Discord after $maxRetries attempts", e)
+                }
+                val delay = attempt * 5L
+                log.warn(e) { "Discord connection attempt $attempt/$maxRetries failed, retrying in ${delay}s..." }
+                Thread.sleep(delay * 1000)
             }
-
-            _shardManager = shardManagerBuilder.build()
-        } catch (e: LoginException) {
-            log.error(e) { "Couldn't login bot with specified token" }
-            // Handle the exception appropriately, maybe re-attempt login or shutdown gracefully
         }
     }
 
