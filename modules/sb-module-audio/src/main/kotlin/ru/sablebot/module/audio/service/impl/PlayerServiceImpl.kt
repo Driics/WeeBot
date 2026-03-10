@@ -89,7 +89,7 @@ class PlayerServiceImpl(
     // ==================== Connection ====================
 
     @Throws(DiscordException::class)
-    override fun connectToChannel(instance: PlaybackInstance, member: Member): VoiceChannel {
+    override suspend fun connectToChannel(instance: PlaybackInstance, member: Member): VoiceChannel {
         // Check Lavalink readiness before attempting connection
         if (!lavaAudioService.isReady()) {
             log.warn { "Lavalink unavailable for guild ${instance.guildId} - connection refused" }
@@ -103,8 +103,28 @@ class PlayerServiceImpl(
         lavaAudioService.lavalink.getOrCreateLink(instance.guildId)
         log.debug { "Pre-created Lavalink Link for guild ${instance.guildId} before voice connection" }
 
-        lavaAudioService.connect(voiceChannel)
-        return voiceChannel
+        // Retry logic with progressive backoff (3 attempts: 0ms, 500ms, 1000ms delays)
+        repeat(3) { attempt ->
+            try {
+                log.debug { "Attempting voice connection for guild ${instance.guildId} (attempt ${attempt + 1}/3)" }
+                lavaAudioService.connect(voiceChannel)
+                log.debug { "Successfully connected to voice channel for guild ${instance.guildId}" }
+                return voiceChannel
+            } catch (e: Exception) {
+                if (attempt < 2) {
+                    val delayMs = 500L * (attempt + 1)
+                    log.warn { "Connection attempt ${attempt + 1} failed for guild ${instance.guildId}, retrying in ${delayMs}ms: ${e.message}" }
+                    meterRegistry?.counter("sablebot.audio.connection.retries")?.increment()
+                    delay(delayMs)
+                } else {
+                    log.error { "All connection attempts failed for guild ${instance.guildId}: ${e.message}" }
+                    throw e
+                }
+            }
+        }
+
+        // This should never be reached due to the return or throw above
+        throw DiscordException("discord.command.audio.error.connectionTimeout")
     }
 
     override fun isInChannel(member: Member): Boolean {
