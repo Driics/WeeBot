@@ -95,7 +95,7 @@ class DefaultAudioServiceImpl(
         channel.jda.directAudioController.connect(channel)
     }
 
-    suspend fun connectAndWait(channel: VoiceChannel): Boolean {
+    override suspend fun connectAndWait(channel: VoiceChannel): Boolean {
         connect(channel)
 
         val guild = channel.guild

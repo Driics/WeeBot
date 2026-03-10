@@ -112,8 +112,10 @@ class PlayerServiceImpl(
         repeat(3) { attempt ->
             try {
                 log.debug { "Attempting voice connection for guild ${instance.guildId} (attempt ${attempt + 1}/3)" }
-                lavaAudioService.connect(voiceChannel)
-                log.debug { "Successfully connected to voice channel for guild ${instance.guildId}" }
+                if (!lavaAudioService.connectAndWait(voiceChannel)) {
+                    throw DiscordException("discord.command.audio.error.connectionTimeout")
+                }
+                log.debug { "Successfully connected to voice channel and synchronized voice state for guild ${instance.guildId}" }
                 connectionSuccessCounter?.increment()
                 return voiceChannel
             } catch (e: Exception) {
