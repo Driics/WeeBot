@@ -84,6 +84,10 @@ class DefaultAudioServiceImpl(
         channel.jda.directAudioController.connect(channel)
     }
 
+    override suspend fun connectAndWait(channel: VoiceChannel, timeoutMs: Long): Boolean {
+        TODO("Implementation to be added in subtask-1-2")
+    }
+
     override fun disconnect(guild: Guild) = guild.jda.directAudioController.disconnect(guild)
 
     override fun isConnected(guild: Guild): Boolean = guild.audioManager.isConnected
