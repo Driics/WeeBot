@@ -62,7 +62,8 @@ open class WorkerProperties {
         var itemLoaderThreadPoolSize: Int = 500,
         var panelRefreshInterval: Int = 5000,
         var lavalink: Lavalink = Lavalink(),
-        var yandexProxy: YandexProxy = YandexProxy()
+        var yandexProxy: YandexProxy = YandexProxy(),
+        var connection: Connection = Connection()
     ) {
         data class Lavalink(
             var enabled: Boolean = false,
@@ -85,6 +86,10 @@ open class WorkerProperties {
         data class YandexProxy(
             var host: String = "",
             var port: Int = 0
+        )
+
+        data class Connection(
+            var timeoutMs: Long = 10000L
         )
     }
 
