@@ -95,6 +95,25 @@ class DefaultAudioServiceImpl(
         channel.jda.directAudioController.connect(channel)
     }
 
+    suspend fun connectAndWait(channel: VoiceChannel): Boolean {
+        connect(channel)
+
+        val guild = channel.guild
+        try {
+            withTimeout(10_000) {
+                while (!isConnected(guild)) {
+                    delay(100)
+                }
+                // Post-connection buffer for Lavalink voice state processing
+                delay(200)
+            }
+            return true
+        } catch (e: Exception) {
+            log.warn(e) { "Connection timeout for guild ${guild.idLong} in channel ${channel.name}" }
+            return false
+        }
+    }
+
     override fun disconnect(guild: Guild) = guild.jda.directAudioController.disconnect(guild)
 
     override fun isConnected(guild: Guild): Boolean = guild.audioManager.isConnected
