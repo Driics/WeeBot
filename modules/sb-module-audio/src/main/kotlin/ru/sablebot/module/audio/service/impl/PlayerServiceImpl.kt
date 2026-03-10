@@ -90,6 +90,12 @@ class PlayerServiceImpl(
 
     @Throws(DiscordException::class)
     override fun connectToChannel(instance: PlaybackInstance, member: Member): VoiceChannel {
+        // Check Lavalink readiness before attempting connection
+        if (!lavaAudioService.isReady()) {
+            log.warn { "Lavalink unavailable for guild ${instance.guildId} - connection refused" }
+            throw DiscordException("discord.command.audio.error.lavalinkUnavailable")
+        }
+
         val voiceChannel = member.voiceState?.channel?.asVoiceChannel()
             ?: throw DiscordException("discord.command.audio.error.notInChannel")
 
