@@ -51,6 +51,12 @@ class DefaultAudioServiceImpl(
             }
                 .description("Number of available Lavalink nodes")
                 .register(meterRegistry)
+
+            Gauge.builder("sablebot.audio.lavalink.ready", this) {
+                if (it.hasAvailableNode()) 1.0 else 0.0
+            }
+                .description("Lavalink node availability status")
+                .register(meterRegistry)
         }
     }
 
@@ -195,4 +201,10 @@ class DefaultAudioServiceImpl(
     private fun optimalNodeOrThrow(): LavalinkNode =
         lavalink.nodes.filter { it.available }.minByOrNull { it.penalties.calculateTotal() }
             ?: error("No available Lavalink nodes")
+
+    private fun hasAvailableNode(): Boolean =
+        lavalink.nodes.any { it.available }
+
+    fun isReady(): Boolean =
+        ::lavalink.isInitialized && hasAvailableNode()
 }
