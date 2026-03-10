@@ -8,6 +8,7 @@ import net.dv8tion.jda.api.entities.Guild
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.User
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
+import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -33,6 +34,76 @@ open class TicketServiceImpl(
 
     private fun recordAction(type: String) {
         meterRegistry.counter("sablebot.tickets.actions", "type", type).increment()
+    }
+
+    /**
+     * Archives a ticket thread (marks it as closed in Discord)
+     */
+    private suspend fun archiveThread(guild: Guild, ticket: Ticket) {
+        val threadId = ticket.threadId
+        if (threadId.isNullOrBlank()) {
+            log.debug { "Ticket #${ticket.ticketNumber} has no thread ID, skipping archive" }
+            return
+        }
+
+        try {
+            val thread = guild.getThreadChannelById(threadId)
+            if (thread == null) {
+                log.warn { "Thread $threadId not found for ticket #${ticket.ticketNumber} in guild ${guild.name} (${guild.id})" }
+                return
+            }
+
+            // Check if bot has permission to manage threads
+            if (!guild.selfMember.hasPermission(thread.parentChannel.asTextChannel(), Permission.MANAGE_THREADS)) {
+                log.warn { "Bot lacks MANAGE_THREADS permission in channel ${thread.parentChannel.id} for ticket #${ticket.ticketNumber}" }
+                return
+            }
+
+            // Archive and lock the thread
+            thread.manager
+                .setArchived(true)
+                .setLocked(true)
+                .await()
+
+            log.debug { "Archived thread $threadId for ticket #${ticket.ticketNumber}" }
+        } catch (e: Exception) {
+            log.error(e) { "Failed to archive thread $threadId for ticket #${ticket.ticketNumber}: ${e.message}" }
+        }
+    }
+
+    /**
+     * Unarchives a ticket thread (reopens it in Discord)
+     */
+    private suspend fun unarchiveThread(guild: Guild, ticket: Ticket) {
+        val threadId = ticket.threadId
+        if (threadId.isNullOrBlank()) {
+            log.debug { "Ticket #${ticket.ticketNumber} has no thread ID, skipping unarchive" }
+            return
+        }
+
+        try {
+            val thread = guild.getThreadChannelById(threadId)
+            if (thread == null) {
+                log.warn { "Thread $threadId not found for ticket #${ticket.ticketNumber} in guild ${guild.name} (${guild.id})" }
+                return
+            }
+
+            // Check if bot has permission to manage threads
+            if (!guild.selfMember.hasPermission(thread.parentChannel.asTextChannel(), Permission.MANAGE_THREADS)) {
+                log.warn { "Bot lacks MANAGE_THREADS permission in channel ${thread.parentChannel.id} for ticket #${ticket.ticketNumber}" }
+                return
+            }
+
+            // Unarchive and unlock the thread
+            thread.manager
+                .setArchived(false)
+                .setLocked(false)
+                .await()
+
+            log.debug { "Unarchived thread $threadId for ticket #${ticket.ticketNumber}" }
+        } catch (e: Exception) {
+            log.error(e) { "Failed to unarchive thread $threadId for ticket #${ticket.ticketNumber}: ${e.message}" }
+        }
     }
 
     @Transactional
@@ -98,6 +169,9 @@ open class TicketServiceImpl(
         }
         addSystemMessage(guild, savedTicket, closeMessage)
 
+        // Archive the thread
+        archiveThread(guild, savedTicket)
+
         log.info { "Closed ticket #${ticket.ticketNumber} in guild ${guild.name} (${guild.id}) by ${closedBy.effectiveName} (${closedBy.id})" }
 
         return savedTicket
@@ -120,6 +194,9 @@ open class TicketServiceImpl(
 
         // Add system message
         addSystemMessage(guild, savedTicket, "Ticket reopened by ${reopenedBy.effectiveName}")
+
+        // Unarchive the thread
+        unarchiveThread(guild, savedTicket)
 
         log.info { "Reopened ticket #${ticket.ticketNumber} in guild ${guild.name} (${guild.id}) by ${reopenedBy.effectiveName} (${reopenedBy.id})" }
 
