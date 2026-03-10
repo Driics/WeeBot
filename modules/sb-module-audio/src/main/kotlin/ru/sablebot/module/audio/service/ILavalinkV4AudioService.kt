@@ -16,6 +16,8 @@ interface ILavalinkV4AudioService : AudioService {
 
     fun isConnected(guild: Guild): Boolean
 
+    fun isReady(): Boolean
+
     fun shutdown()
 
     fun addOnConfiguredCallback(callback: () -> Unit)

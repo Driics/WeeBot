@@ -222,6 +222,6 @@ class DefaultAudioServiceImpl(
     private fun hasAvailableNode(): Boolean =
         lavalink.nodes.any { it.available }
 
-    fun isReady(): Boolean =
+    override fun isReady(): Boolean =
         ::lavalink.isInitialized && hasAvailableNode()
 }
