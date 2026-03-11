@@ -57,6 +57,11 @@ class PlayerServiceImpl(
     private val log = KotlinLogging.logger {}
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
+    // Connection metrics counters
+    private val connectionRetriesCounter = meterRegistry?.counter("sablebot.audio.connection.retries")
+    private val connectionSuccessCounter = meterRegistry?.counter("sablebot.audio.connection.success")
+    private val connectionFailureCounter = meterRegistry?.counter("sablebot.audio.connection.failure")
+
     init {
         lavaAudioService.addOnConfiguredCallback { initializeListeners() }
     }
@@ -77,7 +82,7 @@ class PlayerServiceImpl(
         return instancesByGuild.computeIfAbsent(guildId) { id ->
             musicConfigService.getOrCreate(guildId)
             val player = lavaAudioService.player(id)
-            PlaybackInstance(id, player)
+            registerInstance(PlaybackInstance(id, player))
         }
     }
 
@@ -90,16 +95,45 @@ class PlayerServiceImpl(
 
     @Throws(DiscordException::class)
     override suspend fun connectToChannel(instance: PlaybackInstance, member: Member): VoiceChannel {
+        // Check Lavalink readiness before attempting connection
+        if (!lavaAudioService.isReady()) {
+            log.warn { "Lavalink unavailable for guild ${instance.guildId} - connection refused" }
+            throw DiscordException("discord.command.audio.error.lavalinkUnavailable")
+        }
+
         val voiceChannel = member.voiceState?.channel?.asVoiceChannel()
             ?: throw DiscordException("discord.command.audio.error.notInChannel")
 
-        val connected = lavaAudioService.connectAndWait(voiceChannel, workerProperties.audio.connection.timeoutMs)
-        if (!connected) {
-            throw DiscordException("discord.command.audio.error.connectionTimeout")
+        // Pre-create Lavalink Link to prevent race condition with JDA voice state updates
+        lavaAudioService.lavalink.getOrCreateLink(instance.guildId)
+        log.debug { "Pre-created Lavalink Link for guild ${instance.guildId} before voice connection" }
+
+        // Retry logic with progressive backoff (3 attempts: 0ms, 500ms, 1000ms delays)
+        repeat(3) { attempt ->
+            try {
+                log.debug { "Attempting voice connection for guild ${instance.guildId} (attempt ${attempt + 1}/3)" }
+                if (!lavaAudioService.connectAndWait(voiceChannel)) {
+                    throw DiscordException("discord.command.audio.error.connectionTimeout")
+                }
+                log.debug { "Successfully connected to voice channel and synchronized voice state for guild ${instance.guildId}" }
+                connectionSuccessCounter?.increment()
+                return voiceChannel
+            } catch (e: Exception) {
+                if (attempt < 2) {
+                    val delayMs = 500L * (attempt + 1)
+                    log.warn { "Connection attempt ${attempt + 1} failed for guild ${instance.guildId}, retrying in ${delayMs}ms: ${e.message}" }
+                    connectionRetriesCounter?.increment()
+                    delay(delayMs)
+                } else {
+                    log.error { "All connection attempts failed for guild ${instance.guildId}: ${e.message}" }
+                    connectionFailureCounter?.increment()
+                    throw e
+                }
+            }
         }
 
-        log.info { "Voice connected for guild ${instance.guildId}" }
-        return voiceChannel
+        // This should never be reached due to the return or throw above
+        throw DiscordException("discord.command.audio.error.connectionTimeout")
     }
 
     override fun isInChannel(member: Member): Boolean {
@@ -219,13 +253,7 @@ class PlayerServiceImpl(
 
         val member = request.member()
         if (member != null) {
-            try {
-                connectToChannel(instance, member)
-            } catch (e: DiscordException) {
-                log.warn(e) { "Failed to connect to voice channel for guild ${instance.guildId}" }
-                clearInstance(instance, notify = false)
-                throw e
-            }
+            connectToChannel(instance, member)
         }
 
         val trackToStart = instance.enqueue(request)
@@ -245,13 +273,7 @@ class PlayerServiceImpl(
         val filtered = validationService.filterPlaylist(requests, member, playlistRequested = true)
         if (filtered.isEmpty()) return 0
 
-        try {
-            connectToChannel(instance, member)
-        } catch (e: DiscordException) {
-            log.warn(e) { "Failed to connect to voice channel for guild ${instance.guildId}" }
-            clearInstance(instance, notify = false)
-            throw e
-        }
+        connectToChannel(instance, member)
 
         var started = false
         for (request in filtered) {
@@ -486,23 +508,6 @@ class PlayerServiceImpl(
         log.warn { "Track stuck in guild ${instance.guildId} (threshold: ${thresholdMs}ms)" }
 
         if (!playNext(instance)) {
-            scope.launch(Dispatchers.IO) {
-                clearInstance(instance, notify = true)
-            }
-        }
-    }
-
-    override suspend fun onWebSocketClosed(
-        instance: PlaybackInstance,
-        code: Int,
-        reason: String,
-        byRemote: Boolean
-    ) {
-        // 4006 = session no longer valid, 4009 = session timeout
-        // Note: 4014 (disconnected) is NOT handled here — it fires during normal
-        // voice connection handoff and would cause premature cleanup
-        if (code == 4006 || code == 4009) {
-            log.info { "Voice WebSocket closed for guild ${instance.guildId} (code=$code, reason=$reason), cleaning up" }
             scope.launch(Dispatchers.IO) {
                 clearInstance(instance, notify = true)
             }
