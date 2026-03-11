@@ -12,9 +12,12 @@ interface ILavalinkV4AudioService : AudioService {
     fun player(guildId: Long): LavalinkPlayer
 
     fun connect(channel: VoiceChannel)
+    suspend fun connectAndWait(channel: VoiceChannel): Boolean
     fun disconnect(guild: Guild)
 
     fun isConnected(guild: Guild): Boolean
+
+    fun isReady(): Boolean
 
     fun shutdown()
 

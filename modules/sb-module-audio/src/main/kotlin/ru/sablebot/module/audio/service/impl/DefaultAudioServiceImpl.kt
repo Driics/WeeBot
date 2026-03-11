@@ -23,6 +23,9 @@ import ru.sablebot.module.audio.service.ILavalinkV4AudioService
 import java.net.URI
 import java.util.Base64
 import java.util.concurrent.ConcurrentHashMap
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 
 @Service
 class DefaultAudioServiceImpl(
@@ -51,6 +54,12 @@ class DefaultAudioServiceImpl(
             }
                 .description("Number of available Lavalink nodes")
                 .register(meterRegistry)
+
+            Gauge.builder("sablebot.audio.lavalink.ready", this) {
+                if (it.hasAvailableNode()) 1.0 else 0.0
+            }
+                .description("Lavalink node availability status")
+                .register(meterRegistry)
         }
     }
 
@@ -65,7 +74,9 @@ class DefaultAudioServiceImpl(
 
         this.jdaProvider = { shardId -> discordService.getShardById(shardId) }
 
-        addNodes()
+        runBlocking {
+            addNodes()
+        }
     }
 
     private fun extractUserIdFromToken(token: String): Long {
@@ -82,6 +93,25 @@ class DefaultAudioServiceImpl(
 
     override fun connect(channel: VoiceChannel) {
         channel.jda.directAudioController.connect(channel)
+    }
+
+    override suspend fun connectAndWait(channel: VoiceChannel): Boolean {
+        connect(channel)
+
+        val guild = channel.guild
+        try {
+            withTimeout(10_000) {
+                while (!isConnected(guild)) {
+                    delay(100)
+                }
+                // Post-connection buffer for Lavalink voice state processing
+                delay(200)
+            }
+            return true
+        } catch (e: Exception) {
+            log.warn(e) { "Connection timeout for guild ${guild.idLong} in channel ${channel.name}" }
+            return false
+        }
     }
 
     override fun disconnect(guild: Guild) = guild.jda.directAudioController.disconnect(guild)
@@ -110,7 +140,7 @@ class DefaultAudioServiceImpl(
         }
     }
 
-    private fun addNodes() {
+    private suspend fun addNodes() {
         val cfg = workerProperties.audio.lavalink
 
         cfg.nodes.forEach { nodeCfg ->
@@ -131,6 +161,18 @@ class DefaultAudioServiceImpl(
         val discovery = cfg.discovery
         if (discovery != null && discovery.enabled && discovery.serviceName.isNotBlank()) {
             scheduler.scheduleWithFixedDelay(::lookUpDiscovery, 60_000L)
+        }
+
+        // Wait for at least one node to become available with 30s timeout
+        try {
+            withTimeout(30_000) {
+                while (!hasAvailableNode()) {
+                    delay(500)
+                }
+                log.info { "Lavalink nodes ready: ${lavalink.nodes.count { it.available }} node(s) available" }
+            }
+        } catch (e: Exception) {
+            log.warn { "Lavalink node readiness timeout after 30s: ${lavalink.nodes.size} node(s) configured, 0 available" }
         }
     }
 
@@ -195,4 +237,10 @@ class DefaultAudioServiceImpl(
     private fun optimalNodeOrThrow(): LavalinkNode =
         lavalink.nodes.filter { it.available }.minByOrNull { it.penalties.calculateTotal() }
             ?: error("No available Lavalink nodes")
+
+    private fun hasAvailableNode(): Boolean =
+        lavalink.nodes.any { it.available }
+
+    override fun isReady(): Boolean =
+        ::lavalink.isInitialized && hasAvailableNode()
 }

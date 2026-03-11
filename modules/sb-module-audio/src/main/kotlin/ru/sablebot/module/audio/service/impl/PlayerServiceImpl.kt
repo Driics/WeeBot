@@ -57,6 +57,11 @@ class PlayerServiceImpl(
     private val log = KotlinLogging.logger {}
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
+    // Connection metrics counters
+    private val connectionRetriesCounter = meterRegistry?.counter("sablebot.audio.connection.retries")
+    private val connectionSuccessCounter = meterRegistry?.counter("sablebot.audio.connection.success")
+    private val connectionFailureCounter = meterRegistry?.counter("sablebot.audio.connection.failure")
+
     init {
         lavaAudioService.addOnConfiguredCallback { initializeListeners() }
     }
@@ -89,12 +94,46 @@ class PlayerServiceImpl(
     // ==================== Connection ====================
 
     @Throws(DiscordException::class)
-    override fun connectToChannel(instance: PlaybackInstance, member: Member): VoiceChannel {
+    override suspend fun connectToChannel(instance: PlaybackInstance, member: Member): VoiceChannel {
+        // Check Lavalink readiness before attempting connection
+        if (!lavaAudioService.isReady()) {
+            log.warn { "Lavalink unavailable for guild ${instance.guildId} - connection refused" }
+            throw DiscordException("discord.command.audio.error.lavalinkUnavailable")
+        }
+
         val voiceChannel = member.voiceState?.channel?.asVoiceChannel()
             ?: throw DiscordException("discord.command.audio.error.notInChannel")
 
-        lavaAudioService.connect(voiceChannel)
-        return voiceChannel
+        // Pre-create Lavalink Link to prevent race condition with JDA voice state updates
+        lavaAudioService.lavalink.getOrCreateLink(instance.guildId)
+        log.debug { "Pre-created Lavalink Link for guild ${instance.guildId} before voice connection" }
+
+        // Retry logic with progressive backoff (3 attempts: 0ms, 500ms, 1000ms delays)
+        repeat(3) { attempt ->
+            try {
+                log.debug { "Attempting voice connection for guild ${instance.guildId} (attempt ${attempt + 1}/3)" }
+                if (!lavaAudioService.connectAndWait(voiceChannel)) {
+                    throw DiscordException("discord.command.audio.error.connectionTimeout")
+                }
+                log.debug { "Successfully connected to voice channel and synchronized voice state for guild ${instance.guildId}" }
+                connectionSuccessCounter?.increment()
+                return voiceChannel
+            } catch (e: Exception) {
+                if (attempt < 2) {
+                    val delayMs = 500L * (attempt + 1)
+                    log.warn { "Connection attempt ${attempt + 1} failed for guild ${instance.guildId}, retrying in ${delayMs}ms: ${e.message}" }
+                    connectionRetriesCounter?.increment()
+                    delay(delayMs)
+                } else {
+                    log.error { "All connection attempts failed for guild ${instance.guildId}: ${e.message}" }
+                    connectionFailureCounter?.increment()
+                    throw e
+                }
+            }
+        }
+
+        // This should never be reached due to the return or throw above
+        throw DiscordException("discord.command.audio.error.connectionTimeout")
     }
 
     override fun isInChannel(member: Member): Boolean {
